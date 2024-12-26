@@ -39,6 +39,20 @@ public:
     MApplication() noexcept;
     int exec();
 
+    const std::string &appId() const noexcept
+    {
+        return m_appId;
+    }
+
+    void setAppId(const std::string &appId)
+    {
+        if (m_appId == appId)
+            return;
+
+        m_appId = appId;
+        on.appIdChanged.notify(m_appId);
+    }
+
     Wayland &wayland() noexcept
     {
         return wl;
@@ -63,6 +77,7 @@ public:
     {
         AK::AKSignal<MScreen&> screenPlugged;
         AK::AKSignal<MScreen&> screenUnplugged;
+        AK::AKSignal<const std::string&> appIdChanged;
     } on;
 private:
     friend class MSurface;
@@ -81,6 +96,7 @@ private:
     bool m_running { false };
     Wayland wl;
     Graphics gl;
+    std::string m_appId;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
 };

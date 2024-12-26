@@ -254,7 +254,7 @@ void MApplication::initGraphics() noexcept
     contextOptions.fReduceOpsTaskSplitting = GrContextOptions::Enable::kYes;
     contextOptions.fDisableDriverCorrectnessWorkarounds = true;
     contextOptions.fRuntimeProgramCacheSize = 1024;
-    contextOptions.fInternalMultisampleCount = 4;
+    contextOptions.fInternalMultisampleCount = 0;
     contextOptions.fDisableTessellationPathRenderer = false;
     contextOptions.fAllowMSAAOnNewIntel = true;
     contextOptions.fAlwaysUseTexStorageWhenAvailable = true;

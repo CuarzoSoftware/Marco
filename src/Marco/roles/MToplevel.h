@@ -28,6 +28,25 @@ public:
         m_windowSize = size;
     }
 
+    void setTitle(const std::string &title)
+    {
+        if (m_title == title)
+            return;
+
+        m_title = title;
+        on.titleChanged.notify(m_title);
+    }
+
+    const std::string &title() const noexcept
+    {
+        return m_title;
+    }
+
+    struct
+    {
+        AK::AKSignal<const std::string &> titleChanged;
+    } on;
+
 protected:
     enum Changes
     {
@@ -41,10 +60,6 @@ protected:
         CHLast
     };
 
-    static void wl_surface_enter(void *data, wl_surface *surface, wl_output *output);
-    static void wl_surface_leave(void *data,wl_surface *surface, wl_output *output);
-    static void wl_surface_preferred_buffer_scale(void *data, wl_surface *surface, Int32 factor);
-    static void wl_surface_preferred_buffer_transform(void *data, wl_surface *surface, UInt32 transform);
     static void xdg_surface_configure(void *data, xdg_surface *xdgSurface, UInt32 serial);
     static void xdg_toplevel_configure(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height, wl_array *states);
     static void xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel);
@@ -69,6 +84,8 @@ protected:
         AK::AKBitset<State> states;
         SkISize windowSize { 0, 0 };
     }m_conf;
+
+    std::string m_title;
 };
 
 #endif // MTOPLEVEL_H

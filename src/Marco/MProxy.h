@@ -24,6 +24,11 @@ public:
         m_name = name;
     }
 
+    T *get() const noexcept
+    {
+        return static_cast<T*>(m_proxy);
+    }
+
     void setName(UInt32 name) noexcept
     {
         m_name = name;
@@ -34,9 +39,9 @@ public:
         return m_name;
     }
 
-    operator T *() noexcept
+    operator T *() const noexcept
     {
-        return static_cast<T*>(m_proxy);
+        return get();
     }
 
     void reset() noexcept

@@ -79,6 +79,11 @@ public:
         return kUnknown_SkPixelGeometry;
     }
 
+    wl_output *wlOutput() const noexcept
+    {
+        return m_proxy.get();
+    }
+
 private:
     friend class MApplication;
     MScreen(void *proxy, UInt32 name) noexcept : m_proxy(proxy, name) {}

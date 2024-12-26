@@ -9,7 +9,6 @@
 
 using namespace Marco;
 
-static wl_surface_listener wlSurfaceListener;
 static xdg_surface_listener xdgSurfaceListener;
 static xdg_toplevel_listener xdgToplevelListener;
 
@@ -17,24 +16,21 @@ static SkSurfaceProps skSurfaceProps(0, kUnknown_SkPixelGeometry);
 
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {
-    wlSurfaceListener.enter = wl_surface_enter;
-    wlSurfaceListener.leave = wl_surface_leave;
-    wlSurfaceListener.preferred_buffer_scale = wl_surface_preferred_buffer_scale;
-    wlSurfaceListener.preferred_buffer_transform = wl_surface_preferred_buffer_transform;
     xdgSurfaceListener.configure = xdg_surface_configure;
     xdgToplevelListener.configure = xdg_toplevel_configure;
     xdgToplevelListener.configure_bounds = xdg_toplevel_configure_bounds;
     xdgToplevelListener.close = xdg_toplevel_close;
     xdgToplevelListener.wm_capabilities = xdg_toplevel_wm_capabilities;
 
-    m_wlSurface = wl_compositor_create_surface(app()->wayland().compositor);
-    wl_surface_add_listener(m_wlSurface, &wlSurfaceListener, this);
-
     m_xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, m_wlSurface);
     xdg_surface_add_listener(m_xdgSurface, &xdgSurfaceListener, this);
 
     m_xdgToplevel = xdg_surface_get_toplevel(m_xdgSurface);
     xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
+    xdg_toplevel_set_app_id(m_xdgToplevel, app()->appId().c_str());
+    app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
+        xdg_toplevel_set_app_id(m_xdgToplevel, appId.c_str());
+    });
 
     m_changes.set(CHPendingInitialNullAttach);
 }
@@ -48,31 +44,6 @@ MToplevel::~MToplevel() noexcept
         xdg_surface_destroy(m_xdgSurface);
 
     destroySurface();
-}
-
-void MToplevel::wl_surface_enter(void *data, wl_surface */*surface*/, wl_output *output)
-{
-    auto &role { *static_cast<MToplevel*>(data) };
-    MScreen *screen { static_cast<MScreen*>(wl_output_get_user_data(output)) };
-}
-
-void MToplevel::wl_surface_leave(void *data, wl_surface *surface, wl_output *output)
-{
-    auto &role { *static_cast<MToplevel*>(data) };
-    MScreen *screen { static_cast<MScreen*>(wl_output_get_user_data(output)) };
-}
-
-void MToplevel::wl_surface_preferred_buffer_scale(void *data, wl_surface */*surface*/, Int32 factor)
-{
-    auto &role { *static_cast<MToplevel*>(data) };
-    role.m_preferredBufferScale = factor;
-    role.m_changes.set(CHPreferredBufferScale);
-    role.updateLater();
-}
-
-void MToplevel::wl_surface_preferred_buffer_transform(void *data, wl_surface *surface, UInt32 transform)
-{
-
 }
 
 void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
@@ -246,6 +217,9 @@ void MToplevel::destroySurface() noexcept
 
 void MToplevel::render() noexcept
 {
+    if (!createCallback())
+        return;
+
     if (!m_eglWindow)
     {
         m_eglWindow = wl_egl_window_create(m_wlSurface, m_bufferSize.width(), m_bufferSize.height());
@@ -289,9 +263,9 @@ void MToplevel::render() noexcept
         layout().setPosition(YGEdgeTop, 0.f);
         layout().setWidth(m_surfaceSize.width());
         layout().setHeight(m_surfaceSize.height());
-        m_target->dstRect = { 0, 0, m_bufferSize.width(), m_bufferSize.height() };
-        m_target->viewport.setWH(m_surfaceSize.width(), m_surfaceSize.height());
-        m_target->surface = m_skSurface;
+        m_target->setDstRect({ 0, 0, m_bufferSize.width(), m_bufferSize.height() });
+        m_target->setViewport(SkRect::MakeWH(m_surfaceSize.width(), m_surfaceSize.height()));
+        m_target->setSurface(m_skSurface);
         m_changes.set(CHSize, false);
     }
 
@@ -300,7 +274,7 @@ void MToplevel::render() noexcept
 
     EGLint bufferAge { 0 };
     eglQuerySurface(app()->graphics().eglDisplay, m_eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
-    m_target->age = bufferAge;
+    m_target->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
     m_target->outDamageRegion = &skDamage;
     m_target->outOpaqueRegion = &skOpaque;

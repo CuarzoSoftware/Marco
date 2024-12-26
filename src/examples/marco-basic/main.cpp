@@ -11,6 +11,7 @@ using namespace AK;
 int main()
 {
     MApplication app;
+    app.setAppId("org.Cuarzo.marco-basic");
 
     app.on.screenPlugged.subscribe(&app, [](MScreen &screen){
         std::cout << "New Screen! " << screen.props().name << std::endl;
@@ -21,11 +22,17 @@ int main()
     });
 
     MToplevel window;
+    window.setTitle("Hello world!");
+    window.setWindowSize({200, 100});
     window.layout().setAlignItems(YGAlignCenter);
     window.layout().setJustifyContent(YGJustifyCenter);
 
     AKSimpleText helloWorld { "Hello World!", &window };
     window.show();
+
+    window.MSurface::on.presented.subscribe(&window, [&window](UInt32 ms){
+        window.setColorWithoutAlpha(ms);
+    });
 
     return app.exec();
 }

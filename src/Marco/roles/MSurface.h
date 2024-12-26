@@ -9,6 +9,7 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 #include <EGL/egl.h>
+#include <set>
 
 class Marco::MSurface : public AK::AKSolidColor
 {
@@ -36,6 +37,11 @@ public:
     const SkISize &bufferSize() const noexcept
     {
         return m_bufferSize;
+    }
+
+    const std::set<MScreen*> &screens() const noexcept
+    {
+        return m_screens;
     }
 
     void show() noexcept
@@ -69,6 +75,7 @@ public:
     {
         AK::AKSignal<MScreen&> enteredScreen;
         AK::AKSignal<MScreen&> leftScreen;
+        AK::AKSignal<UInt32> presented; // ms
     } on;
 protected:
     friend class MApplication;
@@ -86,11 +93,20 @@ protected:
     std::bitset<128> m_changes;
 
     MSurface(Role role) noexcept;
+
+    static void wl_surface_enter(void *data, wl_surface *surface, wl_output *output);
+    static void wl_surface_leave(void *data,wl_surface *surface, wl_output *output);
+    static void wl_surface_preferred_buffer_scale(void *data, wl_surface *surface, Int32 factor);
+    static void wl_surface_preferred_buffer_transform(void *data, wl_surface *surface, UInt32 transform);
+    static void wl_callback_done(void *data, wl_callback *callback, UInt32 ms);
+
+    bool createCallback() noexcept;
     virtual void handleChanges() noexcept = 0;
 
     AK::AKScene m_scene;
     AK::AKWeak<AK::AKTarget> m_target;
     AK::AKContainer m_root;
+    wl_callback *m_wlCallback { nullptr };
     wl_surface *m_wlSurface { nullptr };
     wl_egl_window *m_eglWindow { nullptr };
     EGLSurface m_eglSurface { EGL_NO_SURFACE };
@@ -103,6 +119,7 @@ protected:
 
     bool m_visible { false };    
 private:
+    std::set<MScreen*>m_screens;
     Role m_role;
     size_t m_appLink;
 };
