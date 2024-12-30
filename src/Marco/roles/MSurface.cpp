@@ -30,7 +30,7 @@ MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLight
     setParent(&m_root);
     enableChildrenClipping(true);
     m_target.reset(m_scene.createTarget());
-    m_target->setRoot(&m_root);
+    m_scene.setRoot(&m_root);
     m_changes.set(CHSize);
 
     m_target->on.markedDirty.subscribe(this, [this](AK::AKTarget&){

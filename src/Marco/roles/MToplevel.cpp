@@ -266,6 +266,7 @@ void MToplevel::render() noexcept
         m_target->setDstRect({ 0, 0, m_bufferSize.width(), m_bufferSize.height() });
         m_target->setViewport(SkRect::MakeWH(m_surfaceSize.width(), m_surfaceSize.height()));
         m_target->setSurface(m_skSurface);
+        m_target->setBakedComponentsScale(m_scale);
         m_changes.set(CHSize, false);
     }
 
