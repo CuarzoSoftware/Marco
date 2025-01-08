@@ -35,7 +35,6 @@ int main()
     AKButton fullscreenButton { "Toggle Fullscreen", &window };
     AKButton minimizeButton { "Minimize", &window };
     AKButton exitButton { "Exit", &window };
-    exitButton.setBackgroundColor(AKTheme::SystemRed);
 
     maximizeButton.on.clicked.subscribe(&maximizeButton, [&window](){
         window.setMaximized(!window.states().check(MToplevel::Maximized));
