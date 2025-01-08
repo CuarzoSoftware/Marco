@@ -29,10 +29,6 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     xdg_toplevel_add_listener(wl.xdgToplevel, &xdgToplevelListener, this);
     xdg_toplevel_set_app_id(wl.xdgToplevel, app()->appId().c_str());
 
-    if (app()->wayland().xdgDecorationManager)
-        wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, wl.xdgToplevel);
-
-
     app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
         xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
     });
@@ -106,6 +102,9 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
     if (notifyStates)
     {
         xdg_toplevel_set_title(role.wl.xdgToplevel, role.title().c_str());
+
+        if (!role.wl.xdgDecoration && app()->wayland().xdgDecorationManager)
+            role.wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, role.wl.xdgToplevel);
     }
 
     if (role.se.states.get() != role.cl.states.get())
@@ -201,6 +200,9 @@ void MToplevel::onUpdate() noexcept
 
         return;
     }
+
+    if (cl.flags.check(PendingFirstConfigure | PendingNullCommit))
+        return;
 
     layout().setPosition(YGEdgeLeft, 0.f);
     layout().setPosition(YGEdgeTop, 0.f);
