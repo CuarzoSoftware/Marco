@@ -3,6 +3,8 @@
 #include <Marco/roles/MToplevel.h>
 #include <AK/nodes/AKContainer.h>
 #include <AK/nodes/AKSimpleText.h>
+#include <AK/nodes/AKButton.h>
+#include <AK/AKTheme.h>
 #include <iostream>
 
 using namespace Marco;
@@ -23,15 +25,32 @@ int main()
 
     MToplevel window;
     window.setTitle("Hello world!");
-    window.setWindowSize({200, 100});
     window.layout().setAlignItems(YGAlignCenter);
     window.layout().setJustifyContent(YGJustifyCenter);
+    window.layout().setPadding(YGEdgeAll, 48.f);
+    window.layout().setGap(YGGutterAll, 8.f);
 
     AKSimpleText helloWorld { "Hello World!", &window };
-    window.show();
+    AKButton maximizeButton { "Toggle Maximized", &window };
+    AKButton fullscreenButton { "Toggle Fullscreen", &window };
+    AKButton minimizeButton { "Minimize", &window };
+    AKButton exitButton { "Exit", &window };
+    exitButton.setBackgroundColor(AKTheme::SystemRed);
 
-    window.MSurface::on.presented.subscribe(&window, [&window](UInt32 ms){
-        window.setColorWithoutAlpha(ms);
+    maximizeButton.on.clicked.subscribe(&maximizeButton, [&window](){
+        window.setMaximized(!window.states().check(MToplevel::Maximized));
+    });
+
+    fullscreenButton.on.clicked.subscribe(&fullscreenButton, [&window](){
+        window.setFullscreen(!window.states().check(MToplevel::Fullscreen));
+    });
+
+    minimizeButton.on.clicked.subscribe(&minimizeButton, [&window](){
+        window.setMinimized();
+    });
+
+    exitButton.on.clicked.subscribe(&exitButton, [](){
+        exit(0);
     });
 
     return app.exec();

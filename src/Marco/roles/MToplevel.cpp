@@ -1,18 +1,19 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
+#include <include/gpu/ganesh/SkSurfaceGanesh.h>
+#include <include/core/SkColorSpace.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
-#include <include/gpu/ganesh/SkSurfaceGanesh.h>
-#include <include/core/SkColorSpace.h>
-#include <iostream>
-
 using namespace Marco;
+using namespace AK;
 
 static xdg_surface_listener xdgSurfaceListener;
 static xdg_toplevel_listener xdgToplevelListener;
-
-static SkSurfaceProps skSurfaceProps(0, kUnknown_SkPixelGeometry);
+/*
+static zxdg_toplevel_decoration_v1_listener xdgDecorationListener {
+    .configure = [](auto, auto, auto) {}
+};*/
 
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {
@@ -22,55 +23,139 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     xdgToplevelListener.close = xdg_toplevel_close;
     xdgToplevelListener.wm_capabilities = xdg_toplevel_wm_capabilities;
 
-    m_xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, m_wlSurface);
-    xdg_surface_add_listener(m_xdgSurface, &xdgSurfaceListener, this);
+    wl.xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, MSurface::wl.surface);
+    xdg_surface_add_listener(wl.xdgSurface, &xdgSurfaceListener, this);
+    wl.xdgToplevel = xdg_surface_get_toplevel(wl.xdgSurface);
+    xdg_toplevel_add_listener(wl.xdgToplevel, &xdgToplevelListener, this);
+    xdg_toplevel_set_app_id(wl.xdgToplevel, app()->appId().c_str());
 
-    m_xdgToplevel = xdg_surface_get_toplevel(m_xdgSurface);
-    xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
-    xdg_toplevel_set_app_id(m_xdgToplevel, app()->appId().c_str());
+    if (app()->wayland().xdgDecorationManager)
+        wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, wl.xdgToplevel);
+
+
     app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
-        xdg_toplevel_set_app_id(m_xdgToplevel, appId.c_str());
+        xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
     });
-
-    m_changes.set(CHPendingInitialNullAttach);
 }
 
 MToplevel::~MToplevel() noexcept
 {
-    if (m_xdgToplevel)
-        xdg_toplevel_destroy(m_xdgToplevel);
+    xdg_toplevel_destroy(wl.xdgToplevel);
+    xdg_surface_destroy(wl.xdgSurface);
+}
 
-    if (m_xdgSurface)
-        xdg_surface_destroy(m_xdgSurface);
+void MToplevel::setMaximized(bool maximized) noexcept
+{
+    if (maximized)
+        xdg_toplevel_set_maximized(wl.xdgToplevel);
+    else
+        xdg_toplevel_unset_maximized(wl.xdgToplevel);
+}
 
-    destroySurface();
+void MToplevel::setFullscreen(bool fullscreen) noexcept
+{
+    if (fullscreen)
+        xdg_toplevel_set_fullscreen(wl.xdgToplevel, NULL);
+    else
+        xdg_toplevel_unset_fullscreen(wl.xdgToplevel);
+}
+
+void MToplevel::setMinimized() noexcept
+{
+    xdg_toplevel_set_minimized(wl.xdgToplevel);
+}
+
+void MToplevel::onSuggestedSizeChanged()
+{
+    if (suggestedSize().width() == 0)
+        layout().setWidthAuto();
+    else
+        layout().setWidth(suggestedSize().width());
+
+    if (suggestedSize().height() == 0)
+        layout().setHeightAuto();
+    else
+        layout().setHeight(suggestedSize().height());
+}
+
+void MToplevel::onStatesChanged()
+{
+
+}
+
+void MToplevel::setTitle(const std::string &title)
+{
+    if (cl.title == title)
+        return;
+
+    xdg_toplevel_set_title(wl.xdgToplevel, cl.title.c_str());
+    cl.title = title;
+    on.titleChanged.notify(cl.title);
 }
 
 void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
 {
     auto &role { *static_cast<MToplevel*>(data) };
-    role.m_changes.set(CHConfigurationSerial);
-    role.m_changes.set(CHPendingInitialConfiguration, false);
-    role.m_conf.serial = serial;
-    role.updateLater();
+    role.cl.flags.add(PendingConfigureAck);
+    role.se.serial = serial;
+
+    bool notifyStates { role.cl.flags.check(PendingFirstConfigure) };
+    bool notifySuggestedSize { notifyStates };
+    role.cl.flags.remove(PendingFirstConfigure);
+
+    if (notifyStates)
+    {
+        xdg_toplevel_set_title(role.wl.xdgToplevel, role.title().c_str());
+    }
+
+    if (role.se.states.get() != role.cl.states.get())
+    {
+        role.cl.states = role.se.states;
+        notifyStates = true;
+    }
+
+    if (role.se.suggestedSize != role.cl.suggestedSize)
+    {
+        role.cl.suggestedSize = role.se.suggestedSize;
+        notifySuggestedSize = true;
+    }
+
+    AK::AKWeak<MToplevel> ref { &role };
+
+    if (notifySuggestedSize)
+    {
+        role.onSuggestedSizeChanged();
+
+        if (ref)
+            role.on.suggestedSizeChanged.notify(role.cl.suggestedSize);
+    }
+
+    if (ref && notifyStates)
+    {
+        role.onStatesChanged();
+
+        if (ref)
+            role.on.statesChanged.notify(role.cl.states);
+    }
+
+    role.update();
 }
 
 void MToplevel::xdg_toplevel_configure(void *data, xdg_toplevel */*xdgToplevel*/, Int32 width, Int32 height, wl_array *states)
 {
     auto &role { *static_cast<MToplevel*>(data) };
-    role.m_changes.set(CHConfigurationState);
-    role.m_changes.set(CHConfigurationSize);
-    role.m_conf.states.set(0);
+    role.se.states.set(0);
     const UInt32 *stateVals = (UInt32*)states->data;
     for (UInt32 i = 0; i < states->size/sizeof(*stateVals); i++)
-        role.m_conf.states.add(1 << stateVals[i]);
-    role.m_conf.windowSize.fWidth = width;
-    role.m_conf.windowSize.fHeight = height;
+        role.se.states.add(1 << stateVals[i]);
+
+    role.se.suggestedSize.fWidth = width < 0 ? 0 : width;
+    role.se.suggestedSize.fHeight = height < 0 ? 0 : height;
 }
 
 void MToplevel::xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel)
 {
-
+    exit(0);
 }
 
 void MToplevel::xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height)
@@ -83,240 +168,108 @@ void MToplevel::xdg_toplevel_wm_capabilities(void *data, xdg_toplevel *xdgToplev
 
 }
 
-void MToplevel::handleChanges() noexcept
+void MToplevel::onUpdate() noexcept
 {
-    if (!m_changes.test(CHUpdateLater))
-        return;
+    MSurface::onUpdate();
 
-    m_changes.set(CHUpdateLater, false);
-
-    handleConfigurationChange();
-    handleDimensionsChange();
-    handleVisibilityChange();
-
-    if (!m_visible || m_changes.test(CHPendingInitialConfiguration))
-        return;
-
-    render();
-}
-
-void MToplevel::handleConfigurationChange() noexcept
-{
-    if (m_changes.test(CHConfigurationState))
+    if (cl.flags.check(PendingConfigureAck))
     {
-        m_changes.set(CHConfigurationState, false);
-        m_states = m_conf.states;
+        cl.flags.remove(PendingConfigureAck);
+        xdg_surface_ack_configure(wl.xdgSurface, se.serial);
     }
 
-    if (m_changes.test(CHConfigurationSize))
+    if (visible())
     {
-        m_changes.set(CHConfigurationSize, false);
-        m_windowSize = m_conf.windowSize;
-    }
-
-    if (m_changes.test(CHConfigurationSerial))
-    {
-        m_changes.set(CHConfigurationSerial, false);
-        xdg_surface_ack_configure(m_xdgSurface, m_conf.serial);
-    }
-}
-
-void MToplevel::handleVisibilityChange() noexcept
-{
-    if (!m_changes.test(CHVisibility))
-        return;
-
-    m_changes.set(CHVisibility, false);
-
-    if (m_visible)
-    {
-        if (m_changes.test(CHPendingInitialNullAttach))
+        if (cl.flags.check(PendingNullCommit))
         {
-            m_changes.set(CHPendingInitialNullAttach, false);
-
-            if (app()->wayland().compositor.version() >= 3)
-                wl_surface_set_buffer_scale(m_wlSurface, m_scale);
-
-            wl_surface_attach(m_wlSurface, NULL, 0, 0);
-            wl_surface_commit(m_wlSurface);
+            cl.flags.add(PendingFirstConfigure);
+            cl.flags.remove(PendingNullCommit);
+            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
+            wl_surface_commit(MSurface::wl.surface);
+            update();
+            return;
         }
     }
     else
     {
-        if (!m_changes.test(CHPendingInitialNullAttach))
+        if (!cl.flags.check(PendingNullCommit))
         {
-            m_changes.set(CHPendingInitialNullAttach);
-            wl_surface_attach(m_wlSurface, NULL, 0, 0);
-            wl_surface_commit(m_wlSurface);
+            cl.flags.add(PendingNullCommit);
+            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
+            wl_surface_commit(MSurface::wl.surface);
         }
-    }
-}
 
-void MToplevel::handleDimensionsChange() noexcept
-{
-    const SkISize prevSize { m_bufferSize };
-
-    if (m_changes.test(CHPreferredBufferScale))
-    {
-        m_changes.set(CHPreferredBufferScale, false);
-        m_scale = m_preferredBufferScale;
-    }
-
-    if (m_scale <= 0)
-        m_scale = 1;
-
-    if (m_windowSize.width() <= 0)
-        m_windowSize.fWidth = 512;
-
-    if (m_windowSize.height() <= 0)
-        m_windowSize.fHeight = 512;
-
-    if (m_conf.windowSize.fWidth > 0)
-        m_windowSize.fWidth = m_conf.windowSize.fWidth;
-
-    if (m_conf.windowSize.fHeight > 0)
-        m_windowSize.fHeight = m_conf.windowSize.fHeight;
-
-    m_surfaceSize = m_windowSize;
-    m_bufferSize = {m_surfaceSize.fWidth * scale(), m_surfaceSize.fHeight * scale() };
-
-    if (prevSize != m_bufferSize)
-        m_changes.set(CHSize);
-}
-
-void MToplevel::createSurface() noexcept
-{
-    if (m_wlSurface)
         return;
-
-    m_wlSurface = wl_compositor_create_surface(app()->wayland().compositor);
-}
-
-void MToplevel::destroySurface() noexcept
-{
-    eglMakeCurrent(app()->graphics().eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, app()->graphics().eglContext);
-
-    if (m_eglSurface != EGL_NO_SURFACE)
-    {
-        eglDestroySurface(app()->graphics().eglDisplay, m_eglSurface);
-        m_eglSurface = EGL_NO_SURFACE;
     }
 
-    if (m_eglWindow)
-    {
-        wl_egl_window_destroy(m_eglWindow);
-        m_eglWindow = nullptr;
-    }
-
-    if (m_wlSurface)
-    {
-        wl_surface_destroy(m_wlSurface);
-        m_wlSurface = nullptr;
-    }
+    layout().setPosition(YGEdgeLeft, 0.f);
+    layout().setPosition(YGEdgeTop, 0.f);
+    ak.scene.updateLayout();
+    render();
 }
 
 void MToplevel::render() noexcept
 {
-    if (!createCallback())
+    if (MSurface::wl.callback)
         return;
 
-    if (!m_eglWindow)
-    {
-        m_eglWindow = wl_egl_window_create(m_wlSurface, m_bufferSize.width(), m_bufferSize.height());
-        m_eglSurface = eglCreateWindowSurface(app()->graphics().eglDisplay, app()->graphics().eglConfig, m_eglWindow, NULL);
-        assert("Failed to create EGLSurface" && m_eglSurface != EGL_NO_SURFACE);
-        m_changes.set(CHSize);
-    }
-    else if (m_changes.test(CHSize))
-    {
-        wl_egl_window_resize(m_eglWindow, m_bufferSize.width(), m_bufferSize.height(), 0, 0);
-    }
+    SkISize size(
+        layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight),
+        layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom));
 
-    eglMakeCurrent(app()->graphics().eglDisplay, m_eglSurface, m_eglSurface, app()->graphics().eglContext);
+    if (size.fWidth <= 0) size.fWidth = 8;
+    if (size.fHeight <= 0) size.fHeight = 8;
+    resizeBuffer(size);
+
+    eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
 
-    if (m_changes.test(CHSize))
-    {
-        const GrGLFramebufferInfo fbInfo
-        {
-            .fFBOID = 0,
-            .fFormat = GL_RGBA8_OES
-        };
-
-        const GrBackendRenderTarget backendTarget(
-            m_bufferSize.width(),
-            m_bufferSize.height(),
-            0, 0,
-            fbInfo);
-
-        m_skSurface = SkSurfaces::WrapBackendRenderTarget(
-            app()->graphics().skContext.get(),
-            backendTarget,
-            GrSurfaceOrigin::kBottomLeft_GrSurfaceOrigin,
-            SkColorType::kRGBA_8888_SkColorType,
-            SkColorSpace::MakeSRGB(),
-            &skSurfaceProps);
-
-        assert("Failed to create SkSurface" && m_skSurface.get());
-
-        layout().setPosition(YGEdgeLeft, 0.f);
-        layout().setPosition(YGEdgeTop, 0.f);
-        layout().setWidth(m_surfaceSize.width());
-        layout().setHeight(m_surfaceSize.height());
-        m_target->setDstRect({ 0, 0, m_bufferSize.width(), m_bufferSize.height() });
-        m_target->setViewport(SkRect::MakeWH(m_surfaceSize.width(), m_surfaceSize.height()));
-        m_target->setSurface(m_skSurface);
-        m_target->setBakedComponentsScale(m_scale);
-        m_changes.set(CHSize, false);
-    }
-
-    if (app()->wayland().compositor.version() >= 3)
-        wl_surface_set_buffer_scale(m_wlSurface, m_scale);
+    ak.target->enableUpdateLayout(false);
+    ak.target->setDstRect({ 0, 0, bufferSize().width(), bufferSize().height() });
+    ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
+    ak.target->setSurface(gl.skSurface);
+    ak.target->setBakedComponentsScale(scale());
 
     EGLint bufferAge { 0 };
-    eglQuerySurface(app()->graphics().eglDisplay, m_eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
-    m_target->setAge(bufferAge);
+    eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
+    ak.target->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
-    m_target->outDamageRegion = &skDamage;
-    m_target->outOpaqueRegion = &skOpaque;
-    m_scene.render(m_target);
+    ak.target->outDamageRegion = &skDamage;
+    ak.target->outOpaqueRegion = &skOpaque;
+    ak.scene.render(ak.target);
+    wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
 
-    if (skDamage.isEmpty())
+    wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
+    SkRegion::Iterator opaqueIt(skOpaque);
+    while (!opaqueIt.done())
     {
-        wl_surface_commit(m_wlSurface);
-        return;
+        wl_region_add(wlOpaqueRegion, opaqueIt.rect().x(), opaqueIt.rect().y(), opaqueIt.rect().width(), opaqueIt.rect().height());
+        opaqueIt.next();
     }
-    else
+    wl_surface_set_opaque_region(MSurface::wl.surface, wlOpaqueRegion);
+    wl_region_destroy(wlOpaqueRegion);
+
+    EGLint *damageRects { new EGLint[skDamage.computeRegionComplexity() * 4] };
+    EGLint *rectsIt = damageRects;
+    SkRegion::Iterator damageIt(skDamage);
+    while (!damageIt.done())
     {
-        wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
-        SkRegion::Iterator opaqueIt(skOpaque);
-        while (!opaqueIt.done())
-        {
-            wl_region_add(wlOpaqueRegion, opaqueIt.rect().x(), opaqueIt.rect().y(), opaqueIt.rect().width(), opaqueIt.rect().height());
-            opaqueIt.next();
-        }
-        wl_surface_set_opaque_region(m_wlSurface, wlOpaqueRegion);
-        wl_region_destroy(wlOpaqueRegion);
-
-        EGLint *damageRects { new EGLint[skDamage.computeRegionComplexity() * 4] };
-        EGLint *rectsIt = damageRects;
-        SkRegion::Iterator damageIt(skDamage);
-        while (!damageIt.done())
-        {
-            *rectsIt = damageIt.rect().x() * m_scale;
-            rectsIt++;
-            *rectsIt = (m_surfaceSize.height() - damageIt.rect().height() - damageIt.rect().y()) * m_scale;
-            rectsIt++;
-            *rectsIt = damageIt.rect().width() * m_scale;
-            rectsIt++;
-            *rectsIt = damageIt.rect().height() * m_scale;
-            rectsIt++;
-            damageIt.next();
-        }
-
-        assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, m_eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
-        delete []damageRects;
+        *rectsIt = damageIt.rect().x() * scale();
+        rectsIt++;
+        *rectsIt = (surfaceSize().height() - damageIt.rect().height() - damageIt.rect().y()) * scale();
+        rectsIt++;
+        *rectsIt = damageIt.rect().width() * scale();
+        rectsIt++;
+        *rectsIt = damageIt.rect().height() * scale();
+        rectsIt++;
+        damageIt.next();
     }
+
+    if (!skDamage.isEmpty())
+        createCallback();
+    assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
+    delete []damageRects;
+
 
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
 }

@@ -3,6 +3,7 @@
 
 #include <Marco/roles/MSurface.h>
 #include <Marco/protocols/xdg-shell-client.h>
+#include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 
 class Marco::MToplevel : public MSurface
 {
@@ -23,69 +24,75 @@ public:
     MToplevel() noexcept;
     ~MToplevel() noexcept;
 
-    void setWindowSize(const SkISize &size) noexcept
+    void setMaximized(bool maximized) noexcept;
+    void setFullscreen(bool fullscreen) noexcept;
+    void setMinimized() noexcept;
+
+    virtual void onSuggestedSizeChanged();
+    const SkISize &suggestedSize() const noexcept
     {
-        m_windowSize = size;
+        return cl.suggestedSize;
     }
 
-    void setTitle(const std::string &title)
+    virtual void onStatesChanged();
+    AK::AKBitset<State> states() const noexcept
     {
-        if (m_title == title)
-            return;
-
-        m_title = title;
-        on.titleChanged.notify(m_title);
+        return cl.states;
     }
+
+    void setTitle(const std::string &title);
 
     const std::string &title() const noexcept
     {
-        return m_title;
+        return cl.title;
     }
 
     struct
     {
         AK::AKSignal<const std::string &> titleChanged;
+        AK::AKSignal<const SkISize &> suggestedSizeChanged;
+        AK::AKSignal<AK::AKBitset<State>> statesChanged;
     } on;
 
 protected:
-    enum Changes
+
+    enum Flags
     {
-        CHWindowSize = MSurface::CHLast,
-        CHWindowMargins,
-        CHPendingInitialNullAttach,
-        CHPendingInitialConfiguration,
-        CHConfigurationSerial,
-        CHConfigurationSize,
-        CHConfigurationState,
-        CHLast
+        PendingNullCommit       = 1 << 0,
+        PendingFirstConfigure   = 1 << 1,
+        PendingConfigureAck     = 1 << 2,
+        Mapped                  = 1 << 3
     };
 
-    static void xdg_surface_configure(void *data, xdg_surface *xdgSurface, UInt32 serial);
-    static void xdg_toplevel_configure(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height, wl_array *states);
-    static void xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel);
-    static void xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel,Int32 width, Int32 height);
-    static void xdg_toplevel_wm_capabilities(void *data, xdg_toplevel *xdgToplevel, wl_array *capabilities);
-
-    void handleChanges() noexcept override;
-    void handleConfigurationChange() noexcept;
-    void handleVisibilityChange() noexcept;
-    void handleDimensionsChange() noexcept;
-    void createSurface() noexcept;
-    void destroySurface() noexcept;
+    void onUpdate() noexcept override;
     void render() noexcept;
-    xdg_surface *m_xdgSurface { nullptr };
-    xdg_toplevel *m_xdgToplevel { nullptr };
-    SkISize m_windowSize { 0, 0 };
-    AK::AKBitset<State> m_states;
+
+    struct {
+        xdg_surface *xdgSurface { nullptr };
+        xdg_toplevel *xdgToplevel { nullptr };
+        zxdg_toplevel_decoration_v1 *xdgDecoration { nullptr };
+    } wl;
+
+    struct {
+        AK::AKBitset<Flags> flags { PendingNullCommit };
+        AK::AKBitset<State> states;
+        SkISize suggestedSize { 0, 0 };
+        std::string title;
+    } cl;
 
     struct
     {
         UInt32 serial;
         AK::AKBitset<State> states;
-        SkISize windowSize { 0, 0 };
-    }m_conf;
+        SkISize suggestedSize { 0, 0 };
+    } se;
 
-    std::string m_title;
+private:
+    static void xdg_surface_configure(void *data, xdg_surface *xdgSurface, UInt32 serial);
+    static void xdg_toplevel_configure(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height, wl_array *states);
+    static void xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel);
+    static void xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel,Int32 width, Int32 height);
+    static void xdg_toplevel_wm_capabilities(void *data, xdg_toplevel *xdgToplevel, wl_array *capabilities);
 };
 
 #endif // MTOPLEVEL_H

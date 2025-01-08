@@ -19,6 +19,8 @@ public:
         Toplevel
     };
 
+    ~MSurface();
+
     Role role() noexcept
     {
         return m_role;
@@ -26,50 +28,35 @@ public:
 
     Int32 scale() noexcept
     {
-        return m_scale;
+        return cl.scale;
     }
 
     const SkISize &surfaceSize() const noexcept
     {
-        return m_surfaceSize;
+        return cl.size;
     }
 
     const SkISize &bufferSize() const noexcept
     {
-        return m_bufferSize;
+        return cl.bufferSize;
     }
 
     const std::set<MScreen*> &screens() const noexcept
     {
-        return m_screens;
+        return se.screens;
     }
 
     void show() noexcept
     {
-        if (m_visible)
-            return;
-
-        m_visible = true;
-        m_changes.set(CHVisibility);
-        updateLater();
+        setVisible(true);
     }
 
     void hide() noexcept
     {
-        if (!m_visible)
-            return;
-
-        m_visible = false;
-        m_changes.set(CHVisibility);
-        updateLater();
+        setVisible(false);
     }
 
-    void updateLater() noexcept
-    {
-        m_changes.set(CHUpdateLater);
-    }
-
-    ~MSurface();
+    void update() noexcept;
 
     struct
     {
@@ -79,47 +66,64 @@ public:
     } on;
 protected:
     friend class MApplication;
+    MSurface(Role role) noexcept;
+    virtual void onUpdate() noexcept;
+    bool createCallback() noexcept;
+    bool resizeBuffer(const SkISize &size) noexcept;
 
-    enum Changes
+    enum ClientChanges
     {
-        CHUpdateLater,
-        CHScale,
-        CHPreferredBufferScale,
-        CHSize,
-        CHVisibility,
-        CHLast
+        Cl_Scale,
+        Cl_Last
     };
 
-    std::bitset<128> m_changes;
+    enum ServerChanges
+    {
+        Se_Screens,
+        Se_PrefferredScale,
+        Se_Last
+    };
 
-    MSurface(Role role) noexcept;
+    struct {
+        AK::AKScene scene;
+        AK::AKWeak<AK::AKTarget> target;
+        AK::AKContainer root;
+    } ak;
 
+    struct {
+        wl_callback *callback { nullptr };
+        wl_surface *surface { nullptr };
+    } wl;
+
+    struct {
+        wl_egl_window *eglWindow { nullptr };
+        EGLSurface eglSurface { EGL_NO_SURFACE };
+        sk_sp<SkSurface> skSurface;
+    } gl;
+
+    struct {
+        std::bitset<128> changes;
+        SkISize size { 0, 0 };
+        SkISize bufferSize { 0, 0 };
+        Int32 scale { 1 };
+        bool pendingUpdate { true };
+    } cl;
+
+    struct {
+        std::bitset<128> changes;
+        std::set<MScreen*>screens;
+        Int32 preferredBufferScale { -1 };
+    } se;
+
+private:
+    using AKNode::setParent;
+    using AKNode::parent;
+    using AKNode::setVisible;
     static void wl_surface_enter(void *data, wl_surface *surface, wl_output *output);
     static void wl_surface_leave(void *data,wl_surface *surface, wl_output *output);
     static void wl_surface_preferred_buffer_scale(void *data, wl_surface *surface, Int32 factor);
     static void wl_surface_preferred_buffer_transform(void *data, wl_surface *surface, UInt32 transform);
     static void wl_callback_done(void *data, wl_callback *callback, UInt32 ms);
-
-    bool createCallback() noexcept;
-    virtual void handleChanges() noexcept = 0;
-
-    AK::AKScene m_scene;
-    AK::AKWeak<AK::AKTarget> m_target;
-    AK::AKContainer m_root;
-    wl_callback *m_wlCallback { nullptr };
-    wl_surface *m_wlSurface { nullptr };
-    wl_egl_window *m_eglWindow { nullptr };
-    EGLSurface m_eglSurface { EGL_NO_SURFACE };
-    sk_sp<SkSurface> m_skSurface;
-    SkISize m_surfaceSize { 0, 0 };
-    SkISize m_bufferSize { 0, 0 };
-
-    Int32 m_preferredBufferScale { -1 };
-    Int32 m_scale { 1 };
-
-    bool m_visible { false };    
-private:
-    std::set<MScreen*>m_screens;
     Role m_role;
     size_t m_appLink;
 };

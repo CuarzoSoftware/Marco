@@ -3,14 +3,22 @@
 
 #include <Marco/MProxy.h>
 #include <Marco/MScreen.h>
-#include <AK/AKObject.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
+#include <AK/AKObject.h>
+#include <AK/AKWeak.h>
+#include <AK/events/AKPointerEnterEvent.h>
+#include <AK/events/AKPointerMoveEvent.h>
+#include <AK/events/AKPointerLeaveEvent.h>
+#include <AK/events/AKPointerButtonEvent.h>
 #include <include/gpu/GrDirectContext.h>
 #include <wayland-client.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <sys/eventfd.h>
+#include <sys/poll.h>
+#include <fcntl.h>
 
 class Marco::MApplication : public AK::AKObject
 {
@@ -73,6 +81,14 @@ public:
         return m_screens;
     }
 
+    void update() noexcept
+    {
+        if (m_pendingUpdate)
+            return;
+        m_pendingUpdate = true;
+        eventfd_write(fds[1].fd, 1);
+    }
+
     struct
     {
         AK::AKSignal<MScreen&> screenPlugged;
@@ -90,13 +106,36 @@ private:
     static void wl_output_scale(void *data, wl_output *output, Int32 factor);
     static void wl_output_name(void *data, wl_output *output, const char *name);
     static void wl_output_description(void *data, wl_output *output, const char *description);
+    static void wl_seat_capabilities(void *data, wl_seat *seat, UInt32 capabilities);
+    static void wl_seat_name(void *data, wl_seat *seat, const char *name);
+    static void wl_pointer_enter(void *data, wl_pointer *pointer, UInt32 serial, wl_surface *surface, wl_fixed_t x, wl_fixed_t y);
+    static void wl_pointer_leave(void *data, wl_pointer *pointer, UInt32 serial, wl_surface *surface);
+    static void wl_pointer_motion(void *data,wl_pointer *pointer, UInt32 time, wl_fixed_t x, wl_fixed_t y);
+    static void wl_pointer_button(void *data, wl_pointer *pointer, UInt32 serial, UInt32 time, UInt32 button, UInt32 state);
+    static void wl_pointer_axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value);
+    static void wl_pointer_frame(void *data, wl_pointer *pointer);
+    static void wl_pointer_axis_source(void *data, wl_pointer *pointer, UInt32 axis_source);
+    static void wl_pointer_axis_stop(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis);
+    static void wl_pointer_axis_discrete(void *data, wl_pointer *pointer, UInt32 axis, Int32 discrete);
+    static void wl_pointer_axis_value120(void *data, wl_pointer *pointer, UInt32 axis, Int32 value120);
+    static void wl_pointer_axis_relative_direction(void *data, wl_pointer *pointer, UInt32 axis, UInt32 direction);
     static void xdg_wm_base_ping(void *data, xdg_wm_base *xdgWmBase, UInt32 serial);
     void initWayland() noexcept;
     void initGraphics() noexcept;
     bool m_running { false };
+    bool m_pendingUpdate { false };
+    pollfd fds[2];
     Wayland wl;
     Graphics gl;
     std::string m_appId;
+
+    struct {
+        AK::AKWeak<MSurface> focus;
+        AK::AKPointerEnterEvent enterEvent;
+        AK::AKPointerMoveEvent moveEvent;
+        AK::AKPointerLeaveEvent leaveEvent;
+        AK::AKPointerButtonEvent buttonEvent;
+    } m_pointer;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
 };

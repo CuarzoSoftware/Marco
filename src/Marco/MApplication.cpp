@@ -14,11 +14,14 @@ MApplication *Marco::app() noexcept
 
 static wl_registry_listener wlRegistryListener;
 static wl_output_listener wlOutputListener;
+static wl_seat_listener wlSeatListener;
+static wl_pointer_listener wlPointerListener;
 static xdg_wm_base_listener xdgWmBaseListener;
 
 MApplication::MApplication() noexcept
 {
     assert(!app() && "There can not be more than one MApplication per process");
+    AK::theme();
     m_app = this;
     initWayland();
     initGraphics();
@@ -31,13 +34,35 @@ int MApplication::exec()
 
     m_running = true;
 
+    update();
+
     while (m_running)
     {
-        for (MSurface *surf : m_surfaces)
-            surf->handleChanges();
+        poll(fds, 2, -1);
 
-        if (wl_display_dispatch(wl.display) == -1)
-            return EXIT_FAILURE;
+        if (fds[0].revents & POLLIN)
+            if (wl_display_dispatch(wl.display) == -1)
+                return EXIT_FAILURE;
+
+        if (fds[1].revents & POLLIN)
+        {
+            m_pendingUpdate = false;
+            static eventfd_t val;
+            eventfd_read(fds[1].fd, &val);
+        }
+
+        for (MSurface *surf : m_surfaces)
+        {
+            if (surf->cl.pendingUpdate)
+            {
+                surf->cl.pendingUpdate = false;
+                surf->onUpdate();
+                surf->cl.changes.reset();
+                surf->se.changes.reset();
+            }
+        }
+
+        wl_display_flush(wl.display);
     }
 
     return EXIT_SUCCESS;
@@ -65,17 +90,15 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
         screen->m_appLink = app()->m_pendingScreens.size();
         app()->m_pendingScreens.push_back(screen);
     }
-
-    /*
-        if (!wl.seat && strcmp(interface, wl_seat_interface.name) == 0)
-        {
-            wl.seat.set(wl_registry_bind(registry, name, &wl_seat_interface, version), name);
-            //wl_seat_add_listener(app.wlSeat, &wlSeatLis, NULL);
-        }
-        else if (!app.xdgDecorationManager && strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
-        {
-            app.xdgDecorationManager = (zxdg_decoration_manager_v1*)wl_registry_bind(wl_registry, name, &zxdg_decoration_manager_v1_interface, 1);
-        }*/
+    else if (!wl.seat && strcmp(interface, wl_seat_interface.name) == 0)
+    {
+        wl.seat.set(wl_registry_bind(registry, name, &wl_seat_interface, version), name);
+        wl_seat_add_listener(wl.seat, &wlSeatListener, NULL);
+    }
+    else if (!wl.xdgDecorationManager && strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+    {
+        wl.xdgDecorationManager.set(wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, version), name);
+    }
 }
 
 void MApplication::wl_registry_global_remove(void */*data*/, wl_registry */*registry*/, UInt32 name)
@@ -169,6 +192,95 @@ void MApplication::wl_output_description(void *data, wl_output */*output*/, cons
     screen.m_changes.add(MScreen::Description);
 }
 
+void MApplication::wl_seat_capabilities(void */*data*/, wl_seat *seat, UInt32 capabilities)
+{
+    if ((capabilities & WL_SEAT_CAPABILITY_POINTER) && !app()->wl.pointer)
+    {
+        app()->wl.pointer.set(wl_seat_get_pointer(seat));
+        wl_pointer_add_listener(app()->wl.pointer, &wlPointerListener, nullptr);
+    }
+}
+
+void MApplication::wl_seat_name(void */*data*/, wl_seat */*seat*/, const char */*name*/) {}
+
+void MApplication::wl_pointer_enter(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface, wl_fixed_t x, wl_fixed_t y)
+{
+    MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
+    auto &p { app()->m_pointer };
+    p.focus.reset(surf);
+    p.enterEvent.setX(wl_fixed_to_double(x));
+    p.enterEvent.setY(wl_fixed_to_double(y));
+    p.enterEvent.setSerial(serial);
+    surf->ak.scene.postEvent(p.enterEvent);
+}
+
+void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface)
+{
+    MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
+    auto &p { app()->m_pointer };
+    p.focus.reset();
+    p.leaveEvent.setSerial(serial);
+    surf->ak.scene.postEvent(p.leaveEvent);
+}
+
+void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UInt32 time, wl_fixed_t x, wl_fixed_t y)
+{
+    auto &p { app()->m_pointer };
+    if (!p.focus) return;
+
+    p.moveEvent.setMs(time);
+    p.moveEvent.setX(wl_fixed_to_double(x));
+    p.moveEvent.setY(wl_fixed_to_double(y));
+    p.focus->ak.scene.postEvent(p.moveEvent);
+}
+
+void MApplication::wl_pointer_button(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, UInt32 time, UInt32 button, UInt32 state)
+{
+    auto &p { app()->m_pointer };
+    if (!p.focus) return;
+
+    p.buttonEvent.setMs(time);
+    p.buttonEvent.setSerial(serial);
+    p.buttonEvent.setButton((AK::AKPointerButtonEvent::Button)button);
+    p.buttonEvent.setState((AK::AKPointerButtonEvent::State)state);
+    p.focus->ak.scene.postEvent(p.buttonEvent);
+}
+
+void MApplication::wl_pointer_axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value)
+{
+
+}
+
+void MApplication::wl_pointer_frame(void *data, wl_pointer *pointer)
+{
+
+}
+
+void MApplication::wl_pointer_axis_source(void *data, wl_pointer *pointer, UInt32 axis_source)
+{
+
+}
+
+void MApplication::wl_pointer_axis_stop(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis)
+{
+
+}
+
+void MApplication::wl_pointer_axis_discrete(void *data, wl_pointer *pointer, UInt32 axis, Int32 discrete)
+{
+
+}
+
+void MApplication::wl_pointer_axis_value120(void *data, wl_pointer *pointer, UInt32 axis, Int32 value120)
+{
+
+}
+
+void MApplication::wl_pointer_axis_relative_direction(void *data, wl_pointer *pointer, UInt32 axis, UInt32 direction)
+{
+
+}
+
 void MApplication::xdg_wm_base_ping(void */*data*/, xdg_wm_base *xdgWmBase, UInt32 serial)
 {
     xdg_wm_base_pong(xdgWmBase, serial);
@@ -184,11 +296,31 @@ void MApplication::initWayland() noexcept
     wlOutputListener.mode = wl_output_mode;
     wlOutputListener.name = wl_output_name;
     wlOutputListener.scale = wl_output_scale;
+    wlSeatListener.capabilities = wl_seat_capabilities;
+    wlSeatListener.name = wl_seat_name;
+    wlPointerListener.enter =  wl_pointer_enter;
+    wlPointerListener.leave = wl_pointer_leave;
+    wlPointerListener.motion = wl_pointer_motion;
+    wlPointerListener.button = wl_pointer_button;
+    wlPointerListener.axis = wl_pointer_axis;
+    wlPointerListener.frame = wl_pointer_frame;
+    wlPointerListener.axis_source = wl_pointer_axis_source;
+    wlPointerListener.axis_stop = wl_pointer_axis_stop;
+    wlPointerListener.axis_discrete = wl_pointer_axis_discrete;
+    wlPointerListener.axis_value120 = wl_pointer_axis_value120;
+    wlPointerListener.axis_relative_direction = wl_pointer_axis_relative_direction;
     xdgWmBaseListener.ping = xdg_wm_base_ping;
-
 
     wl.display = wl_display_connect(NULL);
     assert(wl.display && "wl_display_connect failed");
+
+    fds[0].fd = wl_display_get_fd(wl.display);
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+
+    fds[1].fd = eventfd(0, O_CLOEXEC);
+    fds[1].events = POLLIN;
+    fds[1].revents = 0;
 
     wl.registry.set(wl_display_get_registry(wl.display));
     wl_registry_add_listener(wl.registry, &wlRegistryListener, &wl);
@@ -196,6 +328,8 @@ void MApplication::initWayland() noexcept
     wl_display_roundtrip(wl.display);
 
     assert(wl.compositor && "wl_compositor not supported by the compositor");
+    assert(wl.seat && "wl_seat not supported by the compositor");
+    assert(wl.pointer && "wl_pointer not supported by the compositor");
     assert(wl.xdgWmBase && "xdg_wm_base not supported by the compositor");
 }
 
