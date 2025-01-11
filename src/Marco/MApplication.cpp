@@ -1,5 +1,6 @@
 #include <Marco/MApplication.h>
 #include <Marco/roles/MSurface.h>
+#include <Marco/MTheme.h>
 #include <include/gpu/gl/GrGLAssembleInterface.h>
 #include <assert.h>
 
@@ -21,8 +22,8 @@ static xdg_wm_base_listener xdgWmBaseListener;
 MApplication::MApplication() noexcept
 {
     assert(!app() && "There can not be more than one MApplication per process");
-    AK::theme();
     m_app = this;
+    AK::setTheme(new MTheme());
     initWayland();
     initGraphics();
 }
@@ -55,10 +56,10 @@ int MApplication::exec()
         {
             if (surf->cl.pendingUpdate)
             {
-                surf->cl.pendingUpdate = false;
                 surf->onUpdate();
                 surf->cl.changes.reset();
                 surf->se.changes.reset();
+                surf->cl.pendingUpdate = false;
             }
         }
 
@@ -376,7 +377,7 @@ void MApplication::initGraphics() noexcept
     contextOptions.fAvoidStencilBuffers = true;
     contextOptions.fPreferExternalImagesOverES3 = true;
     contextOptions.fDisableGpuYUVConversion = true;
-    contextOptions.fReducedShaderVariations = true;
+    contextOptions.fReducedShaderVariations = false;
     contextOptions.fSuppressPrints = true;
     contextOptions.fSuppressMipmapSupport = true;
     contextOptions.fSkipGLErrorChecks = GrContextOptions::Enable::kYes;

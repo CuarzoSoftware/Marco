@@ -1,9 +1,11 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
+#include <Marco/MTheme.h>
 #include <include/gpu/ganesh/SkSurfaceGanesh.h>
 #include <include/core/SkColorSpace.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include <iostream>
 
 using namespace Marco;
 using namespace AK;
@@ -29,12 +31,57 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     xdg_toplevel_add_listener(wl.xdgToplevel, &xdgToplevelListener, this);
     xdg_toplevel_set_app_id(wl.xdgToplevel, app()->appId().c_str());
 
-    if (app()->wayland().xdgDecorationManager)
-        wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, wl.xdgToplevel);
+    //if (app()->wayland().xdgDecorationManager)
+    //    wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, wl.xdgToplevel);
 
     app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
         xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
     });
+
+    /* CSD */
+
+    for (int i = 0; i < 4; i++)
+    {
+        cl.csdBorderRadius[i].setParent(&MSurface::ak.root);
+        cl.csdBorderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
+        cl.csdBorderRadius[i].layout().setWidth(app()->theme()->CSDBorderRadius);
+        cl.csdBorderRadius[i].layout().setHeight(app()->theme()->CSDBorderRadius);
+        cl.csdBorderRadius[i].setSizeMode(AKImage::SizeMode::Fill);
+        cl.csdBorderRadius[i].enableCustomBlendFunc(true);
+        cl.csdBorderRadius[i].setCustomBlendFunc({
+            .sRGBFactor = GL_ZERO,
+            .dRGBFactor = GL_SRC_ALPHA,
+            .sAlphaFactor = GL_ZERO,
+            .dAlphaFactor = GL_SRC_ALPHA,
+        });
+
+        /*
+        cl.csdBorderRadius[i].opaqueRegion.setEmpty();
+        cl.csdBorderRadius[i].reactiveRegion.setRect(
+            SkIRect::MakeWH(app()->theme()->CSDBorderRadius, app()->theme()->CSDBorderRadius));*/
+    }
+
+    // TL
+    cl.csdBorderRadius[0].setTransform(AKTransform::Normal);
+    cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, 0);
+    cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, 0);
+
+    // TR
+    cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
+    cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, 0);
+    cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, 0);
+
+    // BR
+    cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
+    cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, 0);
+    cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, 0);
+
+    // BL
+    cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
+    cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, 0);
+    cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, 0);
+
+    cl.shadow.setParent(&MSurface::ak.root);
 }
 
 MToplevel::~MToplevel() noexcept
@@ -109,6 +156,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     if (role.se.states.get() != role.cl.states.get())
     {
+        role.cl.flags.add(ForceUpdate);
         role.cl.states = role.se.states;
         notifyStates = true;
     }
@@ -206,14 +254,37 @@ void MToplevel::onUpdate() noexcept
 
     layout().setPosition(YGEdgeLeft, 0.f);
     layout().setPosition(YGEdgeTop, 0.f);
+    layout().setMargin(YGEdgeLeft, cl.csdShadowMargins.fLeft);
+    layout().setMargin(YGEdgeTop, cl.csdShadowMargins.fTop);
+    layout().setMargin(YGEdgeRight, cl.csdShadowMargins.fRight);
+    layout().setMargin(YGEdgeBottom, cl.csdShadowMargins.fBottom);
+    cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
+    cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
+
+    // TR
+    cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
+    cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
+    cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
+
+    // BR
+    cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
+    cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
+    cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
+
+    // BL
+    cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
+    cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
+    cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
+
     ak.scene.updateLayout();
     render();
 }
 
 void MToplevel::render() noexcept
 {
-    if (MSurface::wl.callback)
+    if (MSurface::wl.callback && !cl.flags.check(ForceUpdate))
         return;
+    cl.flags.remove(ForceUpdate);
 
     SkISize size(
         layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight),
@@ -221,7 +292,15 @@ void MToplevel::render() noexcept
 
     if (size.fWidth <= 0) size.fWidth = 8;
     if (size.fHeight <= 0) size.fHeight = 8;
-    resizeBuffer(size);
+    if (resizeBuffer(size))
+    {
+        xdg_surface_set_window_geometry(
+            wl.xdgSurface,
+            cl.csdShadowMargins.fLeft,
+            cl.csdShadowMargins.fTop,
+            layout().calculatedWidth(),
+            layout().calculatedHeight());
+    }
 
     eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
@@ -238,8 +317,23 @@ void MToplevel::render() noexcept
     SkRegion skDamage, skOpaque;
     ak.target->outDamageRegion = &skDamage;
     ak.target->outOpaqueRegion = &skOpaque;
+
+    /* CSD */
+    for (int i = 0; i < 4; i++)
+        cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(ak.target));
+
     ak.scene.render(ak.target);
+
+    for (int i = 0; i < 4; i++)
+        ak.target->outOpaqueRegion->op(cl.csdBorderRadius[i].rect(), SkRegion::Op::kDifference_Op);
+
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
+
+    std::cout <<
+        cl.csdBorderRadius[0].rect().x() << ',' <<
+        cl.csdBorderRadius[0].rect().y() << ',' <<
+        cl.csdBorderRadius[0].rect().width() << ',' <<
+        cl.csdBorderRadius[0].rect().height() << std::endl;
 
     wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
     SkRegion::Iterator opaqueIt(skOpaque);

@@ -9,6 +9,8 @@ namespace Marco
     class MScreen;
     class MSurface;
     class MToplevel;
+    class MTheme;
+    class MWindowShadow;
 
     template <class T> class MProxy;
 

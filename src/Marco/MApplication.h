@@ -47,6 +47,11 @@ public:
     MApplication() noexcept;
     int exec();
 
+    static MTheme *theme() noexcept
+    {
+        return (MTheme*)AK::theme();
+    }
+
     const std::string &appId() const noexcept
     {
         return m_appId;

@@ -4,6 +4,8 @@
 #include <AK/nodes/AKContainer.h>
 #include <AK/nodes/AKSimpleText.h>
 #include <AK/nodes/AKButton.h>
+#include <AK/nodes/AKSolidColor.h>
+#include <AK/effects/AKBackgroundBoxShadowEffect.h>
 #include <AK/AKTheme.h>
 #include <iostream>
 
@@ -24,17 +26,36 @@ int main()
     });
 
     MToplevel window;
+    window.setColorWithAlpha(0xffF0F0F0);
     window.setTitle("Hello world!");
-    window.layout().setAlignItems(YGAlignCenter);
-    window.layout().setJustifyContent(YGJustifyCenter);
-    window.layout().setPadding(YGEdgeAll, 48.f);
-    window.layout().setGap(YGGutterAll, 8.f);
 
-    AKSimpleText helloWorld { "Hello World!", &window };
-    AKButton maximizeButton { "Toggle Maximized", &window };
-    AKButton fullscreenButton { "Toggle Fullscreen", &window };
-    AKButton minimizeButton { "Minimize", &window };
-    AKButton exitButton { "Exit", &window };
+    AKSolidColor topbar { 0xFFFAFAFA, &window};
+    topbar.layout().setAlignItems(YGAlignCenter);
+    topbar.layout().setJustifyContent(YGJustifyCenter);
+    SkFont font;
+    font.setTypeface(SkTypeface::MakeFromName("Inter",
+                    SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant)));
+    font.setSize(14);
+    AKSimpleText helloWorld { "Hello World!", &topbar };
+    helloWorld.setColorWithAlpha(0xb3000000);
+    helloWorld.setFont(font);
+
+    AKBackgroundBoxShadowEffect shadow {2, {0,0}, 0x80000000, false, &topbar};
+    topbar.layout().setHeight(32);
+    topbar.layout().setWidthPercent(100);
+
+    AKContainer body { YGFlexDirectionColumn, true, &window };
+    body.layout().setFlex(1.f);
+    body.layout().setAlignItems(YGAlignCenter);
+    body.layout().setJustifyContent(YGJustifyCenter);
+    body.layout().setPadding(YGEdgeAll, 48.f);
+    body.layout().setGap(YGGutterAll, 8.f);
+
+    AKButton maximizeButton { "Toggle Maximized", &body };
+    AKButton fullscreenButton { "Toggle Fullscreen", &body };
+    AKButton minimizeButton { "Minimize", &body };
+    AKButton exitButton { "Exit", &body };
+    exitButton.setBackgroundColor(AKTheme::SystemRed);
 
     maximizeButton.on.clicked.subscribe(&maximizeButton, [&window](){
         window.setMaximized(!window.states().check(MToplevel::Maximized));

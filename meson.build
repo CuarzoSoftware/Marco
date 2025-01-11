@@ -28,6 +28,7 @@ kay_dep             = dependency('Kay')
 header_dirs = [
     ['./src/Marco', ''],
     ['./src/Marco/roles', 'roles'],
+    ['./src/Marco/nodes', 'nodes'],
     ['./src/Marco/protocols', 'protocols']
 ]
 

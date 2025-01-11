@@ -121,7 +121,9 @@ void MSurface::wl_callback_done(void *data, wl_callback *callback, UInt32 ms)
     wl_callback_destroy(callback);
     surface.wl.callback = nullptr;
     surface.on.presented.notify(ms);
-    surface.update();
+
+    if (surface.cl.pendingUpdate)
+        surface.update();
 }
 
 bool MSurface::createCallback() noexcept

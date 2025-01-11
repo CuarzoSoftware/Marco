@@ -68,6 +68,7 @@ protected:
     friend class MApplication;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
+
     bool createCallback() noexcept;
     bool resizeBuffer(const SkISize &size) noexcept;
 

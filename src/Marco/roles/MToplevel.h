@@ -1,9 +1,11 @@
 #ifndef MTOPLEVEL_H
 #define MTOPLEVEL_H
 
+#include <Marco/nodes/MWindowShadow.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
+#include <AK/nodes/AKImage.h>
 
 class Marco::MToplevel : public MSurface
 {
@@ -47,6 +49,11 @@ public:
         return cl.title;
     }
 
+    const SkIRect &csdMargins() const noexcept
+    {
+        return cl.csdShadowMargins;
+    }
+
     struct
     {
         AK::AKSignal<const std::string &> titleChanged;
@@ -61,7 +68,8 @@ protected:
         PendingNullCommit       = 1 << 0,
         PendingFirstConfigure   = 1 << 1,
         PendingConfigureAck     = 1 << 2,
-        Mapped                  = 1 << 3
+        Mapped                  = 1 << 3,
+        ForceUpdate             = 1 << 4
     };
 
     void onUpdate() noexcept override;
@@ -73,12 +81,20 @@ protected:
         zxdg_toplevel_decoration_v1 *xdgDecoration { nullptr };
     } wl;
 
-    struct {
+    struct CL{
+        CL(MToplevel *toplevel) : shadow(toplevel) {
+            shadow.layout().setPositionType(YGPositionTypeAbsolute);
+            shadow.layout().setWidthPercent(100);
+            shadow.layout().setHeightPercent(100);
+        }
         AK::AKBitset<Flags> flags { PendingNullCommit };
         AK::AKBitset<State> states;
         SkISize suggestedSize { 0, 0 };
         std::string title;
-    } cl;
+        AK::AKImage csdBorderRadius[4];
+        SkIRect csdShadowMargins { 48, 30, 48, 66 };
+        MWindowShadow shadow;
+    } cl{this};
 
     struct
     {
