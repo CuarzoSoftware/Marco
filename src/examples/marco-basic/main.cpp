@@ -51,6 +51,8 @@ int main()
     body.layout().setPadding(YGEdgeAll, 48.f);
     body.layout().setGap(YGGutterAll, 8.f);
 
+    AKButton blueButton { "Blue button", &body };
+    blueButton.setBackgroundColor(AKTheme::SystemBlue);
     AKButton maximizeButton { "Toggle Maximized", &body };
     AKButton fullscreenButton { "Toggle Fullscreen", &body };
     AKButton minimizeButton { "Minimize", &body };

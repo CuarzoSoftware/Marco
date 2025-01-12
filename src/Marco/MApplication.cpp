@@ -39,7 +39,8 @@ int MApplication::exec()
 
     while (m_running)
     {
-        poll(fds, 2, -1);
+        poll(fds, 2, m_timeout);
+        m_timeout = -1;
 
         if (fds[0].revents & POLLIN)
             if (wl_display_dispatch(wl.display) == -1)

@@ -1,7 +1,7 @@
 #ifndef MTOPLEVEL_H
 #define MTOPLEVEL_H
 
-#include <Marco/nodes/MWindowShadow.h>
+#include <Marco/nodes/MCSDShadow.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
@@ -82,18 +82,14 @@ protected:
     } wl;
 
     struct CL{
-        CL(MToplevel *toplevel) : shadow(toplevel) {
-            shadow.layout().setPositionType(YGPositionTypeAbsolute);
-            shadow.layout().setWidthPercent(100);
-            shadow.layout().setHeightPercent(100);
-        }
+        CL(MToplevel *toplevel) : csdShadow(toplevel) {}
         AK::AKBitset<Flags> flags { PendingNullCommit };
         AK::AKBitset<State> states;
         SkISize suggestedSize { 0, 0 };
         std::string title;
         AK::AKImage csdBorderRadius[4];
         SkIRect csdShadowMargins { 48, 30, 48, 66 };
-        MWindowShadow shadow;
+        MCSDShadow csdShadow;
     } cl{this};
 
     struct

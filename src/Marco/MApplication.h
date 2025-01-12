@@ -94,6 +94,14 @@ public:
         eventfd_write(fds[1].fd, 1);
     }
 
+    void setTimeout(Int32 timeout = -1) noexcept
+    {
+        if (timeout < 0)
+            m_timeout = 0;
+        else if (timeout < m_timeout || m_timeout < 0)
+            m_timeout = timeout;
+    }
+
     struct
     {
         AK::AKSignal<MScreen&> screenPlugged;
@@ -129,6 +137,7 @@ private:
     void initGraphics() noexcept;
     bool m_running { false };
     bool m_pendingUpdate { false };
+    Int32 m_timeout { -1 };
     pollfd fds[2];
     Wayland wl;
     Graphics gl;

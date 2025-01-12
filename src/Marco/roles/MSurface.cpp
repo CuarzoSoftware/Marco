@@ -9,6 +9,7 @@
 #include <GLES2/gl2ext.h>
 
 using namespace Marco;
+using namespace AK;
 
 static wl_surface_listener wlSurfaceListener;
 static wl_callback_listener wlCallbackListener;
@@ -131,6 +132,7 @@ bool MSurface::createCallback() noexcept
     if (wl.callback)
         return false;
 
+    wl.callbackSendMs = AKTime::ms();
     wl.callback = wl_surface_frame(wl.surface);
     wl_callback_add_listener(wl.callback, &wlCallbackListener, this);
     return true;

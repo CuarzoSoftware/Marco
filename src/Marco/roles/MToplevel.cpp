@@ -81,7 +81,7 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, 0);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, 0);
 
-    cl.shadow.setParent(&MSurface::ak.root);
+    cl.csdShadow.setParent(&MSurface::ak.root);
 }
 
 MToplevel::~MToplevel() noexcept
@@ -156,7 +156,6 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     if (role.se.states.get() != role.cl.states.get())
     {
-        role.cl.flags.add(ForceUpdate);
         role.cl.states = role.se.states;
         notifyStates = true;
     }
@@ -185,6 +184,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
             role.on.statesChanged.notify(role.cl.states);
     }
 
+    role.cl.flags.add(ForceUpdate);
     role.update();
 }
 
@@ -258,37 +258,48 @@ void MToplevel::onUpdate() noexcept
     layout().setMargin(YGEdgeTop, cl.csdShadowMargins.fTop);
     layout().setMargin(YGEdgeRight, cl.csdShadowMargins.fRight);
     layout().setMargin(YGEdgeBottom, cl.csdShadowMargins.fBottom);
+
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
 
     // TR
-    cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
+    //cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
 
     // BR
-    cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
+    //cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
 
     // BL
-    cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
+    //cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
-
-    ak.scene.updateLayout();
     render();
 }
 
 void MToplevel::render() noexcept
 {
+    /*
+    const Int64 ms = Int64(AKTime::ms()) - Int64(MSurface::wl.callbackSendMs);
+
+    if (ms < 8)
+    {
+        app()->setTimeout(8 - ms);
+        return;
+    }*/
+
+    ak.scene.updateLayout();
+
     if (MSurface::wl.callback && !cl.flags.check(ForceUpdate))
         return;
+
     cl.flags.remove(ForceUpdate);
 
     SkISize size(
-        layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight),
-        layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom));
+        SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
+        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom)));
 
     if (size.fWidth <= 0) size.fWidth = 8;
     if (size.fHeight <= 0) size.fHeight = 8;
@@ -322,18 +333,15 @@ void MToplevel::render() noexcept
     for (int i = 0; i < 4; i++)
         cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(ak.target));
 
+    /*glScissor(0, 0, 1000000, 100000);
+    glViewport(0, 0, 1000000, 100000);
+    glClear(GL_COLOR_BUFFER_BIT);*/
     ak.scene.render(ak.target);
 
     for (int i = 0; i < 4; i++)
         ak.target->outOpaqueRegion->op(cl.csdBorderRadius[i].rect(), SkRegion::Op::kDifference_Op);
 
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
-
-    std::cout <<
-        cl.csdBorderRadius[0].rect().x() << ',' <<
-        cl.csdBorderRadius[0].rect().y() << ',' <<
-        cl.csdBorderRadius[0].rect().width() << ',' <<
-        cl.csdBorderRadius[0].rect().height() << std::endl;
 
     wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
     SkRegion::Iterator opaqueIt(skOpaque);
@@ -344,6 +352,11 @@ void MToplevel::render() noexcept
     }
     wl_surface_set_opaque_region(MSurface::wl.surface, wlOpaqueRegion);
     wl_region_destroy(wlOpaqueRegion);
+
+    const bool noDamage { skDamage.computeRegionComplexity() == 0 };
+
+    if (noDamage)
+        skDamage.setRect(SkIRect(-10, -10, 1, 1));
 
     EGLint *damageRects { new EGLint[skDamage.computeRegionComplexity() * 4] };
     EGLint *rectsIt = damageRects;
@@ -361,7 +374,7 @@ void MToplevel::render() noexcept
         damageIt.next();
     }
 
-    if (!skDamage.isEmpty())
+    if (!noDamage)
         createCallback();
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;

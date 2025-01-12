@@ -66,6 +66,7 @@ public:
     } on;
 protected:
     friend class MApplication;
+    friend class MCSDShadow;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
 
@@ -92,6 +93,7 @@ protected:
     } ak;
 
     struct {
+        UInt32 callbackSendMs { 0 };
         wl_callback *callback { nullptr };
         wl_surface *surface { nullptr };
     } wl;

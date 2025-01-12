@@ -11,6 +11,7 @@ namespace Marco
     class MToplevel;
     class MTheme;
     class MWindowShadow;
+    class MCSDShadow;
 
     template <class T> class MProxy;
 
