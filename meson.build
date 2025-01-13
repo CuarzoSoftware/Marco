@@ -21,7 +21,12 @@ cpp                 = meson.get_compiler('cpp')
 pkg                 = import('pkgconfig')
 wayland_client_dep  = dependency('wayland-client')
 wayland_egl_dep     = dependency('wayland-egl')
-kay_dep             = dependency('Kay')
+kay_dep             = dependency('Kay', required : false)
+
+if not kay_dep.found()
+  kay_proj = subproject('kay')
+  kay_dep = kay_proj.get_variable('kay_dep')
+endif
 
 # -------------- HEADERS --------------
 
