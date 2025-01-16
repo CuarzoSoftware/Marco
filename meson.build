@@ -29,7 +29,8 @@ header_dirs = [
     ['./src/Marco', ''],
     ['./src/Marco/roles', 'roles'],
     ['./src/Marco/nodes', 'nodes'],
-    ['./src/Marco/protocols', 'protocols']
+    ['./src/Marco/protocols', 'protocols'],
+    ['./src/Marco/utils', 'utils']
 ]
 
 foreach header_dir : header_dirs

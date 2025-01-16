@@ -1,10 +1,12 @@
 #include <Marco/MApplication.h>
 #include <Marco/MScreen.h>
 #include <Marco/roles/MToplevel.h>
+#include <Marco/utils/MImageLoader.h>
 #include <AK/nodes/AKContainer.h>
 #include <AK/nodes/AKSimpleText.h>
 #include <AK/nodes/AKButton.h>
 #include <AK/nodes/AKSolidColor.h>
+#include <AK/nodes/AKImage.h>
 #include <AK/effects/AKBackgroundBoxShadowEffect.h>
 #include <AK/AKTheme.h>
 #include <iostream>
@@ -14,6 +16,7 @@ using namespace AK;
 
 int main()
 {
+
     MApplication app;
     app.setAppId("org.Cuarzo.marco-basic");
 
@@ -51,6 +54,9 @@ int main()
     body.layout().setPadding(YGEdgeAll, 48.f);
     body.layout().setGap(YGGutterAll, 8.f);
 
+    AKImage cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
+    cat.layout().setWidth(200);
+    cat.layout().setHeight(200);
     AKButton blueButton { "Blue button", &body };
     blueButton.setBackgroundColor(AKTheme::SystemBlue);
     AKButton maximizeButton { "Toggle Maximized", &body };

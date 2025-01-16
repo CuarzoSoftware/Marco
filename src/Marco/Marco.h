@@ -13,6 +13,9 @@ namespace Marco
     class MWindowShadow;
     class MCSDShadow;
 
+    /* Utils */
+    class MImageLoader;
+
     template <class T> class MProxy;
 
     MApplication *app() noexcept;
