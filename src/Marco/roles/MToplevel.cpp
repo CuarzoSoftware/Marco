@@ -1,6 +1,8 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
+#include <AK/events/AKStateActivatedEvent.h>
+#include <AK/events/AKStateDeactivatedEvent.h>
 #include <include/gpu/ganesh/SkSurfaceGanesh.h>
 #include <include/core/SkColorSpace.h>
 #include <GLES2/gl2.h>
@@ -149,6 +151,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     bool notifyStates { role.cl.flags.check(PendingFirstConfigure) };
     bool notifySuggestedSize { notifyStates };
+    bool activatedChanged { false };
     role.cl.flags.remove(PendingFirstConfigure);
 
     if (notifyStates)
@@ -158,6 +161,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     if (role.se.states.get() != role.cl.states.get())
     {
+        activatedChanged = role.cl.states.check(Activated) != role.se.states.check(Activated);
         role.cl.states = role.se.states;
         notifyStates = true;
     }
@@ -180,7 +184,16 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     if (ref && notifyStates)
     {
-        role.onStatesChanged();
+        if (activatedChanged)
+        {
+            if (role.cl.states.check(Activated))
+                role.ak.scene.postEvent(AKStateActivatedEvent());
+            else
+                role.ak.scene.postEvent(AKStateDeactivatedEvent());
+        }
+
+        if (ref)
+            role.onStatesChanged();
 
         if (ref)
             role.on.statesChanged.notify(role.cl.states);
@@ -254,28 +267,51 @@ void MToplevel::onUpdate() noexcept
     if (cl.flags.check(PendingFirstConfigure | PendingNullCommit))
         return;
 
+    if (cl.states.check(Maximized | Fullscreen))
+    {
+        cl.csdShadowMargins = { 0, 0, 0, 0 };
+        cl.csdShadow.setVisible(false);
+        for (int i = 0; i < 4; i++)
+            cl.csdBorderRadius[i].setVisible(false);
+    }
+    else
+    {
+        cl.csdShadow.setVisible(true);
+        for (int i = 0; i < 4; i++)
+            cl.csdBorderRadius[i].setVisible(true);
+
+        if (activated())
+        {
+            cl.csdShadowMargins = {
+                app()->theme()->CSDShadowActiveRadius,
+                app()->theme()->CSDShadowActiveRadius - app()->theme()->CSDShadowActiveOffsetY,
+                app()->theme()->CSDShadowActiveRadius,
+                app()->theme()->CSDShadowActiveRadius + app()->theme()->CSDShadowActiveOffsetY,
+            };
+        }
+        else
+        {
+            cl.csdShadowMargins = {
+                app()->theme()->CSDShadowInactiveRadius,
+                app()->theme()->CSDShadowInactiveRadius - app()->theme()->CSDShadowInactiveOffsetY,
+                app()->theme()->CSDShadowInactiveRadius,
+                app()->theme()->CSDShadowInactiveRadius + app()->theme()->CSDShadowInactiveOffsetY,
+            };
+        }
+    }
+
     layout().setPosition(YGEdgeLeft, 0.f);
     layout().setPosition(YGEdgeTop, 0.f);
     layout().setMargin(YGEdgeLeft, cl.csdShadowMargins.fLeft);
     layout().setMargin(YGEdgeTop, cl.csdShadowMargins.fTop);
     layout().setMargin(YGEdgeRight, cl.csdShadowMargins.fRight);
     layout().setMargin(YGEdgeBottom, cl.csdShadowMargins.fBottom);
-
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
-
-    // TR
-    //cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
-
-    // BR
-    //cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
-
-    // BL
-    //cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
     render();
@@ -305,7 +341,10 @@ void MToplevel::render() noexcept
 
     if (size.fWidth <= 0) size.fWidth = 8;
     if (size.fHeight <= 0) size.fHeight = 8;
-    if (resizeBuffer(size))
+
+    const bool sizeChanged { resizeBuffer(size) };
+
+    if (sizeChanged)
     {
         xdg_surface_set_window_geometry(
             wl.xdgSurface,
@@ -318,7 +357,6 @@ void MToplevel::render() noexcept
     eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
 
-    ak.target->enableUpdateLayout(false);
     ak.target->setDstRect({ 0, 0, bufferSize().width(), bufferSize().height() });
     ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
     ak.target->setSurface(gl.skSurface);
@@ -326,6 +364,7 @@ void MToplevel::render() noexcept
 
     EGLint bufferAge { 0 };
     eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
+    ak.target->enableUpdateLayout(bufferAge == 0);
     ak.target->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
     ak.target->outDamageRegion = &skDamage;
@@ -335,9 +374,10 @@ void MToplevel::render() noexcept
     for (int i = 0; i < 4; i++)
         cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(ak.target));
 
+    /*
     glScissor(0, 0, 1000000, 100000);
     glViewport(0, 0, 1000000, 100000);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT);*/
     ak.scene.render(ak.target);
 
     for (int i = 0; i < 4; i++)
@@ -345,6 +385,20 @@ void MToplevel::render() noexcept
 
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
 
+    /* Input region */
+    if (sizeChanged)
+    {
+        wl_region *wlInputRegion = wl_compositor_create_region(app()->wayland().compositor);
+        wl_region_add(wlInputRegion, rect().x(), rect().y(), rect().width(), rect().height());
+        wl_surface_set_input_region(MSurface::wl.surface, wlInputRegion);
+        wl_region_destroy(wlInputRegion);
+    }
+
+    /* In some compositors using fractional scaling (without oversampling), the opaque region
+     * can leak, causing borders to appear black. This inset prevents that. */
+    SkIRect opaqueClip { rect() };
+    opaqueClip.inset(1, 1);
+    skOpaque.op(opaqueClip, SkRegion::Op::kIntersect_Op);
     wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
     SkRegion::Iterator opaqueIt(skOpaque);
     while (!opaqueIt.done())

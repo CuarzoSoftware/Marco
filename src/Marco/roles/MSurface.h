@@ -71,6 +71,12 @@ protected:
     virtual void onUpdate() noexcept;
 
     bool createCallback() noexcept;
+
+    /**
+     * @brief Resize the wl_egl_window
+     *
+     * @return true if resized, false if the size is the same.
+     */
     bool resizeBuffer(const SkISize &size) noexcept;
 
     enum ClientChanges

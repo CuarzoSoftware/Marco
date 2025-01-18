@@ -211,7 +211,7 @@ void MSurface::onUpdate() noexcept
         cl.scale = se.preferredBufferScale;
         cl.changes.set(Cl_Scale);
     }
-    else if (se.changes.test(Se_Screens))
+    else if (se.preferredBufferScale == -1 && se.changes.test(Se_Screens))
     {
         Int32 maxScale { 1 };
 

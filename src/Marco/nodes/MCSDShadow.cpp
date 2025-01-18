@@ -24,11 +24,23 @@ void MCSDShadow::onSceneCalculatedRect()
 
     m_prevSize = rect().size();
     m_prevScale = currentTarget()->bakedComponentsScale();
-    m_image = app()->theme()->csdShadowActive(
-        currentTarget(),
-        SkISize(rect().width() - MTheme::CSDShadowActiveMargins.fLeft - MTheme::CSDShadowActiveMargins.fRight,
-                rect().height() - MTheme::CSDShadowActiveMargins.fTop - MTheme::CSDShadowActiveMargins.fBottom),
-        m_clampSides);
+
+    if (m_toplevel->activated())
+    {
+        m_image = app()->theme()->csdShadowActive(
+            currentTarget(),
+            SkISize(rect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                    rect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            m_clampSides);
+    }
+    else
+    {
+        m_image = app()->theme()->csdShadowInactive(
+            currentTarget(),
+            SkISize(rect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                    rect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            m_clampSides);
+    }
 
     addDamage(AK_IRECT_INF);
 }
@@ -40,7 +52,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage)
 
     /* Remove invisible region */
 
-    const auto &margins { MTheme::CSDShadowActiveMargins };
+    const auto &margins { m_toplevel->csdMargins() };
     SkIRect centerV = SkIRect(
         margins.fLeft,
         margins.fTop,
@@ -86,9 +98,11 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage)
     }
     else
     {
-        const Int32 B { 19 };
-        const Int32 T { 51 };
-        const Int32 L { 36 };
+        const Int32 B { (activated() ? MTheme::CSDShadowActiveOffsetY : MTheme::CSDShadowInactiveOffsetY) + 1  };
+        const Int32 T { (activated() ?
+            (MTheme::CSDShadowActiveRadius - MTheme::CSDShadowActiveOffsetY) :
+            (MTheme::CSDShadowInactiveRadius - MTheme::CSDShadowInactiveOffsetY)) + (2 * MTheme::CSDBorderRadius) + 1 };
+        const Int32 L { margins.fLeft + 2 };
 
         /* Top Left */
         params.dstSize = { margins.fLeft + L, margins.fTop  + T };
