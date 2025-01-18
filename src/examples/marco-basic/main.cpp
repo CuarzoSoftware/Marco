@@ -6,7 +6,7 @@
 #include <AK/nodes/AKSimpleText.h>
 #include <AK/nodes/AKButton.h>
 #include <AK/nodes/AKSolidColor.h>
-#include <AK/nodes/AKImage.h>
+#include <AK/nodes/AKImageFrame.h>
 #include <AK/effects/AKBackgroundBoxShadowEffect.h>
 #include <AK/AKTheme.h>
 #include <iostream>
@@ -54,9 +54,10 @@ int main()
     body.layout().setPadding(YGEdgeAll, 48.f);
     body.layout().setGap(YGGutterAll, 8.f);
 
-    AKImage cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
-    cat.layout().setWidth(200);
-    cat.layout().setHeight(200);
+    AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
+    cat.opaqueRegion().setRect(AK_IRECT_INF);
+    cat.layout().setWidthPercent(100);
+    cat.layout().setHeightPercent(50);
     AKButton blueButton { "Blue button", &body };
     blueButton.setBackgroundColor(AKTheme::SystemBlue);
     AKButton maximizeButton { "Toggle Maximized", &body };

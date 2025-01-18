@@ -5,7 +5,7 @@
 #include <Marco/roles/MSurface.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
-#include <AK/nodes/AKImage.h>
+#include <AK/nodes/AKRenderableImage.h>
 
 class Marco::MToplevel : public MSurface
 {
@@ -87,7 +87,7 @@ protected:
         AK::AKBitset<State> states;
         SkISize suggestedSize { 0, 0 };
         std::string title;
-        AK::AKImage csdBorderRadius[4];
+        AK::AKRenderableImage csdBorderRadius[4];
         SkIRect csdShadowMargins { 48, 30, 48, 66 };
         MCSDShadow csdShadow;
     } cl{this};

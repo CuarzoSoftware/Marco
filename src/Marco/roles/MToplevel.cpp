@@ -46,8 +46,8 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
         cl.csdBorderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
         cl.csdBorderRadius[i].layout().setWidth(app()->theme()->CSDBorderRadius);
         cl.csdBorderRadius[i].layout().setHeight(app()->theme()->CSDBorderRadius);
-        cl.csdBorderRadius[i].setSizeMode(AKImage::SizeMode::Fill);
         cl.csdBorderRadius[i].enableCustomBlendFunc(true);
+        cl.csdBorderRadius[i].enableAutoDamage(false);
         cl.csdBorderRadius[i].setCustomBlendFunc({
             .sRGBFactor = GL_ZERO,
             .dRGBFactor = GL_SRC_ALPHA,
@@ -61,23 +61,25 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
             SkIRect::MakeWH(app()->theme()->CSDBorderRadius, app()->theme()->CSDBorderRadius));*/
     }
 
+    // TODO: update only when activated changes
+
     // TL
-    cl.csdBorderRadius[0].setTransform(AKTransform::Normal);
+    cl.csdBorderRadius[0].setSrcTransform(AKTransform::Normal);
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, 0);
     cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, 0);
 
     // TR
-    cl.csdBorderRadius[1].setTransform(AKTransform::Rotated90);
+    cl.csdBorderRadius[1].setSrcTransform(AKTransform::Rotated90);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, 0);
     cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, 0);
 
     // BR
-    cl.csdBorderRadius[2].setTransform(AKTransform::Rotated180);
+    cl.csdBorderRadius[2].setSrcTransform(AKTransform::Rotated180);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, 0);
     cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, 0);
 
     // BL
-    cl.csdBorderRadius[3].setTransform(AKTransform::Rotated270);
+    cl.csdBorderRadius[3].setSrcTransform(AKTransform::Rotated270);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, 0);
     cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, 0);
 
@@ -333,9 +335,9 @@ void MToplevel::render() noexcept
     for (int i = 0; i < 4; i++)
         cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(ak.target));
 
-    /*glScissor(0, 0, 1000000, 100000);
+    glScissor(0, 0, 1000000, 100000);
     glViewport(0, 0, 1000000, 100000);
-    glClear(GL_COLOR_BUFFER_BIT);*/
+    glClear(GL_COLOR_BUFFER_BIT);
     ak.scene.render(ak.target);
 
     for (int i = 0; i < 4; i++)
