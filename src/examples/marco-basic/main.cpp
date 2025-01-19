@@ -42,6 +42,18 @@ public:
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
         exitButton.setBackgroundColor(AKTheme::SystemRed);
 
+        disabledButton.setEnabled(false);
+
+        cursorButton.on.clicked.subscribe(this, [this](){
+            if (cursor == 34)
+                cursor = 0;
+            else
+                cursor++;
+
+            cursorButton.setText(std::string("Cursor: ") + cursorToString((AKCursor)cursor));
+            pointer().setCursor((AKCursor)cursor);
+        });
+
         newWindowButton.on.clicked.subscribe(this, [](){
             new Window();
         });
@@ -68,10 +80,13 @@ public:
     AKBackgroundBoxShadowEffect shadow {2, {0,0}, 0x80000000, false, &topbar};
     AKContainer body { YGFlexDirectionColumn, true, this };
     AKImageFrame cat { MImageLoader::loadFile("/usr/share/pixmaps/fedora-logo.png"), &body };
+    UInt32 cursor { 1 };
+    AKButton cursorButton { "Cursor: Default", &body };
     AKButton newWindowButton { "New Window", &body };
     AKButton maximizeButton { "Toggle Maximized", &body };
     AKButton fullscreenButton { "Toggle Fullscreen", &body };
     AKButton minimizeButton { "Minimize", &body };
+    AKButton disabledButton { "Disabled Button", &body };
     AKButton exitButton { "Exit", &body };
 };
 

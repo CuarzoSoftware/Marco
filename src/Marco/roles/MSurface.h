@@ -58,6 +58,8 @@ public:
 
     void update() noexcept;
 
+    wl_surface *wlSurface() const noexcept { return wl.surface; }
+
     struct
     {
         AK::AKSignal<MScreen&> enteredScreen;

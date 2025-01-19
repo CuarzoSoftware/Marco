@@ -3,6 +3,7 @@
 
 #include <Marco/MProxy.h>
 #include <Marco/MScreen.h>
+#include <Marco/input/MPointer.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
@@ -27,6 +28,7 @@ public:
     {
         wl_display *display { nullptr };
         MProxy<wl_registry> registry;
+        MProxy<wl_shm> shm;
         MProxy<wl_compositor> compositor;
         MProxy<xdg_wm_base> xdgWmBase;
         MProxy<zxdg_decoration_manager_v1> xdgDecorationManager;
@@ -102,6 +104,8 @@ public:
             m_timeout = timeout;
     }
 
+    MPointer &pointer() noexcept { return m_pointer; }
+
     struct
     {
         AK::AKSignal<MScreen&> screenPlugged;
@@ -143,13 +147,7 @@ private:
     Graphics gl;
     std::string m_appId;
 
-    struct {
-        AK::AKWeak<MSurface> focus;
-        AK::AKPointerEnterEvent enterEvent;
-        AK::AKPointerMoveEvent moveEvent;
-        AK::AKPointerLeaveEvent leaveEvent;
-        AK::AKPointerButtonEvent buttonEvent;
-    } m_pointer;
+    MPointer m_pointer;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
 };

@@ -13,6 +13,11 @@ MApplication *Marco::app() noexcept
     return m_app;
 }
 
+Marco::MPointer &Marco::pointer() noexcept
+{
+    return m_app->pointer();
+}
+
 static wl_registry_listener wlRegistryListener;
 static wl_output_listener wlOutputListener;
 static wl_seat_listener wlSeatListener;
@@ -74,7 +79,11 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
 {
     auto &wl { *static_cast<MApplication::Wayland*>(data) };
 
-    if (!wl.compositor && strcmp(interface, wl_compositor_interface.name) == 0)
+    if (!wl.shm && strcmp(interface, wl_shm_interface.name) == 0)
+    {
+        wl.shm.set(wl_registry_bind(registry, name, &wl_shm_interface, version), name);
+    }
+    else if (!wl.compositor && strcmp(interface, wl_compositor_interface.name) == 0)
     {
         wl.compositor.set(wl_registry_bind(registry, name, &wl_compositor_interface, version), name);
     }
@@ -209,43 +218,55 @@ void MApplication::wl_pointer_enter(void */*data*/, wl_pointer */*pointer*/, UIn
 {
     MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
     auto &p { app()->m_pointer };
-    p.focus.reset(surf);
-    p.enterEvent.setX(wl_fixed_to_double(x));
-    p.enterEvent.setY(wl_fixed_to_double(y));
-    p.enterEvent.setSerial(serial);
-    surf->ak.scene.postEvent(p.enterEvent);
+    p.m_focus.reset(surf);
+    p.m_eventHistory.enter.setX(wl_fixed_to_double(x));
+    p.m_eventHistory.enter.setY(wl_fixed_to_double(y));
+    p.m_eventHistory.enter.setSerial(serial);
+    surf->ak.scene.postEvent(p.m_eventHistory.enter);
+    p.setCursor(p.cursor());
 }
 
 void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface)
 {
     MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
     auto &p { app()->m_pointer };
-    p.focus.reset();
-    p.leaveEvent.setSerial(serial);
-    surf->ak.scene.postEvent(p.leaveEvent);
+    p.m_focus.reset();
+
+    // TODO: notify
+    p.m_pressedButtons.clear();
+    p.m_eventHistory.leave.setSerial(serial);
+    surf->ak.scene.postEvent(p.m_eventHistory.leave);
 }
 
 void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UInt32 time, wl_fixed_t x, wl_fixed_t y)
 {
     auto &p { app()->m_pointer };
-    if (!p.focus) return;
+    if (!p.focus()) return;
 
-    p.moveEvent.setMs(time);
-    p.moveEvent.setX(wl_fixed_to_double(x));
-    p.moveEvent.setY(wl_fixed_to_double(y));
-    p.focus->ak.scene.postEvent(p.moveEvent);
+    p.m_eventHistory.move.setMs(time);
+    p.m_eventHistory.move.setX(wl_fixed_to_double(x));
+    p.m_eventHistory.move.setY(wl_fixed_to_double(y));
+    p.focus()->ak.scene.postEvent(p.m_eventHistory.move);
+
+    if (p.focus()->ak.scene.pointerFocus())
+        p.setCursor(p.findNonDefaultCursor(p.focus()->ak.scene.pointerFocus()));
 }
 
 void MApplication::wl_pointer_button(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, UInt32 time, UInt32 button, UInt32 state)
 {
     auto &p { app()->m_pointer };
-    if (!p.focus) return;
+    if (!p.focus()) return;
 
-    p.buttonEvent.setMs(time);
-    p.buttonEvent.setSerial(serial);
-    p.buttonEvent.setButton((AK::AKPointerButtonEvent::Button)button);
-    p.buttonEvent.setState((AK::AKPointerButtonEvent::State)state);
-    p.focus->ak.scene.postEvent(p.buttonEvent);
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED)
+        p.m_pressedButtons.insert(button);
+    else
+        p.m_pressedButtons.erase(button);
+
+    p.m_eventHistory.button.setMs(time);
+    p.m_eventHistory.button.setSerial(serial);
+    p.m_eventHistory.button.setButton((AK::AKPointerButtonEvent::Button)button);
+    p.m_eventHistory.button.setState((AK::AKPointerButtonEvent::State)state);
+    p.focus()->ak.scene.postEvent(p.m_eventHistory.button);
 }
 
 void MApplication::wl_pointer_axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value)
@@ -329,6 +350,7 @@ void MApplication::initWayland() noexcept
     wl_display_roundtrip(wl.display);
     wl_display_roundtrip(wl.display);
 
+    assert(wl.shm && "wl_shm not supported by the compositor");
     assert(wl.compositor && "wl_compositor not supported by the compositor");
     assert(wl.seat && "wl_seat not supported by the compositor");
     assert(wl.pointer && "wl_pointer not supported by the compositor");

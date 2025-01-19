@@ -13,12 +13,16 @@ namespace Marco
     class MWindowShadow;
     class MCSDShadow;
 
+    /* Input */
+    class MPointer;
+
     /* Utils */
     class MImageLoader;
 
     template <class T> class MProxy;
 
     MApplication *app() noexcept;
+    MPointer &pointer() noexcept;
 
     /// @brief 64 bits unsigned integer
     typedef uint64_t        UInt64;

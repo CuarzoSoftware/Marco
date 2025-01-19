@@ -20,6 +20,7 @@ HEADERS_INSTALL_PATH = join_paths(get_option('prefix'), get_option('includedir')
 cpp                 = meson.get_compiler('cpp')
 pkg                 = import('pkgconfig')
 wayland_client_dep  = dependency('wayland-client')
+wayland_cursor_dep  = dependency('wayland-cursor')
 wayland_egl_dep     = dependency('wayland-egl')
 kay_dep             = dependency('Kay', required : false)
 
@@ -35,7 +36,8 @@ header_dirs = [
     ['./src/Marco/roles', 'roles'],
     ['./src/Marco/nodes', 'nodes'],
     ['./src/Marco/protocols', 'protocols'],
-    ['./src/Marco/utils', 'utils']
+    ['./src/Marco/utils', 'utils'],
+    ['./src/Marco/input', 'input']
 ]
 
 foreach header_dir : header_dirs
@@ -51,6 +53,7 @@ marco = library(
     include_directories : ['./src'],
     dependencies : [
         wayland_client_dep,
+        wayland_cursor_dep,
         wayland_egl_dep,
         kay_dep
     ],
