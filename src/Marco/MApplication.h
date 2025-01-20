@@ -7,6 +7,7 @@
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
+#include <Marco/utils/MEventSource.h>
 #include <AK/AKObject.h>
 #include <AK/AKWeak.h>
 #include <AK/events/AKPointerEnterEvent.h>
@@ -20,6 +21,7 @@
 #include <sys/eventfd.h>
 #include <sys/poll.h>
 #include <fcntl.h>
+#include <array>
 
 class Marco::MApplication : public AK::AKObject
 {
@@ -88,12 +90,15 @@ public:
         return m_screens;
     }
 
+    MEventSource *addEventSource(Int32 fd, UInt32 events, const MEventSource::Callback &callback) noexcept;
+    void removeEventSource(MEventSource *source) noexcept;
+
     void update() noexcept
     {
         if (m_pendingUpdate)
             return;
         m_pendingUpdate = true;
-        eventfd_write(fds[1].fd, 1);
+        eventfd_write(m_eventFdEventSource->fd(), 1);
     }
 
     void setTimeout(Int32 timeout = -1) noexcept
@@ -139,14 +144,20 @@ private:
     static void xdg_wm_base_ping(void *data, xdg_wm_base *xdgWmBase, UInt32 serial);
     void initWayland() noexcept;
     void initGraphics() noexcept;
+    void updateEventSources() noexcept;
     bool m_running { false };
     bool m_pendingUpdate { false };
     Int32 m_timeout { -1 };
-    pollfd fds[2];
+
     Wayland wl;
     Graphics gl;
     std::string m_appId;
 
+    MEventSource* m_waylandEventSource, *m_eventFdEventSource;
+    std::vector<pollfd> m_fds;
+    bool m_eventSourcesChanged { false };
+    std::vector<std::shared_ptr<MEventSource>> m_pendingEventSources;
+    std::vector<std::shared_ptr<MEventSource>> m_currentEventSources;
     MPointer m_pointer;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;

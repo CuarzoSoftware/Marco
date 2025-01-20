@@ -17,6 +17,7 @@ namespace Marco
     class MPointer;
 
     /* Utils */
+    class MEventSource;
     class MImageLoader;
 
     template <class T> class MProxy;

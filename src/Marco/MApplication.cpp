@@ -44,18 +44,14 @@ int MApplication::exec()
 
     while (m_running)
     {
-        poll(fds, 2, m_timeout);
+        updateEventSources();
+        poll(m_fds.data(), m_fds.size(), m_timeout);
         m_timeout = -1;
 
-        if (fds[0].revents & POLLIN)
-            if (wl_display_dispatch(wl.display) == -1)
-                return EXIT_FAILURE;
-
-        if (fds[1].revents & POLLIN)
+        for (size_t i = 0; i < m_fds.size(); i++)
         {
-            m_pendingUpdate = false;
-            static eventfd_t val;
-            eventfd_read(fds[1].fd, &val);
+            if (m_currentEventSources[i]->m_callback && (m_fds[i].revents & m_fds[i].events))
+                m_currentEventSources[i]->m_callback(m_fds[i].fd, m_fds[i].revents);
         }
 
         for (MSurface *surf : m_surfaces)
@@ -73,6 +69,26 @@ int MApplication::exec()
     }
 
     return EXIT_SUCCESS;
+}
+
+MEventSource *MApplication::addEventSource(Int32 fd, UInt32 events, const MEventSource::Callback &callback) noexcept
+{
+    m_eventSourcesChanged = true;
+    MEventSource *source { new MEventSource(fd, events, callback) };
+    m_pendingEventSources.push_back(std::shared_ptr<MEventSource>(source));
+    return source;
+}
+
+void MApplication::removeEventSource(MEventSource *source) noexcept
+{
+    for (size_t i = 0; i < m_pendingEventSources.size(); i++)
+    {
+        if (m_pendingEventSources[i].get() == source)
+        {
+            m_pendingEventSources.erase(m_pendingEventSources.begin() + i);
+            m_eventSourcesChanged = true;
+        }
+    }
 }
 
 void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 name, const char *interface, UInt32 version)
@@ -337,13 +353,16 @@ void MApplication::initWayland() noexcept
     wl.display = wl_display_connect(NULL);
     assert(wl.display && "wl_display_connect failed");
 
-    fds[0].fd = wl_display_get_fd(wl.display);
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
+    m_waylandEventSource = addEventSource(wl_display_get_fd(wl.display), POLLIN, [this](Int32, UInt32){
+        if (wl_display_dispatch(wl.display) == -1)
+            exit(EXIT_FAILURE);
+    });
 
-    fds[1].fd = eventfd(0, O_CLOEXEC);
-    fds[1].events = POLLIN;
-    fds[1].revents = 0;
+    m_eventFdEventSource = addEventSource(eventfd(0, O_CLOEXEC), POLLIN, [this](Int32 fd, UInt32){
+        m_pendingUpdate = false;
+        static eventfd_t val;
+        eventfd_read(fd, &val);
+    });
 
     wl.registry.set(wl_display_get_registry(wl.display));
     wl_registry_add_listener(wl.registry, &wlRegistryListener, &wl);
@@ -418,4 +437,20 @@ void MApplication::initGraphics() noexcept
     contextOptions.fAlwaysUseTexStorageWhenAvailable = true;
     gl.skContext = GrDirectContext::MakeGL(interface, contextOptions);
     assert("Failed to create Skia context." && gl.skContext.get());
+}
+
+void MApplication::updateEventSources() noexcept
+{
+    if (!m_eventSourcesChanged) return;
+    m_eventSourcesChanged = false;
+    m_currentEventSources = m_pendingEventSources;
+    m_fds.clear();
+    m_fds.reserve(m_currentEventSources.size());
+
+    for (auto &source : m_currentEventSources)
+        m_fds.push_back({
+            .fd = source->fd(),
+            .events = (short)source->events(),
+            .revents = 0
+        });
 }
