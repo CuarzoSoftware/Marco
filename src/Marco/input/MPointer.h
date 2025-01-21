@@ -47,6 +47,7 @@ private:
     wl_cursor_theme *m_cursorTheme { nullptr };
     std::unordered_map<AK::AKCursor, wl_cursor*> m_cursors;
     AK::AKCursor m_cursor { AK::AKCursor::Default };
+    bool m_forceCursorUpdate { true };
 };
 
 #endif // MPOINTER_H

@@ -7,8 +7,10 @@ using namespace AK;
 
 void MPointer::setCursor(AKCursor cursor) noexcept
 {
-    if (m_cursor == cursor && m_cursorSurface)
+    if (!m_forceCursorUpdate && m_cursor == cursor && m_cursorSurface)
         return;
+
+    m_forceCursorUpdate = false;
 
     m_cursor = cursor;
 
@@ -47,13 +49,18 @@ void MPointer::setCursor(AKCursor cursor) noexcept
     }
 
     if (!image)
+    {
+        assert("No default cursor. Marco requires at least one cursor icon theme." && cursor != AKCursor::Default);
+        setCursor(AKCursor::Default);
         return;
+    }
 
+    const Int32 scale { (image->width >= 48 || image->height >= 48) ? 2 : 1 };
     wl_surface_attach(m_cursorSurface, wl_cursor_image_get_buffer(image), 0, 0);
-    wl_surface_set_buffer_scale(m_cursorSurface, 2);
+    wl_surface_set_buffer_scale(m_cursorSurface, scale);
     wl_surface_damage(m_cursorSurface, 0, 0, 128, 128);
     wl_surface_commit(m_cursorSurface);
-    wl_pointer_set_cursor(app()->wayland().pointer, eventHistory().enter.serial(), m_cursorSurface, image->hotspot_x/2, image->hotspot_y/2);
+    wl_pointer_set_cursor(app()->wayland().pointer, eventHistory().enter.serial(), m_cursorSurface, image->hotspot_x/scale, image->hotspot_y/scale);
 }
 
 AKCursor MPointer::findNonDefaultCursor(AKNode *node) const noexcept

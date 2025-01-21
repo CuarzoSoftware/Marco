@@ -238,8 +238,8 @@ void MApplication::wl_pointer_enter(void */*data*/, wl_pointer */*pointer*/, UIn
     p.m_eventHistory.enter.setX(wl_fixed_to_double(x));
     p.m_eventHistory.enter.setY(wl_fixed_to_double(y));
     p.m_eventHistory.enter.setSerial(serial);
+    p.m_forceCursorUpdate = true;
     surf->ak.scene.postEvent(p.m_eventHistory.enter);
-    p.setCursor(p.cursor());
 }
 
 void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface)

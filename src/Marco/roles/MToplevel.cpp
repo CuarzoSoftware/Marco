@@ -40,6 +40,17 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
         xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
     });
 
+    ak.root.on.event.subscribe(this, [this](const AKEvent &event){
+
+        if (event.type() == AKEvent::Type::Pointer)
+        {
+            if (event.subtype() == AKEvent::Subtype::Button)
+                handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
+            else if (event.subtype() == AKEvent::Subtype::Move)
+                handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
+        }
+    });
+
     /* CSD */
 
     for (int i = 0; i < 4; i++)
@@ -118,12 +129,18 @@ void MToplevel::setMinimized() noexcept
 void MToplevel::onSuggestedSizeChanged()
 {
     if (suggestedSize().width() == 0)
-        layout().setWidthAuto();
+    {
+        if (rect().width() == 0)
+            layout().setWidthAuto();
+    }
     else
         layout().setWidth(suggestedSize().width());
 
     if (suggestedSize().height() == 0)
-        layout().setHeightAuto();
+    {
+        if (rect().height() == 0)
+            layout().setHeightAuto();
+    }
     else
         layout().setHeight(suggestedSize().height());
 }
@@ -267,6 +284,9 @@ void MToplevel::onUpdate() noexcept
     if (cl.flags.check(PendingFirstConfigure | PendingNullCommit))
         return;
 
+    if (MSurface::se.changes.test(Cl_Scale))
+        cl.flags.add(ForceUpdate);
+
     if (cl.states.check(Maximized | Fullscreen))
     {
         cl.csdShadowMargins = { 0, 0, 0, 0 };
@@ -388,8 +408,10 @@ void MToplevel::render() noexcept
     /* Input region */
     if (sizeChanged)
     {
+        SkIRect inputRect { rect() };
+        inputRect.outset(6, 6);
         wl_region *wlInputRegion = wl_compositor_create_region(app()->wayland().compositor);
-        wl_region_add(wlInputRegion, rect().x(), rect().y(), rect().width(), rect().height());
+        wl_region_add(wlInputRegion, inputRect.x(), inputRect.y(), inputRect.width(), inputRect.height());
         wl_surface_set_input_region(MSurface::wl.surface, wlInputRegion);
         wl_region_destroy(wlInputRegion);
     }
@@ -437,4 +459,71 @@ void MToplevel::render() noexcept
 
 
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
+}
+
+void MToplevel::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) noexcept
+{
+    if (!visible() || event.button() != BTN_LEFT || event.state() != AKPointerButtonEvent::Pressed)
+        return;
+
+    const SkPoint &pointerPos { pointer().eventHistory().move.pos() };
+    const Int32 resizeMargins { MTheme::CSDResizeOutset };
+    const Int32 moveTopMargin { MTheme::CSDMoveOutset };
+    UInt32 resizeEdges { 0 };
+
+    if (rect().x() - resizeMargins <= pointerPos.x() && rect().x() + resizeMargins >= pointerPos.x())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
+    else if (rect().right() - resizeMargins <= pointerPos.x() && rect().right() + resizeMargins >= pointerPos.x())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
+
+    if (rect().y() - resizeMargins <= pointerPos.y() && rect().y() + resizeMargins >= pointerPos.y())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
+    else if (rect().bottom() - resizeMargins <= pointerPos.y() && rect().bottom() + resizeMargins >= pointerPos.y())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
+
+    if (resizeEdges)
+        xdg_toplevel_resize(wl.xdgToplevel, app()->wayland().seat, event.serial(), resizeEdges);
+    else if (rect().x() <= pointerPos.x() &&
+             rect().right() >= pointerPos.x() &&
+             rect().y() <= pointerPos.y() &&
+             rect().y() + moveTopMargin >= pointerPos.y())
+    {
+        xdg_toplevel_move(wl.xdgToplevel, app()->wayland().seat, event.serial());
+    }
+}
+
+void MToplevel::handleRootPointerMoveEvent(const AK::AKPointerMoveEvent &event) noexcept
+{
+    if (!visible() || states().check(Fullscreen))
+    {
+        ak.root.setCursor(AKCursor::Default);
+        return;
+    }
+
+    const SkPoint &pointerPos { event.pos() };
+    const Int32 resizeMargins { MTheme::CSDResizeOutset };
+    UInt32 resizeEdges { 0 };
+
+    if (rect().x() - resizeMargins <= pointerPos.x() && rect().x() + resizeMargins >= pointerPos.x())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
+    else if (rect().right() - resizeMargins <= pointerPos.x() && rect().right() + resizeMargins >= pointerPos.x())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
+
+    if (rect().y() - resizeMargins <= pointerPos.y() && rect().y() + resizeMargins >= pointerPos.y())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
+    else if (rect().bottom() - resizeMargins <= pointerPos.y() && rect().bottom() + resizeMargins >= pointerPos.y())
+        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
+
+    if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_LEFT || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
+        ak.root.setCursor(AKCursor::EWResize);
+    else if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_TOP || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
+        ak.root.setCursor(AKCursor::NSResize);
+    else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_LEFT) ||
+             resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT))
+        ak.root.setCursor(AKCursor::NWSEResize);
+    else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT) ||
+             resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_LEFT))
+        ak.root.setCursor(AKCursor::NESWResize);
+    else
+        ak.root.setCursor(AKCursor::Default);
 }

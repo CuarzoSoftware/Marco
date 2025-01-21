@@ -69,11 +69,13 @@ protected:
         PendingFirstConfigure   = 1 << 1,
         PendingConfigureAck     = 1 << 2,
         Mapped                  = 1 << 3,
-        ForceUpdate             = 1 << 4
+        ForceUpdate             = 1 << 4,
     };
 
     void onUpdate() noexcept override;
     void render() noexcept;
+    void handleRootPointerButtonEvent(const AK::AKPointerButtonEvent &event) noexcept;
+    void handleRootPointerMoveEvent(const AK::AKPointerMoveEvent &event) noexcept;
 
     struct {
         xdg_surface *xdgSurface { nullptr };
