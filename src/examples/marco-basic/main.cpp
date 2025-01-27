@@ -37,8 +37,8 @@ public:
         body.layout().setJustifyContent(YGJustifyCenter);
         body.layout().setPadding(YGEdgeAll, 48.f);
         body.layout().setGap(YGGutterAll, 8.f);
-        cat.layout().setWidthPercent(100);
-        cat.layout().setHeightPercent(50);
+        cat.layout().setWidth(200);
+        cat.layout().setHeight(200);
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
         exitButton.setBackgroundColor(AKTheme::SystemRed);
 
@@ -79,7 +79,7 @@ public:
     AKSimpleText helloWorld { "Hello World!", &topbar };
     AKBackgroundBoxShadowEffect shadow {2, {0,0}, 0x80000000, false, &topbar};
     AKContainer body { YGFlexDirectionColumn, true, this };
-    AKImageFrame cat { MImageLoader::loadFile("/usr/share/pixmaps/fedora-logo.png"), &body };
+    AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "Cursor: Default", &body };
     AKButton newWindowButton { "New Window", &body };
