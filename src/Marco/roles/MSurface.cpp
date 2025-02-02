@@ -123,7 +123,7 @@ void MSurface::wl_callback_done(void *data, wl_callback *callback, UInt32 ms)
     surface.wl.callback = nullptr;
     surface.on.presented.notify(ms);
 
-    if (surface.cl.pendingUpdate)
+    if (surface.cl.pendingUpdate || surface.ak.target->isDirty())
         surface.update();
 }
 

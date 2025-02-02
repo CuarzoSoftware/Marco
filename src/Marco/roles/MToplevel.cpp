@@ -452,7 +452,7 @@ void MToplevel::render() noexcept
         damageIt.next();
     }
 
-    if (!noDamage)
+    //if (!noDamage)
         createCallback();
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;

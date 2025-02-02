@@ -22,6 +22,7 @@ static wl_registry_listener wlRegistryListener;
 static wl_output_listener wlOutputListener;
 static wl_seat_listener wlSeatListener;
 static wl_pointer_listener wlPointerListener;
+static wl_keyboard_listener wlKeyboardListener;
 static xdg_wm_base_listener xdgWmBaseListener;
 
 MApplication::MApplication() noexcept
@@ -58,10 +59,10 @@ int MApplication::exec()
         {
             if (surf->cl.pendingUpdate)
             {
+                surf->cl.pendingUpdate = false;
                 surf->onUpdate();
                 surf->cl.changes.reset();
                 surf->se.changes.reset();
-                surf->cl.pendingUpdate = false;
             }
         }
 

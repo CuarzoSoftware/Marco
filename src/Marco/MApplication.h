@@ -95,8 +95,8 @@ public:
 
     void update() noexcept
     {
-        if (m_pendingUpdate)
-            return;
+        //if (m_pendingUpdate)
+        //    return;
         m_pendingUpdate = true;
         eventfd_write(m_eventFdEventSource->fd(), 1);
     }

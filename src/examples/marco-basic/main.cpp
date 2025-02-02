@@ -7,6 +7,7 @@
 #include <AK/nodes/AKButton.h>
 #include <AK/nodes/AKSolidColor.h>
 #include <AK/nodes/AKImageFrame.h>
+#include <AK/nodes/AKTextField.h>
 #include <AK/effects/AKBackgroundBoxShadowEffect.h>
 #include <AK/AKTheme.h>
 #include <iostream>
@@ -73,6 +74,8 @@ public:
         exitButton.on.clicked.subscribe(&exitButton, [](){
             exit(0);
         });
+
+        //cat.setAnimated(true);
     }
 
     AKSolidColor topbar { 0xFFFAFAFA, this};
@@ -88,6 +91,7 @@ public:
     AKButton minimizeButton { "Minimize", &body };
     AKButton disabledButton { "Disabled Button", &body };
     AKButton exitButton { "Exit", &body };
+    AKTextField textField { &body };
 };
 
 int main()
@@ -104,5 +108,9 @@ int main()
     });
 
     Window window;
+    window.::MSurface::on.presented.subscribe(&window, [&window](UInt32 ms){
+        //window.cat.renderableImage().setOpacity(1.f + 0.5f*SkScalarCos(ms * 0.005f));
+        std::cout << "Presented" << ms << std::endl;
+    });
     return app.exec();
 }
