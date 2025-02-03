@@ -15,6 +15,7 @@ namespace Marco
 
     /* Input */
     class MPointer;
+    class MKeyboard;
 
     /* Utils */
     class MEventSource;
@@ -24,6 +25,7 @@ namespace Marco
 
     MApplication *app() noexcept;
     MPointer &pointer() noexcept;
+    MKeyboard &keyboard() noexcept;
 
     /// @brief 64 bits unsigned integer
     typedef uint64_t        UInt64;

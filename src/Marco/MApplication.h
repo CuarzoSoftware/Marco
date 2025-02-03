@@ -4,6 +4,7 @@
 #include <Marco/MProxy.h>
 #include <Marco/MScreen.h>
 #include <Marco/input/MPointer.h>
+#include <Marco/input/MKeyboard.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
@@ -21,7 +22,6 @@
 #include <sys/eventfd.h>
 #include <sys/poll.h>
 #include <fcntl.h>
-#include <array>
 
 class Marco::MApplication : public AK::AKObject
 {
@@ -110,6 +110,7 @@ public:
     }
 
     MPointer &pointer() noexcept { return m_pointer; }
+    MKeyboard &keyboard() noexcept { return m_keyboard; }
 
     struct
     {
@@ -141,6 +142,12 @@ private:
     static void wl_pointer_axis_discrete(void *data, wl_pointer *pointer, UInt32 axis, Int32 discrete);
     static void wl_pointer_axis_value120(void *data, wl_pointer *pointer, UInt32 axis, Int32 value120);
     static void wl_pointer_axis_relative_direction(void *data, wl_pointer *pointer, UInt32 axis, UInt32 direction);
+    static void wl_keyboard_keymap(void *data, wl_keyboard *keyboard, UInt32 format, Int32 fd, UInt32 size);
+    static void wl_keyboard_enter(void *data, wl_keyboard *keyboard, UInt32 serial, wl_surface *surface, wl_array *keys);
+    static void wl_keyboard_leave(void *data, wl_keyboard *keyboard, UInt32 serial, wl_surface *surface);
+    static void wl_keyboard_key(void *data, wl_keyboard *keyboard, UInt32 serial, UInt32 time, UInt32 key, UInt32 state);
+    static void wl_keyboard_modifiers(void *data, wl_keyboard *keyboard, UInt32 serial, UInt32 depressed, UInt32 latched, UInt32 locked, UInt32 group);
+    static void wl_keyboard_repeat_info(void *data, wl_keyboard *keyboard, Int32 rate, Int32 delay);
     static void xdg_wm_base_ping(void *data, xdg_wm_base *xdgWmBase, UInt32 serial);
     void initWayland() noexcept;
     void initGraphics() noexcept;
@@ -159,6 +166,7 @@ private:
     std::vector<std::shared_ptr<MEventSource>> m_pendingEventSources;
     std::vector<std::shared_ptr<MEventSource>> m_currentEventSources;
     MPointer m_pointer;
+    MKeyboard m_keyboard;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
 };
