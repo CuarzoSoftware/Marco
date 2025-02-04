@@ -9,7 +9,7 @@
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
 #include <Marco/utils/MEventSource.h>
-#include <AK/AKObject.h>
+#include <AK/AKApplication.h>
 #include <AK/AKWeak.h>
 #include <AK/events/AKPointerEnterEvent.h>
 #include <AK/events/AKPointerMoveEvent.h>
@@ -23,7 +23,7 @@
 #include <sys/poll.h>
 #include <fcntl.h>
 
-class Marco::MApplication : public AK::AKObject
+class Marco::MApplication : public AK::AKApplication
 {
 public:
     struct Wayland

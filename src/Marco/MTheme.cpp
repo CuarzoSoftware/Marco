@@ -7,8 +7,6 @@
 #include <include/gpu/GrDirectContext.h>
 #include <include/core/SkCanvas.h>
 
-#include <iostream>
-
 using namespace Marco;
 using namespace AK;
 
@@ -21,9 +19,9 @@ sk_sp<SkImage> MTheme::csdBorderRadiusMask(AKTarget *target) noexcept
     if (it != m_csdBorderRadiusMask.end())
         return it->second;
 
-    auto surface = AKSurface::Make(target->surface()->recordingContext(),
-                                SkSize::Make(CSDBorderRadius, CSDBorderRadius),
-                                target->bakedComponentsScale());
+    auto surface = AKSurface::Make(
+        SkSize::Make(CSDBorderRadius, CSDBorderRadius),
+        target->bakedComponentsScale());
 
     target->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas &c { *surface->surface()->getCanvas() };
@@ -80,7 +78,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winS
     const SkSize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
-    auto surface = AKSurface::Make(target->surface()->recordingContext(), surfaceSize, target->bakedComponentsScale());
+    auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
     target->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
@@ -175,7 +173,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &wi
     const SkSize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
-    auto surface = AKSurface::Make(target->surface()->recordingContext(), surfaceSize, target->bakedComponentsScale());
+    auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
     target->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
