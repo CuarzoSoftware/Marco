@@ -10,7 +10,6 @@ namespace Marco
     class MSurface;
     class MToplevel;
     class MTheme;
-    class MWindowShadow;
     class MCSDShadow;
 
     /* Input */

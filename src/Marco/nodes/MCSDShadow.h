@@ -12,7 +12,7 @@ public:
     MCSDShadow(MToplevel *toplevel) noexcept;
 protected:
     void onSceneCalculatedRect() override;
-    void onRender(AK::AKPainter *painter, const SkRegion &damage) override;
+    void onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &rect) override;
     AK::AKWeak<MToplevel> m_toplevel;
     sk_sp<SkImage> m_image;
     SkISize m_prevSize { 0, 0 };

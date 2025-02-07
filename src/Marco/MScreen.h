@@ -97,7 +97,6 @@ private:
     AK::AKBitset<Changes> m_changes;
     bool m_pendingFirstDone { true };
     MProxy<wl_output> m_proxy;
-    size_t m_appLink;
 };
 
 #endif // MSCREEN_H

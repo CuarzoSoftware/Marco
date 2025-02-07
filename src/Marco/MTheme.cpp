@@ -23,7 +23,7 @@ sk_sp<SkImage> MTheme::csdBorderRadiusMask(AKTarget *target) noexcept
         SkSize::Make(CSDBorderRadius, CSDBorderRadius),
         target->bakedComponentsScale());
 
-    target->surface()->recordingContext()->asDirectContext()->resetContext();
+    surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas &c { *surface->surface()->getCanvas() };
     c.scale(surface->scale(), surface->scale());
     c.clear(SK_ColorTRANSPARENT);
@@ -79,7 +79,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winS
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
     auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
-    target->surface()->recordingContext()->asDirectContext()->resetContext();
+    surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
     c->scale(surface->scale(), surface->scale());
@@ -174,7 +174,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &wi
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
     auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
-    target->surface()->recordingContext()->asDirectContext()->resetContext();
+    surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
     c->scale(surface->scale(), surface->scale());

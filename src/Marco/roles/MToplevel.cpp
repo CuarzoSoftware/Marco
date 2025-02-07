@@ -130,7 +130,7 @@ void MToplevel::onSuggestedSizeChanged()
 {
     if (suggestedSize().width() == 0)
     {
-        if (rect().width() == 0)
+        if (globalRect().width() == 0)
             layout().setWidthAuto();
     }
     else
@@ -138,7 +138,7 @@ void MToplevel::onSuggestedSizeChanged()
 
     if (suggestedSize().height() == 0)
     {
-        if (rect().height() == 0)
+        if (globalRect().height() == 0)
             layout().setHeightAuto();
     }
     else
@@ -401,14 +401,14 @@ void MToplevel::render() noexcept
     ak.scene.render(ak.target);
 
     for (int i = 0; i < 4; i++)
-        ak.target->outOpaqueRegion->op(cl.csdBorderRadius[i].rect(), SkRegion::Op::kDifference_Op);
+        ak.target->outOpaqueRegion->op(cl.csdBorderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
 
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
 
     /* Input region */
     if (sizeChanged)
     {
-        SkIRect inputRect { rect() };
+        SkIRect inputRect { globalRect() };
         inputRect.outset(6, 6);
         wl_region *wlInputRegion = wl_compositor_create_region(app()->wayland().compositor);
         wl_region_add(wlInputRegion, inputRect.x(), inputRect.y(), inputRect.width(), inputRect.height());
@@ -418,7 +418,7 @@ void MToplevel::render() noexcept
 
     /* In some compositors using fractional scaling (without oversampling), the opaque region
      * can leak, causing borders to appear black. This inset prevents that. */
-    SkIRect opaqueClip { rect() };
+    SkIRect opaqueClip { globalRect() };
     opaqueClip.inset(1, 1);
     skOpaque.op(opaqueClip, SkRegion::Op::kIntersect_Op);
     wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
@@ -471,22 +471,22 @@ void MToplevel::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) 
     const Int32 moveTopMargin { MTheme::CSDMoveOutset };
     UInt32 resizeEdges { 0 };
 
-    if (rect().x() - resizeMargins <= pointerPos.x() && rect().x() + resizeMargins >= pointerPos.x())
+    if (globalRect().x() - resizeMargins <= pointerPos.x() && globalRect().x() + resizeMargins >= pointerPos.x())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
-    else if (rect().right() - resizeMargins <= pointerPos.x() && rect().right() + resizeMargins >= pointerPos.x())
+    else if (globalRect().right() - resizeMargins <= pointerPos.x() && globalRect().right() + resizeMargins >= pointerPos.x())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
 
-    if (rect().y() - resizeMargins <= pointerPos.y() && rect().y() + resizeMargins >= pointerPos.y())
+    if (globalRect().y() - resizeMargins <= pointerPos.y() && globalRect().y() + resizeMargins >= pointerPos.y())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
-    else if (rect().bottom() - resizeMargins <= pointerPos.y() && rect().bottom() + resizeMargins >= pointerPos.y())
+    else if (globalRect().bottom() - resizeMargins <= pointerPos.y() && globalRect().bottom() + resizeMargins >= pointerPos.y())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
 
     if (resizeEdges)
         xdg_toplevel_resize(wl.xdgToplevel, app()->wayland().seat, event.serial(), resizeEdges);
-    else if (rect().x() <= pointerPos.x() &&
-             rect().right() >= pointerPos.x() &&
-             rect().y() <= pointerPos.y() &&
-             rect().y() + moveTopMargin >= pointerPos.y())
+    else if (globalRect().x() <= pointerPos.x() &&
+             globalRect().right() >= pointerPos.x() &&
+             globalRect().y() <= pointerPos.y() &&
+             globalRect().y() + moveTopMargin >= pointerPos.y())
     {
         xdg_toplevel_move(wl.xdgToplevel, app()->wayland().seat, event.serial());
     }
@@ -504,14 +504,14 @@ void MToplevel::handleRootPointerMoveEvent(const AK::AKPointerMoveEvent &event) 
     const Int32 resizeMargins { MTheme::CSDResizeOutset };
     UInt32 resizeEdges { 0 };
 
-    if (rect().x() - resizeMargins <= pointerPos.x() && rect().x() + resizeMargins >= pointerPos.x())
+    if (globalRect().x() - resizeMargins <= pointerPos.x() && globalRect().x() + resizeMargins >= pointerPos.x())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
-    else if (rect().right() - resizeMargins <= pointerPos.x() && rect().right() + resizeMargins >= pointerPos.x())
+    else if (globalRect().right() - resizeMargins <= pointerPos.x() && globalRect().right() + resizeMargins >= pointerPos.x())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
 
-    if (rect().y() - resizeMargins <= pointerPos.y() && rect().y() + resizeMargins >= pointerPos.y())
+    if (globalRect().y() - resizeMargins <= pointerPos.y() && globalRect().y() + resizeMargins >= pointerPos.y())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
-    else if (rect().bottom() - resizeMargins <= pointerPos.y() && rect().bottom() + resizeMargins >= pointerPos.y())
+    else if (globalRect().bottom() - resizeMargins <= pointerPos.y() && globalRect().bottom() + resizeMargins >= pointerPos.y())
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
 
     if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_LEFT || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)

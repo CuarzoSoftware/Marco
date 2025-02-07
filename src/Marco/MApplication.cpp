@@ -113,7 +113,6 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
         MScreen *screen { new MScreen(output, name) };
         wl_output_set_user_data(output, screen);
         wl_output_add_listener(output, &wlOutputListener, screen);
-        screen->m_appLink = app()->m_pendingScreens.size();
         app()->m_pendingScreens.push_back(screen);
     }
     else if (!wl.seat && strcmp(interface, wl_seat_interface.name) == 0)
@@ -129,27 +128,28 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
 
 void MApplication::wl_registry_global_remove(void */*data*/, wl_registry */*registry*/, UInt32 name)
 {
-    for (MScreen *screen : app()->m_screens)
+    for (size_t i = 0; i < app()->m_screens.size(); i++)
     {
-        if (screen->m_proxy.name() == name)
+        if (app()->m_screens[i]->m_proxy.name() == name)
         {
             if (app()->m_running)
-                app()->on.screenUnplugged.notify(*screen);
-            app()->m_screens[screen->m_appLink] = app()->m_screens.back();
+                app()->on.screenUnplugged.notify(*app()->m_screens[i]);
+
+            delete app()->m_screens[i];
+            app()->m_screens[i] = app()->m_screens.back();
             app()->m_screens.pop_back();
-            delete screen;
-            return;
+            break;
         }
     }
 
-    for (MScreen *screen : app()->m_pendingScreens)
+    for (size_t i = 0; i < app()->m_pendingScreens.size(); i++)
     {
-        if (screen->m_proxy.name() == name)
+        if (app()->m_pendingScreens[i]->m_proxy.name() == name)
         {
-            app()->m_pendingScreens[screen->m_appLink] = app()->m_pendingScreens.back();
+            delete app()->m_pendingScreens[i];
+            app()->m_pendingScreens[i] = app()->m_pendingScreens.back();
             app()->m_pendingScreens.pop_back();
-            delete screen;
-            return;
+            break;
         }
     }
 }
@@ -183,9 +183,17 @@ void MApplication::wl_output_done(void *data, wl_output */*output*/)
     if (screen.m_pendingFirstDone)
     {
         screen.m_pendingFirstDone = false;
-        app()->m_pendingScreens[screen.m_appLink] = app()->m_pendingScreens.back();
-        app()->m_pendingScreens.pop_back();
-        screen.m_appLink = app()->m_screens.size();
+
+        for (size_t i = 0; i < app()->m_pendingScreens.size(); i++)
+        {
+            if (app()->m_pendingScreens[i] == &screen)
+            {
+                app()->m_pendingScreens[i] = app()->m_pendingScreens.back();
+                app()->m_pendingScreens.pop_back();
+                break;
+            }
+        }
+
         app()->m_screens.push_back(&screen);
 
         if (app()->m_running)
