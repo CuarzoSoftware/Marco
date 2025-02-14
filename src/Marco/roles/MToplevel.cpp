@@ -348,7 +348,7 @@ void MToplevel::render() noexcept
         return;
     }*/
 
-    ak.scene.updateLayout();
+    ak.scene.root()->layout().calculate();
 
     if (MSurface::wl.callback && !cl.flags.check(ForceUpdate))
         return;
@@ -380,11 +380,11 @@ void MToplevel::render() noexcept
     ak.target->setDstRect({ 0, 0, bufferSize().width(), bufferSize().height() });
     ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
     ak.target->setSurface(gl.skSurface);
-    ak.target->setBakedComponentsScale(scale());
 
     EGLint bufferAge { 0 };
     eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
-    ak.target->enableUpdateLayout(bufferAge == 0);
+    ak.target->setBakedComponentsScale(scale());
+    ak.target->setRenderCalculatesLayout(false);
     ak.target->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
     ak.target->outDamageRegion = &skDamage;
@@ -392,7 +392,7 @@ void MToplevel::render() noexcept
 
     /* CSD */
     for (int i = 0; i < 4; i++)
-        cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(ak.target));
+        cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(scale()));
 
     /*
     glScissor(0, 0, 1000000, 100000);

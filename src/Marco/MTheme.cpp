@@ -12,16 +12,16 @@ using namespace AK;
 
 MTheme::MTheme() noexcept {}
 
-sk_sp<SkImage> MTheme::csdBorderRadiusMask(AKTarget *target) noexcept
+sk_sp<SkImage> MTheme::csdBorderRadiusMask(Int32 scale) noexcept
 {
-    auto it = m_csdBorderRadiusMask.find(target->bakedComponentsScale());
+    auto it = m_csdBorderRadiusMask.find(scale);
 
     if (it != m_csdBorderRadiusMask.end())
         return it->second;
 
     auto surface = AKSurface::Make(
         SkSize::Make(CSDBorderRadius, CSDBorderRadius),
-        target->bakedComponentsScale());
+        scale);
 
     surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas &c { *surface->surface()->getCanvas() };
@@ -35,11 +35,11 @@ sk_sp<SkImage> MTheme::csdBorderRadiusMask(AKTarget *target) noexcept
     surface->surface()->flush();
 
     sk_sp<SkImage> result { surface->releaseImage() };
-    m_csdBorderRadiusMask[target->bakedComponentsScale()] = result;
+    m_csdBorderRadiusMask[scale] = result;
     return result;
 }
 
-sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winSize, AK::AKBitset<ShadowClamp> &sides) noexcept
+sk_sp<SkImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winSize, AK::AKBitset<ShadowClamp> &sides) noexcept
 {
     if (winSize.isEmpty())
     {
@@ -67,7 +67,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winS
     {
         sides.set(ShadowClampX | ShadowClampY);
 
-        auto it = m_csdShadowActive.find(target->bakedComponentsScale());
+        auto it = m_csdShadowActive.find(scale);
 
         if (it != m_csdShadowActive.end())
             return it->second;
@@ -78,7 +78,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winS
     const SkSize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
-    auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
+    auto surface = AKSurface::Make(surfaceSize, scale);
     surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
@@ -129,12 +129,12 @@ sk_sp<SkImage> MTheme::csdShadowActive(AK::AKTarget *target, const SkISize &winS
     else
     {
         sk_sp<SkImage> result { surface->releaseImage() };
-        m_csdShadowActive[target->bakedComponentsScale()] = result;
+        m_csdShadowActive[scale] = result;
         return result;
     }
 }
 
-sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &winSize, AK::AKBitset<ShadowClamp> &sides) noexcept
+sk_sp<SkImage> MTheme::csdShadowInactive(Int32 scale, const SkISize &winSize, AK::AKBitset<ShadowClamp> &sides) noexcept
 {
     if (winSize.isEmpty())
     {
@@ -162,7 +162,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &wi
     {
         sides.set(ShadowClampX | ShadowClampY);
 
-        auto it = m_csdShadowInactive.find(target->bakedComponentsScale());
+        auto it = m_csdShadowInactive.find(scale);
 
         if (it != m_csdShadowInactive.end())
             return it->second;
@@ -173,7 +173,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &wi
     const SkSize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
-    auto surface = AKSurface::Make(surfaceSize, target->bakedComponentsScale());
+    auto surface = AKSurface::Make(surfaceSize, scale);
     surface->surface()->recordingContext()->asDirectContext()->resetContext();
     SkCanvas *c = surface->surface()->getCanvas();
     c->clear(SK_ColorTRANSPARENT);
@@ -224,7 +224,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(AK::AKTarget *target, const SkISize &wi
     else
     {
         sk_sp<SkImage> result { surface->releaseImage() };
-        m_csdShadowInactive[target->bakedComponentsScale()] = result;
+        m_csdShadowInactive[scale] = result;
         return result;
     }
 }

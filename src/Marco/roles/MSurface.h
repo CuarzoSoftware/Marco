@@ -57,6 +57,7 @@ public:
     }
 
     void update() noexcept;
+    void setAutoMinSize() noexcept;
 
     wl_surface *wlSurface() const noexcept { return wl.surface; }
 

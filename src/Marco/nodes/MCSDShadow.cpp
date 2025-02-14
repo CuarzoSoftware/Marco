@@ -15,34 +15,30 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     layout().setPositionType(YGPositionTypeAbsolute);
     layout().setWidthPercent(100);
     layout().setHeightPercent(100);
-}
 
-void MCSDShadow::onSceneCalculatedRect()
-{
-    if (!m_toplevel || (m_prevSize == globalRect().size() && m_prevScale == currentTarget()->bakedComponentsScale() ))
-        return;
+    signalLayoutChanged.subscribe(this, [this](auto changes){
+        if (!m_toplevel || !changes.check(LayoutChanges::Size | LayoutChanges::Scale))
+            return;
 
-    m_prevSize = globalRect().size();
-    m_prevScale = currentTarget()->bakedComponentsScale();
+        if (m_toplevel->activated())
+        {
+            m_image = app()->theme()->csdShadowActive(
+                scale(),
+                SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                        globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+                m_clampSides);
+        }
+        else
+        {
+            m_image = app()->theme()->csdShadowInactive(
+                scale(),
+                SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                        globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+                m_clampSides);
+        }
 
-    if (m_toplevel->activated())
-    {
-        m_image = app()->theme()->csdShadowActive(
-            currentTarget(),
-            SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                    globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
-            m_clampSides);
-    }
-    else
-    {
-        m_image = app()->theme()->csdShadowInactive(
-            currentTarget(),
-            SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                    globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
-            m_clampSides);
-    }
-
-    addDamage(AK_IRECT_INF);
+        addDamage(AK_IRECT_INF);
+    });
 }
 
 void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &rect)
@@ -74,7 +70,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
     SkRegion finalDamage { maskedDamage };
     AKPainter::TextureParams params;
     params.texture = m_image;
-    params.srcScale = m_prevScale;
+    params.srcScale = scale();
 
     /* No clamp */
     if (m_clampSides.get() == 0)
@@ -152,7 +148,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         painter->drawRegion(finalDamage);
 
         /* Bottom Left */
-        const Int32 bottom { m_image->height()/m_prevScale - margins.bottom() - B };
+        const Int32 bottom { m_image->height()/scale() - margins.bottom() - B };
         params.pos = { 0, rect.height() - margins.fBottom - B };
         params.dstSize.fHeight = margins.fBottom + B;
         finalDamage = maskedDamage;
