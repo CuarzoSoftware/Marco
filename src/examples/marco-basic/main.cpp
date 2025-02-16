@@ -47,6 +47,7 @@ public:
         cat.layout().setWidthPercent(100);
         cat.layout().setFlexGrow(2.f);
         cat.layout().setMinHeight(200.f);
+        textField.layout().setWidthPercent(100);
 
         cat.setSizeMode(AKImageFrame::SizeMode::Cover);
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);

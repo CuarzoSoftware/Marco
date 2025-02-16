@@ -24,16 +24,16 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
         {
             m_image = app()->theme()->csdShadowActive(
                 scale(),
-                SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                        globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+                SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                        layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
                 m_clampSides);
         }
         else
         {
             m_image = app()->theme()->csdShadowInactive(
                 scale(),
-                SkISize(globalRect().width() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                        globalRect().height() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+                SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                        layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
                 m_clampSides);
         }
 
@@ -41,12 +41,15 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     });
 }
 
-void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &rect)
+void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &r)
 {
     if (!m_toplevel || !m_image || damage.isEmpty())
         return;
 
     /* Remove invisible region */
+
+    SkIRect rect = r;
+    rect.fRight++;
 
     const auto &margins { m_toplevel->csdMargins() };
     SkIRect centerV = SkIRect(
@@ -142,7 +145,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         /* Right */
         params.pos.fX = rect.width() - margins.fLeft - L;
         finalDamage = maskedDamage;
-        finalDamage.op(SkIRect::MakeXYWH( params.pos.x(), params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
+        finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcTransform = AKTransform::Flipped;
         painter->bindTextureMode(params);
         painter->drawRegion(finalDamage);
