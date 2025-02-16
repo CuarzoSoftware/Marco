@@ -20,7 +20,7 @@ sk_sp<SkImage> MTheme::csdBorderRadiusMask(Int32 scale) noexcept
         return it->second;
 
     auto surface = AKSurface::Make(
-        SkSize::Make(CSDBorderRadius, CSDBorderRadius),
+        SkISize::Make(CSDBorderRadius, CSDBorderRadius),
         scale);
 
     surface->surface()->recordingContext()->asDirectContext()->resetContext();
@@ -75,7 +75,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winSize, AK::
         windowSize = { minClampSize.width() + 1,  minClampSize.height() + 1 };
     }
 
-    const SkSize surfaceSize(
+    const SkISize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
     auto surface = AKSurface::Make(surfaceSize, scale);
@@ -170,7 +170,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(Int32 scale, const SkISize &winSize, AK
         windowSize = { minClampSize.width() + 1,  minClampSize.height() + 1 };
     }
 
-    const SkSize surfaceSize(
+    const SkISize surfaceSize(
         windowSize.width() * 0.5f + shadowMargins.left(),
         windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
     auto surface = AKSurface::Make(surfaceSize, scale);

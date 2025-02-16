@@ -3,7 +3,7 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/utils/MImageLoader.h>
 #include <AK/nodes/AKContainer.h>
-#include <AK/nodes/AKSimpleText.h>
+#include <AK/nodes/AKText.h>
 #include <AK/nodes/AKButton.h>
 #include <AK/nodes/AKSolidColor.h>
 #include <AK/nodes/AKImageFrame.h>
@@ -32,12 +32,12 @@ public:
         topbar.layout().setHeight(32);
         topbar.layout().setWidthPercent(100);
         topbarSpace.layout().setHeight(32);
-        SkFont font;
-        font.setTypeface(AKFontManager()->matchFamilyStyle("Inter",
-            SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant)));
-        font.setSize(14);
-        helloWorld.setColorWithAlpha(0xb3000000);
-        helloWorld.setFont(font);
+        auto textStyle = helloWorld.textStyle();
+        textStyle.setFontStyle(
+            SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant));
+        textStyle.setFontSize(14);
+        textStyle.setColor(0xb3000000);
+        helloWorld.setTextStyle(textStyle);
         helloWorld.enableDiminishOpacityOnInactive(true);
         body.layout().setFlex(1.f);
         body.layout().setAlignItems(YGAlignCenter);
@@ -60,7 +60,7 @@ public:
             else
                 cursor++;
 
-            cursorButton.setText(std::string("Cursor: ") + cursorToString((AKCursor)cursor));
+            cursorButton.setText(std::string("🖱️ Cursor: ") + cursorToString((AKCursor)cursor));
             pointer().setCursor((AKCursor)cursor);
         });
 
@@ -92,17 +92,17 @@ public:
     AKContainer body { YGFlexDirectionColumn, true, this };
     AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
     UInt32 cursor { 1 };
-    AKButton cursorButton { "Cursor: Default", &body };
-    AKButton newWindowButton { "New Window", &body };
-    AKButton maximizeButton { "Toggle Maximized", &body };
-    AKButton fullscreenButton { "Toggle Fullscreen", &body };
-    AKButton minimizeButton { "Minimize", &body };
-    AKButton disabledButton { "Disabled Button", &body };
-    AKButton exitButton { "Exit", &body };
+    AKButton cursorButton { "🖱️ Cursor: Default", &body };
+    AKButton newWindowButton { "➕  New Window", &body };
+    AKButton maximizeButton { "🖥️ Toggle Maximized", &body };
+    AKButton fullscreenButton { "🖥️ Toggle Fullscreen", &body };
+    AKButton minimizeButton { "🖥️ Minimize", &body };
+    AKButton disabledButton { "🚫 Disabled Button", &body };
+    AKButton exitButton { "╰┈➤🚪 Exit", &body };
     AKTextField textField { &body };
 
     AKSolidColor topbar { 0xFFFAFAFA, this };
-    AKSimpleText helloWorld { "Hello World!", &topbar };
+    AKText helloWorld { "🚀 Hello World!", &topbar };
     AKEdgeShadow shadow { &topbar };
 };
 
