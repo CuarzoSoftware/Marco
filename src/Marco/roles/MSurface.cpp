@@ -1,7 +1,13 @@
+#include <AK/AKGLContext.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/MApplication.h>
 #include <AK/AKColors.h>
 
+#include <include/gpu/ganesh/gl/GrGLBackendSurface.h>
+#include <include/gpu/ganesh/GrBackendSurface.h>
+#include <include/gpu/ganesh/GrRecordingContext.h>
+#include <include/gpu/ganesh/GrDirectContext.h>
+#include <include/gpu/ganesh/gl/GrGLTypes.h>
 #include <include/gpu/ganesh/SkSurfaceGanesh.h>
 #include <include/core/SkColorSpace.h>
 
@@ -184,7 +190,7 @@ bool MSurface::resizeBuffer(const SkISize &size) noexcept
     else
     {
         gl.eglWindow = wl_egl_window_create(wl.surface, bufferSize.width(), bufferSize.height());
-        gl.eglSurface = eglCreateWindowSurface(app()->gl.eglDisplay, app()->gl.eglConfig, gl.eglWindow, NULL);
+        gl.eglSurface = eglCreateWindowSurface(app()->gl.eglDisplay, app()->gl.eglConfig, (EGLNativeWindowType)gl.eglWindow, NULL);
         assert("Failed to create EGLSurface for MSurface" && gl.eglSurface != EGL_NO_SURFACE);
     }
 
@@ -196,14 +202,14 @@ bool MSurface::resizeBuffer(const SkISize &size) noexcept
         .fFormat = GL_RGBA8_OES
     };
 
-    const GrBackendRenderTarget backendTarget(
+    const GrBackendRenderTarget backendTarget = GrBackendRenderTargets::MakeGL(
         bufferSize.width(),
         bufferSize.height(),
         0, 0,
         fbInfo);
 
     gl.skSurface = SkSurfaces::WrapBackendRenderTarget(
-        app()->graphics().skContext.get(),
+        AK::AKApp()->glContext()->skContext().get(),
         backendTarget,
         GrSurfaceOrigin::kBottomLeft_GrSurfaceOrigin,
         SkColorType::kRGBA_8888_SkColorType,

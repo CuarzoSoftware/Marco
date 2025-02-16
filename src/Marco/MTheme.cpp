@@ -2,9 +2,9 @@
 #include <AK/AKTarget.h>
 #include <AK/AKSurface.h>
 
+#include <include/gpu/ganesh/GrDirectContext.h>
 #include <include/effects/SkGradientShader.h>
 #include <include/effects/SkImageFilters.h>
-#include <include/gpu/GrDirectContext.h>
 #include <include/core/SkCanvas.h>
 
 using namespace Marco;
@@ -32,7 +32,7 @@ sk_sp<SkImage> MTheme::csdBorderRadiusMask(Int32 scale) noexcept
     paint.setAntiAlias(true);
     paint.setColor(SK_ColorBLACK);
     c.drawCircle(SkPoint::Make(CSDBorderRadius, CSDBorderRadius), CSDBorderRadius, paint);
-    surface->surface()->flush();
+    surface->surface()->recordingContext()->asDirectContext()->flush();
 
     sk_sp<SkImage> result { surface->releaseImage() };
     m_csdBorderRadiusMask[scale] = result;
@@ -122,7 +122,7 @@ sk_sp<SkImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winSize, AK::
     rrect.inset(0.5f, 0.5f);
     c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
     c->restore();
-    surface->surface()->flush();
+    surface->surface()->recordingContext()->asDirectContext()->flush();
 
     if (sides.get() == 0)
         return sk_sp<SkImage>(surface->releaseImage());
@@ -217,7 +217,7 @@ sk_sp<SkImage> MTheme::csdShadowInactive(Int32 scale, const SkISize &winSize, AK
     rrect.inset(0.5f, 0.5f);
     c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
     c->restore();
-    surface->surface()->flush();
+    surface->surface()->recordingContext()->asDirectContext()->flush();
 
     if (sides.get() == 0)
         return sk_sp<SkImage>(surface->releaseImage());

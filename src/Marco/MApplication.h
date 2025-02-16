@@ -15,7 +15,6 @@
 #include <AK/events/AKPointerMoveEvent.h>
 #include <AK/events/AKPointerLeaveEvent.h>
 #include <AK/events/AKPointerButtonEvent.h>
-#include <include/gpu/GrDirectContext.h>
 #include <wayland-client.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -44,7 +43,6 @@ public:
         EGLDisplay eglDisplay;
         EGLConfig eglConfig;
         EGLContext eglContext;
-        sk_sp<GrDirectContext> skContext;
         PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC eglSwapBuffersWithDamageKHR;
     };
 

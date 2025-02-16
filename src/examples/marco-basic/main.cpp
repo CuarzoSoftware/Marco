@@ -33,7 +33,7 @@ public:
         topbar.layout().setWidthPercent(100);
         topbarSpace.layout().setHeight(32);
         SkFont font;
-        font.setTypeface(SkTypeface::MakeFromName("Inter",
+        font.setTypeface(AKFontManager()->matchFamilyStyle("Inter",
             SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant)));
         font.setSize(14);
         helloWorld.setColorWithAlpha(0xb3000000);

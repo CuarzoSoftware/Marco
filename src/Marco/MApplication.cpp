@@ -1,9 +1,12 @@
+#include <include/gpu/ganesh/GrDirectContext.h>
+#include <include/gpu/ganesh/gl/GrGLBackendSurface.h>
+#include <include/gpu/ganesh/gl/GrGLDirectContext.h>
+#include <include/gpu/ganesh/gl/GrGLAssembleInterface.h>
 #include <Marco/MApplication.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/MTheme.h>
 
 #include <AK/input/AKKeymap.h>
-#include <include/gpu/gl/GrGLAssembleInterface.h>
 
 #include <sys/mman.h>
 #include <assert.h>
@@ -513,34 +516,6 @@ void MApplication::initGraphics() noexcept
 
     // TODO: Check extension
     gl.eglSwapBuffersWithDamageKHR = (PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC)eglGetProcAddress("eglSwapBuffersWithDamageKHR");
-
-    auto interface = GrGLMakeAssembledInterface(nullptr, (GrGLGetProc)*[](void *, const char *p) -> void * {
-        return (void *)eglGetProcAddress(p);
-    });
-
-    GrContextOptions contextOptions;
-    contextOptions.fShaderCacheStrategy = GrContextOptions::ShaderCacheStrategy::kBackendBinary;
-    contextOptions.fAvoidStencilBuffers = true;
-    contextOptions.fPreferExternalImagesOverES3 = true;
-    contextOptions.fDisableGpuYUVConversion = true;
-    contextOptions.fReducedShaderVariations = false;
-    contextOptions.fSuppressPrints = true;
-    contextOptions.fSuppressMipmapSupport = true;
-    contextOptions.fSkipGLErrorChecks = GrContextOptions::Enable::kYes;
-    contextOptions.fBufferMapThreshold = -1;
-    contextOptions.fDisableDistanceFieldPaths = true;
-    contextOptions.fAllowPathMaskCaching = true;
-    contextOptions.fGlyphCacheTextureMaximumBytes = 2048 * 1024 * 4;
-    contextOptions.fUseDrawInsteadOfClear = GrContextOptions::Enable::kYes;
-    contextOptions.fReduceOpsTaskSplitting = GrContextOptions::Enable::kYes;
-    contextOptions.fDisableDriverCorrectnessWorkarounds = true;
-    contextOptions.fRuntimeProgramCacheSize = 1024;
-    contextOptions.fInternalMultisampleCount = 0;
-    contextOptions.fDisableTessellationPathRenderer = false;
-    contextOptions.fAllowMSAAOnNewIntel = true;
-    contextOptions.fAlwaysUseTexStorageWhenAvailable = true;
-    gl.skContext = GrDirectContext::MakeGL(interface, contextOptions);
-    assert("Failed to create Skia context." && gl.skContext.get());
 }
 
 void MApplication::updateEventSources() noexcept
