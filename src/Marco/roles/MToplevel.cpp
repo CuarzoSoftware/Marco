@@ -1,3 +1,4 @@
+#include <AK/AKLog.h>
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
@@ -452,11 +453,20 @@ void MToplevel::render() noexcept
         damageIt.next();
     }
 
-    //if (!noDamage)
-        createCallback();
+    const UInt32 callbackMsA { MSurface::wl.callbackSendMs };
+    createCallback();
+    const UInt32 callbackMsB { MSurface::wl.callbackSendMs };
+    const UInt32 callbackMsDiff { callbackMsB - callbackMsA };
+
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;
 
+    if (states().check(Resizing) && callbackMsDiff < 4)
+    {
+        wl_display_flush(Marco::app()->wayland().display);
+        usleep((4 - callbackMsDiff) * 1000);
+        AKLog::debug("Sleeping %d ms", (4 - callbackMsDiff));
+    }
 
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
 }

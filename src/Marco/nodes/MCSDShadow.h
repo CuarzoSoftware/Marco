@@ -11,7 +11,7 @@ class Marco::MCSDShadow : public AK::AKRenderable
 public:
     MCSDShadow(MToplevel *toplevel) noexcept;
 protected:
-    void onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &rect) override;
+    void onRender(const OnRenderParams &params) override;
     AK::AKWeak<MToplevel> m_toplevel;
     sk_sp<SkImage> m_image;
     AK::AKBitset<MTheme::ShadowClamp> m_clampSides;

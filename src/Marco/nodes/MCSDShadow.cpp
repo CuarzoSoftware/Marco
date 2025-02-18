@@ -41,14 +41,14 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     });
 }
 
-void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const SkIRect &r)
+void MCSDShadow::onRender(const OnRenderParams &p)
 {
-    if (!m_toplevel || !m_image || damage.isEmpty())
+    if (!m_toplevel || !m_image || p.damage.isEmpty())
         return;
 
     /* Remove invisible region */
 
-    SkIRect rect = r;
+    SkIRect rect = p.rect;
     rect.fRight++;
 
     const auto &margins { m_toplevel->csdMargins() };
@@ -62,7 +62,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
     centerV.inset(MTheme::CSDBorderRadius, 1);
     centerH.inset(1, MTheme::CSDBorderRadius);
 
-    SkRegion maskedDamage = damage;
+    SkRegion maskedDamage = p.damage;
     maskedDamage.op(centerV, SkRegion::Op::kDifference_Op);
     maskedDamage.op(centerH, SkRegion::Op::kDifference_Op);
 
@@ -84,16 +84,16 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         params.pos = {0, 0};
         params.srcTransform = AKTransform::Normal;
         finalDamage.op(SkIRect::MakeWH(halfWidth, rect.height()), SkRegion::Op::kIntersect_Op);
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Right mirrored side */
         finalDamage = maskedDamage;
         finalDamage.op(SkIRect::MakeXYWH(halfWidth, 0, halfWidth, rect.height()), SkRegion::Op::kIntersect_Op);
         params.pos.fX = halfWidth;
         params.srcTransform = AKTransform::Flipped;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
     }
     else
     {
@@ -110,16 +110,16 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         params.srcRect.setWH(params.dstSize.width(), params.dstSize.height()),
         params.pos = {0, 0};
         params.srcTransform = AKTransform::Normal;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Top Right */
         finalDamage = maskedDamage;
         params.pos = {rect.width() - margins.fLeft - L, 0};
         finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), 0, params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcTransform = AKTransform::Flipped;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Top */
         finalDamage = maskedDamage;
@@ -128,8 +128,8 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         params.srcRect.setXYWH(params.pos.x(), 0, 1, params.dstSize.height()),
         finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), 0, params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcTransform = AKTransform::Normal;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Left */
         params.pos = { 0, margins.fTop + T };
@@ -139,16 +139,16 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         finalDamage.op(SkIRect::MakeXYWH(0, params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcRect.setXYWH(0, params.pos.y(), params.dstSize.width(), 0.5);
         params.srcTransform = AKTransform::Normal;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Right */
         params.pos.fX = rect.width() - margins.fLeft - L;
         finalDamage = maskedDamage;
         finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcTransform = AKTransform::Flipped;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Bottom Left */
         const Int32 bottom { m_image->height()/scale() - margins.bottom() - B };
@@ -158,8 +158,8 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         finalDamage.op(SkIRect::MakeXYWH(0, params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcRect.setXYWH(0, bottom, params.dstSize.width(), params.dstSize.height());
         params.srcTransform = AKTransform::Normal;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Bottom Right */
         params.pos.fX = rect.width() - margins.fLeft - L;
@@ -167,8 +167,8 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcRect.setXYWH(0, bottom, params.dstSize.width(), params.dstSize.height());
         params.srcTransform = AKTransform::Flipped;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
 
         /* Bottom */
         params.pos.fX = margins.fLeft + L;
@@ -177,7 +177,7 @@ void MCSDShadow::onRender(AK::AKPainter *painter, const SkRegion &damage, const 
         finalDamage.op(SkIRect::MakeXYWH(params.pos.x(), params.pos.y(), params.dstSize.width(), params.dstSize.height()), SkRegion::Op::kIntersect_Op);
         params.srcRect.setXYWH(params.pos.x(), bottom, params.dstSize.width(), params.dstSize.height());
         params.srcTransform = AKTransform::Normal;
-        painter->bindTextureMode(params);
-        painter->drawRegion(finalDamage);
+        p.painter.bindTextureMode(params);
+        p.painter.drawRegion(finalDamage);
     }
 }
