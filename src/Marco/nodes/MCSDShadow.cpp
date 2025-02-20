@@ -2,6 +2,7 @@
 #include <Marco/roles/MSurface.h>
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
+#include <AK/events/AKRenderEvent.h>
 
 using namespace Marco;
 using namespace AK;
@@ -41,7 +42,7 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     });
 }
 
-void MCSDShadow::onRender(const OnRenderParams &p)
+void MCSDShadow::renderEvent(const AK::AKRenderEvent &p)
 {
     if (!m_toplevel || !m_image || p.damage.isEmpty())
         return;

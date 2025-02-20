@@ -1,3 +1,4 @@
+#include <AK/AKLog.h>
 #include <include/gpu/ganesh/GrDirectContext.h>
 #include <include/gpu/ganesh/gl/GrGLBackendSurface.h>
 #include <include/gpu/ganesh/gl/GrGLDirectContext.h>
@@ -255,7 +256,7 @@ void MApplication::wl_pointer_enter(void */*data*/, wl_pointer */*pointer*/, UIn
     p.m_eventHistory.enter.setY(wl_fixed_to_double(y));
     p.m_eventHistory.enter.setSerial(serial);
     p.m_forceCursorUpdate = true;
-    surf->ak.scene.postEvent(p.m_eventHistory.enter);
+    AK::AKApp()->postEvent(p.m_eventHistory.enter, surf->ak.scene);
 }
 
 void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface)
@@ -267,7 +268,7 @@ void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UIn
     // TODO: notify
     p.m_pressedButtons.clear();
     p.m_eventHistory.leave.setSerial(serial);
-    surf->ak.scene.postEvent(p.m_eventHistory.leave);
+    AK::AKApp()->postEvent(p.m_eventHistory.leave, surf->ak.scene);
 }
 
 void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UInt32 time, wl_fixed_t x, wl_fixed_t y)
@@ -278,7 +279,8 @@ void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UI
     p.m_eventHistory.move.setMs(time);
     p.m_eventHistory.move.setX(wl_fixed_to_double(x));
     p.m_eventHistory.move.setY(wl_fixed_to_double(y));
-    p.focus()->ak.scene.postEvent(p.m_eventHistory.move);
+
+    AK::AKApp()->postEvent(p.m_eventHistory.move, p.focus()->ak.scene);
 
     if (p.focus()->ak.scene.pointerFocus())
         p.setCursor(p.findNonDefaultCursor(p.focus()->ak.scene.pointerFocus()));
@@ -297,8 +299,8 @@ void MApplication::wl_pointer_button(void */*data*/, wl_pointer */*pointer*/, UI
     p.m_eventHistory.button.setMs(time);
     p.m_eventHistory.button.setSerial(serial);
     p.m_eventHistory.button.setButton((AK::AKPointerButtonEvent::Button)button);
-    p.m_eventHistory.button.setState((AK::AKPointerButtonEvent::State)state);
-    p.focus()->ak.scene.postEvent(p.m_eventHistory.button);
+    p.m_eventHistory.button.setState((AK::AKPointerButtonEvent::State)state);    
+    AK::AKApp()->postEvent(p.m_eventHistory.button, p.focus()->ak.scene);
 }
 
 void MApplication::wl_pointer_axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value)
@@ -394,7 +396,7 @@ void MApplication::wl_keyboard_key(void */*data*/, wl_keyboard */*keyboard*/, UI
     AK::keymap()->updateKeyState(key, state);
 
     if (Marco::keyboard().focus())
-        Marco::keyboard().focus()->ak.scene.postEvent(event);
+        AK::AKApp()->postEvent(event, Marco::keyboard().focus()->ak.scene);
 }
 
 void MApplication::wl_keyboard_modifiers(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, UInt32 depressed, UInt32 latched, UInt32 locked, UInt32 group)

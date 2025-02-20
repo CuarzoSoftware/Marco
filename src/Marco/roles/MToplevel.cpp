@@ -2,13 +2,11 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
-#include <AK/events/AKStateActivatedEvent.h>
-#include <AK/events/AKStateDeactivatedEvent.h>
+#include <AK/events/AKWindowStateEvent.h>
 #include <include/gpu/ganesh/SkSurfaceGanesh.h>
 #include <include/core/SkColorSpace.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#include <iostream>
 
 using namespace Marco;
 using namespace AK;
@@ -41,15 +39,12 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
         xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
     });
 
-    ak.root.on.event.subscribe(this, [this](const AKEvent &event){
-
-        if (event.type() == AKEvent::Type::Pointer)
-        {
-            if (event.subtype() == AKEvent::Subtype::Button)
-                handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
-            else if (event.subtype() == AKEvent::Subtype::Move)
-                handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
-        }
+    ak.root.on.event.subscribe(this, [this](const AKEvent &event)
+    {
+        if (event.type() == AKEvent::PointerButton)
+            handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
+        else if (event.type() == AKEvent::PointerMove)
+            handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
     });
 
     /* CSD */
@@ -203,12 +198,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
     if (ref && notifyStates)
     {
         if (activatedChanged)
-        {
-            if (role.cl.states.check(Activated))
-                role.ak.scene.postEvent(AKStateActivatedEvent());
-            else
-                role.ak.scene.postEvent(AKStateDeactivatedEvent());
-        }
+            AKApp()->postEvent(AKWindowStateEvent(role.cl.states.check(Activated)), role.ak.scene);
 
         if (ref)
             role.onStatesChanged();
@@ -461,12 +451,13 @@ void MToplevel::render() noexcept
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;
 
+    /*
     if (states().check(Resizing) && callbackMsDiff < 4)
     {
         wl_display_flush(Marco::app()->wayland().display);
         usleep((4 - callbackMsDiff) * 1000);
         AKLog::debug("Sleeping %d ms", (4 - callbackMsDiff));
-    }
+    }*/
 
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
 }
