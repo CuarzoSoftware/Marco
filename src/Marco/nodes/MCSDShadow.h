@@ -11,6 +11,7 @@ class Marco::MCSDShadow : public AK::AKRenderable
 public:
     MCSDShadow(MToplevel *toplevel) noexcept;
 protected:
+    void layoutEvent(const AK::AKLayoutEvent &e) override;
     void renderEvent(const AK::AKRenderEvent &p) override;
     AK::AKWeak<MToplevel> m_toplevel;
     sk_sp<SkImage> m_image;

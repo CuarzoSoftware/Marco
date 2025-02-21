@@ -3,6 +3,7 @@
 #include <Marco/roles/MToplevel.h>
 #include <Marco/MApplication.h>
 #include <AK/events/AKRenderEvent.h>
+#include <AK/events/AKLayoutEvent.h>
 
 using namespace Marco;
 using namespace AK;
@@ -16,30 +17,31 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     layout().setPositionType(YGPositionTypeAbsolute);
     layout().setWidthPercent(100);
     layout().setHeightPercent(100);
+}
 
-    signalLayoutChanged.subscribe(this, [this](auto changes){
-        if (!m_toplevel || !changes.check(LayoutChanges::Size | LayoutChanges::Scale))
-            return;
+void MCSDShadow::layoutEvent(const AK::AKLayoutEvent &e)
+{
+    if (!m_toplevel || !e.changes().check(AKLayoutEvent::Changes::Size | AKLayoutEvent::Changes::Scale))
+        return;
 
-        if (m_toplevel->activated())
-        {
-            m_image = app()->theme()->csdShadowActive(
-                scale(),
-                SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                        layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
-                m_clampSides);
-        }
-        else
-        {
-            m_image = app()->theme()->csdShadowInactive(
-                scale(),
-                SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                        layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
-                m_clampSides);
-        }
+    if (m_toplevel->activated())
+    {
+        m_image = app()->theme()->csdShadowActive(
+            scale(),
+            SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            m_clampSides);
+    }
+    else
+    {
+        m_image = app()->theme()->csdShadowInactive(
+            scale(),
+            SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            m_clampSides);
+    }
 
-        addDamage(AK_IRECT_INF);
-    });
+    addDamage(AK_IRECT_INF);
 }
 
 void MCSDShadow::renderEvent(const AK::AKRenderEvent &p)
