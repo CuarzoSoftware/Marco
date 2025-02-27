@@ -2,24 +2,24 @@
 #define MKEYBOARD_H
 
 #include <Marco/Marco.h>
-#include <AK/AKObject.h>
-#include <AK/AKWeak.h>
 #include <AK/events/AKKeyboardKeyEvent.h>
 #include <AK/events/AKKeyboardEnterEvent.h>
 #include <AK/events/AKKeyboardLeaveEvent.h>
 #include <AK/events/AKKeyboardModifiersEvent.h>
+#include <AK/input/AKKeyboard.h>
+#include <AK/AKWeak.h>
 
-class Marco::MKeyboard : public AK::AKObject
+class Marco::MKeyboard : public AKKeyboard
 {
 public:
     MKeyboard() = default;
 
     struct EventHistory
     {
-        AK::AKKeyboardKeyEvent key;
-        AK::AKKeyboardEnterEvent enter;
-        AK::AKKeyboardLeaveEvent leave;
-        AK::AKKeyboardModifiersEvent modifiers;
+        AKKeyboardKeyEvent key;
+        AKKeyboardEnterEvent enter;
+        AKKeyboardLeaveEvent leave;
+        AKKeyboardModifiersEvent modifiers;
     };
 
     MSurface *focus() const noexcept { return m_focus; };
@@ -28,7 +28,7 @@ public:
 private:
     friend class MApplication;
     EventHistory m_eventHistory;
-    AK::AKWeak<MSurface> m_focus;
+    AKWeak<MSurface> m_focus;
 };
 
 #endif // MKEYBOARD_H

@@ -2,6 +2,9 @@
 #define MARCO_H
 
 #include <cstdint>
+#include <AK/AK.h>
+
+using namespace AK;
 
 namespace Marco
 {

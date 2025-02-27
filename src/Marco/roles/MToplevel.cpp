@@ -20,6 +20,7 @@ static zxdg_toplevel_decoration_v1_listener xdgDecorationListener {
 
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {
+    ak.root.installEventFilter(this);
     xdgSurfaceListener.configure = xdg_surface_configure;
     xdgToplevelListener.configure = xdg_toplevel_configure;
     xdgToplevelListener.configure_bounds = xdg_toplevel_configure_bounds;
@@ -37,14 +38,6 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 
     app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
         xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
-    });
-
-    ak.root.on.event.subscribe(this, [this](const AKEvent &event)
-    {
-        if (event.type() == AKEvent::PointerButton)
-            handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
-        else if (event.type() == AKEvent::PointerMove)
-            handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
     });
 
     /* CSD */
@@ -156,6 +149,19 @@ void MToplevel::setTitle(const std::string &title)
     on.titleChanged.notify(cl.title);
 }
 
+bool MToplevel::eventFilter(const AKEvent &event, AKObject &object)
+{
+    if (&ak.root == &object)
+    {
+        if (event.type() == AKEvent::PointerButton)
+           handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
+        else if (event.type() == AKEvent::PointerMove)
+           handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
+    }
+
+   return MSurface::eventFilter(event, object);
+}
+
 void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
 {
     auto &role { *static_cast<MToplevel*>(data) };
@@ -174,7 +180,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
 
     if (role.se.states.get() != role.cl.states.get())
     {
-        activatedChanged = role.cl.states.check(Activated) != role.se.states.check(Activated);
+        activatedChanged = role.cl.states.check(AKActivated) != role.se.states.check(AKActivated);
         role.cl.states = role.se.states;
         notifyStates = true;
     }
@@ -198,7 +204,7 @@ void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, U
     if (ref && notifyStates)
     {
         if (activatedChanged)
-            AKApp()->postEvent(AKWindowStateEvent(role.cl.states.check(Activated)), role.ak.scene);
+            akApp()->postEvent(AKWindowStateEvent(role.ak.scene.windowState().get() ^ role.cl.states.get()), role.ak.scene);
 
         if (ref)
             role.onStatesChanged();
@@ -278,7 +284,7 @@ void MToplevel::onUpdate() noexcept
     if (MSurface::se.changes.test(Cl_Scale))
         cl.flags.add(ForceUpdate);
 
-    if (cl.states.check(Maximized | Fullscreen))
+    if (cl.states.check(AKMaximized | AKFullscreen))
     {
         cl.csdShadowMargins = { 0, 0, 0, 0 };
         cl.csdShadow.setVisible(false);
@@ -495,7 +501,7 @@ void MToplevel::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) 
 
 void MToplevel::handleRootPointerMoveEvent(const AK::AKPointerMoveEvent &event) noexcept
 {
-    if (!visible() || states().check(Fullscreen))
+    if (!visible() || states().check(AKFullscreen))
     {
         ak.root.setCursor(AKCursor::Default);
         return;

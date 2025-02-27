@@ -209,7 +209,7 @@ bool MSurface::resizeBuffer(const SkISize &size) noexcept
         fbInfo);
 
     gl.skSurface = SkSurfaces::WrapBackendRenderTarget(
-        AK::AKApp()->glContext()->skContext().get(),
+        akApp()->glContext()->skContext().get(),
         backendTarget,
         GrSurfaceOrigin::kBottomLeft_GrSurfaceOrigin,
         SkColorType::kRGBA_8888_SkColorType,

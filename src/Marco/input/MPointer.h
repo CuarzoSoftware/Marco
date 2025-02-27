@@ -3,8 +3,8 @@
 
 #include <Marco/Marco.h>
 #include <AK/AKCursor.h>
-#include <AK/AKObject.h>
 #include <AK/AKWeak.h>
+#include <AK/input/AKPointer.h>
 #include <AK/events/AKPointerEnterEvent.h>
 #include <AK/events/AKPointerMoveEvent.h>
 #include <AK/events/AKPointerLeaveEvent.h>
@@ -14,21 +14,21 @@
 #include <unordered_set>
 #include <unordered_map>
 
-class Marco::MPointer : public AK::AKObject
+class Marco::MPointer : public AKPointer
 {
 public:
     MPointer() = default;
 
     struct EventHistory
     {
-        AK::AKPointerEnterEvent enter;
-        AK::AKPointerMoveEvent move;
-        AK::AKPointerLeaveEvent leave;
-        AK::AKPointerButtonEvent button;
+        AKPointerEnterEvent enter;
+        AKPointerMoveEvent move;
+        AKPointerLeaveEvent leave;
+        AKPointerButtonEvent button;
     };
 
-    AK::AKCursor cursor() const noexcept { return m_cursor; };
-    void setCursor(AK::AKCursor cursor) noexcept;
+    AKCursor cursor() const noexcept { return m_cursor; };
+    void setCursor(AKCursor cursor) noexcept;
     MSurface *focus() const noexcept { return m_focus; };
     const EventHistory &eventHistory() const noexcept { return m_eventHistory; };
     const std::unordered_set<UInt32> pressedButtons() const noexcept { return m_pressedButtons; };
@@ -39,14 +39,14 @@ public:
 
 private:
     friend class MApplication;
-    AK::AKCursor findNonDefaultCursor(AK::AKNode *node) const noexcept;
+    AKCursor findNonDefaultCursor(AKNode *node) const noexcept;
     EventHistory m_eventHistory;
     std::unordered_set<UInt32> m_pressedButtons;
-    AK::AKWeak<MSurface> m_focus;
+    AKWeak<MSurface> m_focus;
     wl_surface *m_cursorSurface { nullptr };
     wl_cursor_theme *m_cursorTheme { nullptr };
-    std::unordered_map<AK::AKCursor, wl_cursor*> m_cursors;
-    AK::AKCursor m_cursor { AK::AKCursor::Default };
+    std::unordered_map<AKCursor, wl_cursor*> m_cursors;
+    AKCursor m_cursor { AKCursor::Default };
     bool m_forceCursorUpdate { true };
 };
 

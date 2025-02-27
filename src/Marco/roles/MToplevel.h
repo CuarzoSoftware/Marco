@@ -6,22 +6,11 @@
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <AK/nodes/AKRenderableImage.h>
+#include <AK/AKWindowState.h>
 
 class Marco::MToplevel : public MSurface
 {
 public:
-    enum State
-    {
-        Maximized   = 1 << XDG_TOPLEVEL_STATE_MAXIMIZED,
-        Fullscreen  = 1 << XDG_TOPLEVEL_STATE_FULLSCREEN,
-        Resizing    = 1 << XDG_TOPLEVEL_STATE_RESIZING,
-        Activated   = 1 << XDG_TOPLEVEL_STATE_ACTIVATED,
-        TiledLeft   = 1 << XDG_TOPLEVEL_STATE_TILED_LEFT,
-        TiledRight  = 1 << XDG_TOPLEVEL_STATE_TILED_RIGHT,
-        TiledTop    = 1 << XDG_TOPLEVEL_STATE_TILED_TOP,
-        TiledBottom = 1 << XDG_TOPLEVEL_STATE_TILED_BOTTOM,
-        Suspended   = 1 << XDG_TOPLEVEL_STATE_SUSPENDED,
-    };
 
     MToplevel() noexcept;
     ~MToplevel() noexcept;
@@ -37,7 +26,7 @@ public:
     }
 
     virtual void onStatesChanged();
-    AK::AKBitset<State> states() const noexcept
+    AK::AKBitset<AK::AKWindowState> states() const noexcept
     {
         return cl.states;
     }
@@ -58,7 +47,7 @@ public:
     {
         AK::AKSignal<const std::string &> titleChanged;
         AK::AKSignal<const SkISize &> suggestedSizeChanged;
-        AK::AKSignal<AK::AKBitset<State>> statesChanged;
+        AK::AKSignal<AK::AKBitset<AK::AKWindowState>> statesChanged;
     } on;
 
 protected:
@@ -72,6 +61,7 @@ protected:
         ForceUpdate             = 1 << 4,
     };
 
+    bool eventFilter(const AKEvent &event, AKObject &object) override;
     void onUpdate() noexcept override;
     void render() noexcept;
     void handleRootPointerButtonEvent(const AK::AKPointerButtonEvent &event) noexcept;
@@ -86,7 +76,7 @@ protected:
     struct CL{
         CL(MToplevel *toplevel) : csdShadow(toplevel) {}
         AK::AKBitset<Flags> flags { PendingNullCommit };
-        AK::AKBitset<State> states;
+        AK::AKBitset<AK::AKWindowState> states;
         SkISize suggestedSize { 0, 0 };
         std::string title;
         AK::AKRenderableImage csdBorderRadius[4];
@@ -97,7 +87,7 @@ protected:
     struct
     {
         UInt32 serial;
-        AK::AKBitset<State> states;
+        AK::AKBitset<AK::AKWindowState> states;
         SkISize suggestedSize { 0, 0 };
     } se;
 

@@ -107,8 +107,8 @@ public:
             m_timeout = timeout;
     }
 
-    MPointer &pointer() noexcept { return m_pointer; }
-    MKeyboard &keyboard() noexcept { return m_keyboard; }
+    MPointer &pointer() noexcept { return (MPointer&)AKApplication::pointer(); }
+    MKeyboard &keyboard() noexcept { return(MKeyboard&)AKApplication::keyboard(); }
 
     struct
     {
@@ -163,8 +163,6 @@ private:
     bool m_eventSourcesChanged { false };
     std::vector<std::shared_ptr<MEventSource>> m_pendingEventSources;
     std::vector<std::shared_ptr<MEventSource>> m_currentEventSources;
-    MPointer m_pointer;
-    MKeyboard m_keyboard;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
 };

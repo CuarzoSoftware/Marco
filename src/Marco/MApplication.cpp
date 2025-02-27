@@ -7,7 +7,7 @@
 #include <Marco/roles/MSurface.h>
 #include <Marco/MTheme.h>
 
-#include <AK/input/AKKeymap.h>
+#include <AK/input/AKKeyboard.h>
 
 #include <sys/mman.h>
 #include <assert.h>
@@ -31,6 +31,8 @@ MApplication::MApplication() noexcept
 {
     assert(!app() && "There can not be more than one MApplication per process");
     m_app = this;
+    setPointer(new MPointer());
+    setKeyboard(new MKeyboard());
     AK::setTheme(new MTheme());
     initWayland();
     initGraphics();
@@ -250,37 +252,37 @@ void MApplication::wl_seat_name(void */*data*/, wl_seat */*seat*/, const char */
 void MApplication::wl_pointer_enter(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface, wl_fixed_t x, wl_fixed_t y)
 {
     MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
-    auto &p { app()->m_pointer };
+    auto &p { app()->pointer() };
     p.m_focus.reset(surf);
     p.m_eventHistory.enter.setX(wl_fixed_to_double(x));
     p.m_eventHistory.enter.setY(wl_fixed_to_double(y));
     p.m_eventHistory.enter.setSerial(serial);
     p.m_forceCursorUpdate = true;
-    AK::AKApp()->postEvent(p.m_eventHistory.enter, surf->ak.scene);
+    akApp()->postEvent(p.m_eventHistory.enter, surf->ak.scene);
 }
 
 void MApplication::wl_pointer_leave(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, wl_surface *surface)
 {
     MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
-    auto &p { app()->m_pointer };
+    auto &p { app()->pointer() };
     p.m_focus.reset();
 
     // TODO: notify
     p.m_pressedButtons.clear();
     p.m_eventHistory.leave.setSerial(serial);
-    AK::AKApp()->postEvent(p.m_eventHistory.leave, surf->ak.scene);
+    akApp()->postEvent(p.m_eventHistory.leave, surf->ak.scene);
 }
 
 void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UInt32 time, wl_fixed_t x, wl_fixed_t y)
 {
-    auto &p { app()->m_pointer };
+    auto &p { app()->pointer() };
     if (!p.focus()) return;
 
     p.m_eventHistory.move.setMs(time);
     p.m_eventHistory.move.setX(wl_fixed_to_double(x));
     p.m_eventHistory.move.setY(wl_fixed_to_double(y));
 
-    AK::AKApp()->postEvent(p.m_eventHistory.move, p.focus()->ak.scene);
+    akApp()->postEvent(p.m_eventHistory.move, p.focus()->ak.scene);
 
     if (p.focus()->ak.scene.pointerFocus())
         p.setCursor(p.findNonDefaultCursor(p.focus()->ak.scene.pointerFocus()));
@@ -288,7 +290,7 @@ void MApplication::wl_pointer_motion(void */*data*/, wl_pointer */*pointer*/, UI
 
 void MApplication::wl_pointer_button(void */*data*/, wl_pointer */*pointer*/, UInt32 serial, UInt32 time, UInt32 button, UInt32 state)
 {
-    auto &p { app()->m_pointer };
+    auto &p { app()->pointer() };
     if (!p.focus()) return;
 
     if (state == WL_POINTER_BUTTON_STATE_PRESSED)
@@ -300,7 +302,7 @@ void MApplication::wl_pointer_button(void */*data*/, wl_pointer */*pointer*/, UI
     p.m_eventHistory.button.setSerial(serial);
     p.m_eventHistory.button.setButton((AK::AKPointerButtonEvent::Button)button);
     p.m_eventHistory.button.setState((AK::AKPointerButtonEvent::State)state);    
-    AK::AKApp()->postEvent(p.m_eventHistory.button, p.focus()->ak.scene);
+    akApp()->postEvent(p.m_eventHistory.button, p.focus()->ak.scene);
 }
 
 void MApplication::wl_pointer_axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value)
@@ -352,7 +354,7 @@ void MApplication::wl_keyboard_keymap(void */*data*/, wl_keyboard */*keyboard*/,
     if (buffer == MAP_FAILED)
         return;
 
-    AK::keymap()->setFromString(buffer, XKB_KEYMAP_FORMAT_TEXT_V1);
+    akKeyboard().setFromString(buffer, XKB_KEYMAP_FORMAT_TEXT_V1);
     munmap(buffer, size);
 }
 
@@ -366,7 +368,7 @@ void MApplication::wl_keyboard_enter(void */*data*/, wl_keyboard */*keyboard*/, 
 
     UInt32 *keyCodes { static_cast<UInt32*>(keys->data) };
     for (size_t i = 0; i < keys->size/sizeof(UInt32); i++)
-        AK::keymap()->updateKeyState(keyCodes[i], XKB_KEY_DOWN);
+        akKeyboard().updateKeyState(keyCodes[i], XKB_KEY_DOWN);
 
     Marco::keyboard().m_focus.reset(surf);
 }
@@ -378,8 +380,8 @@ void MApplication::wl_keyboard_leave(void */*data*/, wl_keyboard */*keyboard*/, 
     event.setUs(AK::AKTime::us());
     event.setMs(AK::AKTime::ms());
 
-    while (!AK::keymap()->pressedKeyCodes().empty())
-        AK::keymap()->updateKeyState(AK::keymap()->pressedKeyCodes().back(), XKB_KEY_UP);
+    while (!akKeyboard().pressedKeyCodes().empty())
+        akKeyboard().updateKeyState(akKeyboard().pressedKeyCodes().back(), XKB_KEY_UP);
 
     if (Marco::keyboard().focus())
         Marco::keyboard().m_focus.reset();
@@ -393,10 +395,10 @@ void MApplication::wl_keyboard_key(void */*data*/, wl_keyboard */*keyboard*/, UI
     event.setMs(time);
     event.setKeyCode(key);
     event.setState((AK::AKKeyboardKeyEvent::State)state);
-    AK::keymap()->updateKeyState(key, state);
+    akKeyboard().updateKeyState(key, state);
 
     if (Marco::keyboard().focus())
-        AK::AKApp()->postEvent(event, Marco::keyboard().focus()->ak.scene);
+        akApp()->postEvent(event, Marco::keyboard().focus()->ak.scene);
 }
 
 void MApplication::wl_keyboard_modifiers(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, UInt32 depressed, UInt32 latched, UInt32 locked, UInt32 group)
@@ -410,12 +412,12 @@ void MApplication::wl_keyboard_modifiers(void */*data*/, wl_keyboard */*keyboard
         .latched = latched,
         .locked = locked,
         .group = group});
-    AK::keymap()->updateModifiers(depressed, latched, locked, group);
+    akKeyboard().updateModifiers(depressed, latched, locked, group);
 }
 
 void MApplication::wl_keyboard_repeat_info(void */*data*/, wl_keyboard */*keyboard*/, Int32 rate, Int32 delay)
 {
-    AK::keymap()->setKeyRepeatInfo(delay, rate);
+    akKeyboard().setKeyRepeatInfo(delay, rate);
 }
 
 void MApplication::xdg_wm_base_ping(void */*data*/, xdg_wm_base *xdgWmBase, UInt32 serial)

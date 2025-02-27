@@ -70,11 +70,11 @@ public:
         });
 
         maximizeButton.on.clicked.subscribe(this, [this](){
-           setMaximized(!states().check(MToplevel::Maximized));
+           setMaximized(!states().check(AKMaximized));
         });
 
         fullscreenButton.on.clicked.subscribe(this, [this](){
-            setFullscreen(!states().check(MToplevel::Fullscreen));
+            setFullscreen(!states().check(AKFullscreen));
         });
 
         minimizeButton.on.clicked.subscribe(this, [this](){
@@ -101,6 +101,7 @@ public:
     AKButton disabledButton { "🚫 Disabled Button", &body };
     AKButton exitButton { "╰┈➤🚪 Exit", &body };
     AKTextField textField { &body };
+    AKTextField textField2 { &body };
 
     AKSolidColor topbar { 0xFFFAFAFA, this };
     AKText helloWorld { "🚀 Hello World!", &topbar };
