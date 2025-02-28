@@ -57,7 +57,7 @@ public:
     }
 
     void update() noexcept;
-    void setAutoMinSize() noexcept;
+    SkISize minContentSize() noexcept;
 
     wl_surface *wlSurface() const noexcept { return wl.surface; }
 

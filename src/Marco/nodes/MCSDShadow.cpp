@@ -28,16 +28,16 @@ void MCSDShadow::layoutEvent(const AK::AKLayoutEvent &e)
     {
         m_image = app()->theme()->csdShadowActive(
             scale(),
-            SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                    layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            SkISize(layout().calculatedWidth() -  m_toplevel->decorationMargins().fLeft - m_toplevel->decorationMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->decorationMargins().fTop - m_toplevel->decorationMargins().fBottom),
             m_clampSides);
     }
     else
     {
         m_image = app()->theme()->csdShadowInactive(
             scale(),
-            SkISize(layout().calculatedWidth() -  m_toplevel->csdMargins().fLeft - m_toplevel->csdMargins().fRight,
-                    layout().calculatedHeight() - m_toplevel->csdMargins().fTop - m_toplevel->csdMargins().fBottom),
+            SkISize(layout().calculatedWidth() -  m_toplevel->decorationMargins().fLeft - m_toplevel->decorationMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->decorationMargins().fTop - m_toplevel->decorationMargins().fBottom),
             m_clampSides);
     }
 
@@ -54,7 +54,7 @@ void MCSDShadow::renderEvent(const AK::AKRenderEvent &p)
     SkIRect rect = p.rect;
     rect.fRight++;
 
-    const auto &margins { m_toplevel->csdMargins() };
+    const auto &margins { m_toplevel->decorationMargins() };
     SkIRect centerV = SkIRect(
         margins.fLeft,
         margins.fTop,

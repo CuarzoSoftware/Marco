@@ -40,13 +40,12 @@ void MSurface::update() noexcept
     app()->update();
 }
 
-void MSurface::setAutoMinSize() noexcept
+SkISize MSurface::minContentSize() noexcept
 {
     layout().setWidthAuto();
     layout().setHeightAuto();
     ak.root.layout().calculate();
-    layout().setMinWidth(layout().calculatedWidth());
-    layout().setMinHeight(layout().calculatedHeight());
+    return SkISize::Make(layout().calculatedWidth(), layout().calculatedHeight());
 }
 
 MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLighten5), m_role(role)

@@ -47,8 +47,6 @@ public:
         cat.layout().setWidthPercent(100);
         cat.layout().setFlexGrow(2.f);
         cat.layout().setMinHeight(200.f);
-        textField.layout().setWidthPercent(100);
-
         cat.setSizeMode(AKImageFrame::SizeMode::Cover);
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
         exitButton.setBackgroundColor(AKTheme::SystemRed);
@@ -70,11 +68,11 @@ public:
         });
 
         maximizeButton.on.clicked.subscribe(this, [this](){
-           setMaximized(!states().check(AKMaximized));
+           setMaximized(!maximized());
         });
 
         fullscreenButton.on.clicked.subscribe(this, [this](){
-            setFullscreen(!states().check(AKFullscreen));
+            setFullscreen(!fullscreen());
         });
 
         minimizeButton.on.clicked.subscribe(this, [this](){
@@ -86,7 +84,7 @@ public:
         });
 
         cat.setAnimated(false);
-        setAutoMinSize();
+        setMinSize(minContentSize());
     }
 
     AKContainer topbarSpace { YGFlexDirectionColumn, false, this };

@@ -33,6 +33,7 @@ endif
 
 header_dirs = [
     ['./src/Marco', ''],
+    ['./src/Marco/private', 'private'],
     ['./src/Marco/roles', 'roles'],
     ['./src/Marco/nodes', 'nodes'],
     ['./src/Marco/protocols', 'protocols'],

@@ -1,56 +1,47 @@
-#include <AK/AKLog.h>
-#include <Marco/roles/MToplevel.h>
+#include <Marco/private/MToplevelPrivate.h>
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
+
 #include <AK/events/AKWindowStateEvent.h>
+#include <AK/AKLog.h>
+
 #include <include/gpu/ganesh/SkSurfaceGanesh.h>
 #include <include/core/SkColorSpace.h>
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
 using namespace Marco;
-using namespace AK;
-
-static xdg_surface_listener xdgSurfaceListener;
-static xdg_toplevel_listener xdgToplevelListener;
-/*
-static zxdg_toplevel_decoration_v1_listener xdgDecorationListener {
-    .configure = [](auto, auto, auto) {}
-};*/
 
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {
+    m_imp = std::make_unique<Imp>(*this);
     ak.root.installEventFilter(this);
-    xdgSurfaceListener.configure = xdg_surface_configure;
-    xdgToplevelListener.configure = xdg_toplevel_configure;
-    xdgToplevelListener.configure_bounds = xdg_toplevel_configure_bounds;
-    xdgToplevelListener.close = xdg_toplevel_close;
-    xdgToplevelListener.wm_capabilities = xdg_toplevel_wm_capabilities;
 
-    wl.xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, MSurface::wl.surface);
-    xdg_surface_add_listener(wl.xdgSurface, &xdgSurfaceListener, this);
-    wl.xdgToplevel = xdg_surface_get_toplevel(wl.xdgSurface);
-    xdg_toplevel_add_listener(wl.xdgToplevel, &xdgToplevelListener, this);
-    xdg_toplevel_set_app_id(wl.xdgToplevel, app()->appId().c_str());
+    imp()->xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, MSurface::wl.surface);
+    xdg_surface_add_listener(imp()->xdgSurface, &Imp::xdgSurfaceListener, this);
+    imp()->xdgToplevel = xdg_surface_get_toplevel(imp()->xdgSurface);
+    xdg_toplevel_add_listener(imp()->xdgToplevel, &Imp::xdgToplevelListener, this);
+    xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
 
     //if (app()->wayland().xdgDecorationManager)
-    //    wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, wl.xdgToplevel);
+    //    wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, imp()->xdgToplevel);
 
     app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
-        xdg_toplevel_set_app_id(wl.xdgToplevel, appId.c_str());
+        xdg_toplevel_set_app_id(imp()->xdgToplevel, appId.c_str());
     });
 
     /* CSD */
 
     for (int i = 0; i < 4; i++)
     {
-        cl.csdBorderRadius[i].setParent(&MSurface::ak.root);
-        cl.csdBorderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
-        cl.csdBorderRadius[i].layout().setWidth(app()->theme()->CSDBorderRadius);
-        cl.csdBorderRadius[i].layout().setHeight(app()->theme()->CSDBorderRadius);
-        cl.csdBorderRadius[i].enableCustomBlendFunc(true);
-        cl.csdBorderRadius[i].enableAutoDamage(false);
-        cl.csdBorderRadius[i].setCustomBlendFunc({
+        imp()->borderRadius[i].setParent(&MSurface::ak.root);
+        imp()->borderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
+        imp()->borderRadius[i].layout().setWidth(app()->theme()->CSDBorderRadius);
+        imp()->borderRadius[i].layout().setHeight(app()->theme()->CSDBorderRadius);
+        imp()->borderRadius[i].enableCustomBlendFunc(true);
+        imp()->borderRadius[i].enableAutoDamage(false);
+        imp()->borderRadius[i].setCustomBlendFunc({
             .sRGBFactor = GL_ZERO,
             .dRGBFactor = GL_SRC_ALPHA,
             .sAlphaFactor = GL_ZERO,
@@ -58,64 +49,115 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
         });
 
         /*
-        cl.csdBorderRadius[i].opaqueRegion.setEmpty();
-        cl.csdBorderRadius[i].reactiveRegion.setRect(
+        imp()->borderRadius[i].opaqueRegion.setEmpty();
+        imp()->borderRadius[i].reactiveRegion.setRect(
             SkIRect::MakeWH(app()->theme()->CSDBorderRadius, app()->theme()->CSDBorderRadius));*/
     }
 
     // TODO: update only when activated changes
 
     // TL
-    cl.csdBorderRadius[0].setSrcTransform(AKTransform::Normal);
-    cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, 0);
-    cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, 0);
+    imp()->borderRadius[0].setSrcTransform(AKTransform::Normal);
+    imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, 0);
+    imp()->borderRadius[0].layout().setPosition(YGEdgeTop, 0);
 
     // TR
-    cl.csdBorderRadius[1].setSrcTransform(AKTransform::Rotated90);
-    cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, 0);
-    cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, 0);
+    imp()->borderRadius[1].setSrcTransform(AKTransform::Rotated90);
+    imp()->borderRadius[1].layout().setPosition(YGEdgeRight, 0);
+    imp()->borderRadius[1].layout().setPosition(YGEdgeTop, 0);
 
     // BR
-    cl.csdBorderRadius[2].setSrcTransform(AKTransform::Rotated180);
-    cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, 0);
-    cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, 0);
+    imp()->borderRadius[2].setSrcTransform(AKTransform::Rotated180);
+    imp()->borderRadius[2].layout().setPosition(YGEdgeRight, 0);
+    imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, 0);
 
     // BL
-    cl.csdBorderRadius[3].setSrcTransform(AKTransform::Rotated270);
-    cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, 0);
-    cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, 0);
+    imp()->borderRadius[3].setSrcTransform(AKTransform::Rotated270);
+    imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, 0);
+    imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, 0);
 
-    cl.csdShadow.setParent(&MSurface::ak.root);
+    imp()->shadow.setParent(&MSurface::ak.root);
 }
 
 MToplevel::~MToplevel() noexcept
 {
-    xdg_toplevel_destroy(wl.xdgToplevel);
-    xdg_surface_destroy(wl.xdgSurface);
+    xdg_toplevel_destroy(imp()->xdgToplevel);
+    xdg_surface_destroy(imp()->xdgSurface);
 }
 
 void MToplevel::setMaximized(bool maximized) noexcept
 {
     if (maximized)
-        xdg_toplevel_set_maximized(wl.xdgToplevel);
+        xdg_toplevel_set_maximized(imp()->xdgToplevel);
     else
-        xdg_toplevel_unset_maximized(wl.xdgToplevel);
+        xdg_toplevel_unset_maximized(imp()->xdgToplevel);
 }
 
-void MToplevel::setFullscreen(bool fullscreen) noexcept
+bool MToplevel::maximized() const noexcept
+{
+    return states().check(AKMaximized);
+}
+
+void MToplevel::setFullscreen(bool fullscreen, MScreen *screen) noexcept
 {
     if (fullscreen)
-        xdg_toplevel_set_fullscreen(wl.xdgToplevel, NULL);
+        xdg_toplevel_set_fullscreen(imp()->xdgToplevel, screen ? screen->wlOutput() : nullptr);
     else
-        xdg_toplevel_unset_fullscreen(wl.xdgToplevel);
+        xdg_toplevel_unset_fullscreen(imp()->xdgToplevel);
+}
+
+bool MToplevel::fullscreen() const noexcept
+{
+    return states().check(AKFullscreen);
 }
 
 void MToplevel::setMinimized() noexcept
 {
-    xdg_toplevel_set_minimized(wl.xdgToplevel);
+    xdg_toplevel_set_minimized(imp()->xdgToplevel);
 }
 
-void MToplevel::onSuggestedSizeChanged()
+void MToplevel::setMinSize(const SkISize &size) noexcept
+{
+    imp()->minSize = size;
+
+    if (imp()->minSize.fWidth < 0) imp()->minSize.fWidth = 0;
+    if (imp()->minSize.fHeight < 0) imp()->minSize.fHeight = 0;
+
+    xdg_toplevel_set_min_size(imp()->xdgToplevel, imp()->minSize.fWidth, imp()->minSize.fHeight);
+
+    layout().setMinWidth(imp()->minSize.fWidth == 0 ? YGUndefined : imp()->minSize.fWidth);
+    layout().setMinHeight(imp()->minSize.fHeight == 0 ? YGUndefined : imp()->minSize.fHeight);
+}
+
+const SkISize &MToplevel::minSize() const noexcept
+{
+    return imp()->minSize;
+}
+
+void MToplevel::setMaxSize(const SkISize &size) noexcept
+{
+    imp()->maxSize = size;
+
+    if (imp()->maxSize.fWidth < 0) imp()->maxSize.fWidth = 0;
+    if (imp()->maxSize.fHeight < 0) imp()->maxSize.fHeight = 0;
+
+    xdg_toplevel_set_max_size(imp()->xdgToplevel, imp()->maxSize.fWidth, imp()->maxSize.fHeight);
+
+    layout().setMinWidth(imp()->maxSize.fWidth == 0 ? YGUndefined : imp()->maxSize.fWidth);
+    layout().setMinHeight(imp()->maxSize.fHeight == 0 ? YGUndefined : imp()->maxSize.fHeight);
+}
+
+const SkISize &MToplevel::maxSize() const noexcept
+{
+    return imp()->maxSize;
+}
+
+const SkISize &MToplevel::suggestedSize() const noexcept
+{
+    return imp()->currentSuggestedSize;
+}
+
+void MToplevel::suggestedSizeChanged()
 {
     if (suggestedSize().width() == 0)
     {
@@ -134,19 +176,36 @@ void MToplevel::onSuggestedSizeChanged()
         layout().setHeight(suggestedSize().height());
 }
 
-void MToplevel::onStatesChanged()
+AKBitset<AKWindowState> MToplevel::states() const noexcept
 {
-
+    return imp()->currentStates;
 }
 
 void MToplevel::setTitle(const std::string &title)
 {
-    if (cl.title == title)
+    if (this->title() == title)
         return;
 
-    xdg_toplevel_set_title(wl.xdgToplevel, cl.title.c_str());
-    cl.title = title;
-    on.titleChanged.notify(cl.title);
+    xdg_toplevel_set_title(imp()->xdgToplevel, title.c_str());
+    imp()->title = title;
+    onTitleChanged.notify();
+}
+
+const std::string &MToplevel::title() const noexcept
+{
+    return imp()->title;
+}
+
+const SkIRect &MToplevel::decorationMargins() const noexcept
+{
+    return imp()->shadowMargins;
+}
+
+void MToplevel::windowStateEvent(const AKWindowStateEvent &event)
+{
+    MSurface::windowStateEvent(event);
+    onStatesChanged.notify(event);
+    event.accept();
 }
 
 bool MToplevel::eventFilter(const AKEvent &event, AKObject &object)
@@ -154,112 +213,30 @@ bool MToplevel::eventFilter(const AKEvent &event, AKObject &object)
     if (&ak.root == &object)
     {
         if (event.type() == AKEvent::PointerButton)
-           handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
+            imp()->handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
         else if (event.type() == AKEvent::PointerMove)
-           handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
+            imp()->handleRootPointerMoveEvent(static_cast<const AKPointerMoveEvent&>(event));
     }
 
    return MSurface::eventFilter(event, object);
-}
-
-void MToplevel::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
-{
-    auto &role { *static_cast<MToplevel*>(data) };
-    role.cl.flags.add(PendingConfigureAck);
-    role.se.serial = serial;
-
-    bool notifyStates { role.cl.flags.check(PendingFirstConfigure) };
-    bool notifySuggestedSize { notifyStates };
-    bool activatedChanged { false };
-    role.cl.flags.remove(PendingFirstConfigure);
-
-    if (notifyStates)
-    {
-        xdg_toplevel_set_title(role.wl.xdgToplevel, role.title().c_str());
-    }
-
-    if (role.se.states.get() != role.cl.states.get())
-    {
-        activatedChanged = role.cl.states.check(AKActivated) != role.se.states.check(AKActivated);
-        role.cl.states = role.se.states;
-        notifyStates = true;
-    }
-
-    if (role.se.suggestedSize != role.cl.suggestedSize)
-    {
-        role.cl.suggestedSize = role.se.suggestedSize;
-        notifySuggestedSize = true;
-    }
-
-    AK::AKWeak<MToplevel> ref { &role };
-
-    if (notifySuggestedSize)
-    {
-        role.onSuggestedSizeChanged();
-
-        if (ref)
-            role.on.suggestedSizeChanged.notify(role.cl.suggestedSize);
-    }
-
-    if (ref && notifyStates)
-    {
-        if (activatedChanged)
-            akApp()->postEvent(AKWindowStateEvent(role.ak.scene.windowState().get() ^ role.cl.states.get()), role.ak.scene);
-
-        if (ref)
-            role.onStatesChanged();
-
-        if (ref)
-            role.on.statesChanged.notify(role.cl.states);
-    }
-
-    role.cl.flags.add(ForceUpdate);
-    role.update();
-}
-
-void MToplevel::xdg_toplevel_configure(void *data, xdg_toplevel */*xdgToplevel*/, Int32 width, Int32 height, wl_array *states)
-{
-    auto &role { *static_cast<MToplevel*>(data) };
-    role.se.states.set(0);
-    const UInt32 *stateVals = (UInt32*)states->data;
-    for (UInt32 i = 0; i < states->size/sizeof(*stateVals); i++)
-        role.se.states.add(1 << stateVals[i]);
-
-    role.se.suggestedSize.fWidth = width < 0 ? 0 : width;
-    role.se.suggestedSize.fHeight = height < 0 ? 0 : height;
-}
-
-void MToplevel::xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel)
-{
-    exit(0);
-}
-
-void MToplevel::xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height)
-{
-
-}
-
-void MToplevel::xdg_toplevel_wm_capabilities(void *data, xdg_toplevel *xdgToplevel, wl_array *capabilities)
-{
-
 }
 
 void MToplevel::onUpdate() noexcept
 {
     MSurface::onUpdate();
 
-    if (cl.flags.check(PendingConfigureAck))
+    if (imp()->flags.check(Imp::PendingConfigureAck))
     {
-        cl.flags.remove(PendingConfigureAck);
-        xdg_surface_ack_configure(wl.xdgSurface, se.serial);
+        imp()->flags.remove(Imp::PendingConfigureAck);
+        xdg_surface_ack_configure(imp()->xdgSurface, imp()->configureSerial);
     }
 
     if (visible())
     {
-        if (cl.flags.check(PendingNullCommit))
+        if (imp()->flags.check(Imp::PendingNullCommit))
         {
-            cl.flags.add(PendingFirstConfigure);
-            cl.flags.remove(PendingNullCommit);
+            imp()->flags.add(Imp::PendingFirstConfigure);
+            imp()->flags.remove(Imp::PendingNullCommit);
             wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
             wl_surface_commit(MSurface::wl.surface);
             update();
@@ -268,9 +245,9 @@ void MToplevel::onUpdate() noexcept
     }
     else
     {
-        if (!cl.flags.check(PendingNullCommit))
+        if (!imp()->flags.check(Imp::PendingNullCommit))
         {
-            cl.flags.add(PendingNullCommit);
+            imp()->flags.add(Imp::PendingNullCommit);
             wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
             wl_surface_commit(MSurface::wl.surface);
         }
@@ -278,28 +255,28 @@ void MToplevel::onUpdate() noexcept
         return;
     }
 
-    if (cl.flags.check(PendingFirstConfigure | PendingNullCommit))
+    if (imp()->flags.check(Imp::PendingFirstConfigure | Imp::PendingNullCommit))
         return;
 
     if (MSurface::se.changes.test(Cl_Scale))
-        cl.flags.add(ForceUpdate);
+        imp()->flags.add(Imp::ForceUpdate);
 
-    if (cl.states.check(AKMaximized | AKFullscreen))
+    if (states().check(AKMaximized | AKFullscreen))
     {
-        cl.csdShadowMargins = { 0, 0, 0, 0 };
-        cl.csdShadow.setVisible(false);
+        imp()->shadowMargins = { 0, 0, 0, 0 };
+        imp()->shadow.setVisible(false);
         for (int i = 0; i < 4; i++)
-            cl.csdBorderRadius[i].setVisible(false);
+            imp()->borderRadius[i].setVisible(false);
     }
     else
     {
-        cl.csdShadow.setVisible(true);
+        imp()->shadow.setVisible(true);
         for (int i = 0; i < 4; i++)
-            cl.csdBorderRadius[i].setVisible(true);
+            imp()->borderRadius[i].setVisible(true);
 
         if (activated())
         {
-            cl.csdShadowMargins = {
+            imp()->shadowMargins = {
                 app()->theme()->CSDShadowActiveRadius,
                 app()->theme()->CSDShadowActiveRadius - app()->theme()->CSDShadowActiveOffsetY,
                 app()->theme()->CSDShadowActiveRadius,
@@ -308,7 +285,7 @@ void MToplevel::onUpdate() noexcept
         }
         else
         {
-            cl.csdShadowMargins = {
+            imp()->shadowMargins = {
                 app()->theme()->CSDShadowInactiveRadius,
                 app()->theme()->CSDShadowInactiveRadius - app()->theme()->CSDShadowInactiveOffsetY,
                 app()->theme()->CSDShadowInactiveRadius,
@@ -319,18 +296,18 @@ void MToplevel::onUpdate() noexcept
 
     layout().setPosition(YGEdgeLeft, 0.f);
     layout().setPosition(YGEdgeTop, 0.f);
-    layout().setMargin(YGEdgeLeft, cl.csdShadowMargins.fLeft);
-    layout().setMargin(YGEdgeTop, cl.csdShadowMargins.fTop);
-    layout().setMargin(YGEdgeRight, cl.csdShadowMargins.fRight);
-    layout().setMargin(YGEdgeBottom, cl.csdShadowMargins.fBottom);
-    cl.csdBorderRadius[0].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
-    cl.csdBorderRadius[0].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
-    cl.csdBorderRadius[1].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
-    cl.csdBorderRadius[1].layout().setPosition(YGEdgeTop, cl.csdShadowMargins.fTop);
-    cl.csdBorderRadius[2].layout().setPosition(YGEdgeRight, cl.csdShadowMargins.fRight);
-    cl.csdBorderRadius[2].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
-    cl.csdBorderRadius[3].layout().setPosition(YGEdgeLeft, cl.csdShadowMargins.fLeft);
-    cl.csdBorderRadius[3].layout().setPosition(YGEdgeBottom, cl.csdShadowMargins.fBottom);
+    layout().setMargin(YGEdgeLeft, imp()->shadowMargins.fLeft);
+    layout().setMargin(YGEdgeTop, imp()->shadowMargins.fTop);
+    layout().setMargin(YGEdgeRight, imp()->shadowMargins.fRight);
+    layout().setMargin(YGEdgeBottom, imp()->shadowMargins.fBottom);
+    imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
+    imp()->borderRadius[0].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
+    imp()->borderRadius[1].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
+    imp()->borderRadius[1].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
+    imp()->borderRadius[2].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
+    imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
+    imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
+    imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
     render();
 }
 
@@ -347,10 +324,10 @@ void MToplevel::render() noexcept
 
     ak.scene.root()->layout().calculate();
 
-    if (MSurface::wl.callback && !cl.flags.check(ForceUpdate))
+    if (MSurface::wl.callback && !imp()->flags.check(Imp::ForceUpdate))
         return;
 
-    cl.flags.remove(ForceUpdate);
+    imp()->flags.remove(Imp::ForceUpdate);
 
     SkISize size(
         SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
@@ -364,9 +341,9 @@ void MToplevel::render() noexcept
     if (sizeChanged)
     {
         xdg_surface_set_window_geometry(
-            wl.xdgSurface,
-            cl.csdShadowMargins.fLeft,
-            cl.csdShadowMargins.fTop,
+            imp()->xdgSurface,
+            imp()->shadowMargins.fLeft,
+            imp()->shadowMargins.fTop,
             layout().calculatedWidth(),
             layout().calculatedHeight());
     }
@@ -389,7 +366,7 @@ void MToplevel::render() noexcept
 
     /* CSD */
     for (int i = 0; i < 4; i++)
-        cl.csdBorderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(scale()));
+        imp()->borderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(scale()));
 
     /*
     glScissor(0, 0, 1000000, 100000);
@@ -398,7 +375,7 @@ void MToplevel::render() noexcept
     ak.scene.render(ak.target);
 
     for (int i = 0; i < 4; i++)
-        ak.target->outOpaqueRegion->op(cl.csdBorderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
+        ak.target->outOpaqueRegion->op(imp()->borderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
 
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
 
@@ -468,69 +445,7 @@ void MToplevel::render() noexcept
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
 }
 
-void MToplevel::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) noexcept
+MToplevel::Imp *MToplevel::imp() const noexcept
 {
-    if (!visible() || event.button() != BTN_LEFT || event.state() != AKPointerButtonEvent::Pressed)
-        return;
-
-    const SkPoint &pointerPos { pointer().eventHistory().move.pos() };
-    const Int32 resizeMargins { MTheme::CSDResizeOutset };
-    const Int32 moveTopMargin { MTheme::CSDMoveOutset };
-    UInt32 resizeEdges { 0 };
-
-    if (globalRect().x() - resizeMargins <= pointerPos.x() && globalRect().x() + resizeMargins >= pointerPos.x())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
-    else if (globalRect().right() - resizeMargins <= pointerPos.x() && globalRect().right() + resizeMargins >= pointerPos.x())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
-
-    if (globalRect().y() - resizeMargins <= pointerPos.y() && globalRect().y() + resizeMargins >= pointerPos.y())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
-    else if (globalRect().bottom() - resizeMargins <= pointerPos.y() && globalRect().bottom() + resizeMargins >= pointerPos.y())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
-
-    if (resizeEdges)
-        xdg_toplevel_resize(wl.xdgToplevel, app()->wayland().seat, event.serial(), resizeEdges);
-    else if (globalRect().x() <= pointerPos.x() &&
-             globalRect().right() >= pointerPos.x() &&
-             globalRect().y() <= pointerPos.y() &&
-             globalRect().y() + moveTopMargin >= pointerPos.y())
-    {
-        xdg_toplevel_move(wl.xdgToplevel, app()->wayland().seat, event.serial());
-    }
-}
-
-void MToplevel::handleRootPointerMoveEvent(const AK::AKPointerMoveEvent &event) noexcept
-{
-    if (!visible() || states().check(AKFullscreen))
-    {
-        ak.root.setCursor(AKCursor::Default);
-        return;
-    }
-
-    const SkPoint &pointerPos { event.pos() };
-    const Int32 resizeMargins { MTheme::CSDResizeOutset };
-    UInt32 resizeEdges { 0 };
-
-    if (globalRect().x() - resizeMargins <= pointerPos.x() && globalRect().x() + resizeMargins >= pointerPos.x())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
-    else if (globalRect().right() - resizeMargins <= pointerPos.x() && globalRect().right() + resizeMargins >= pointerPos.x())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
-
-    if (globalRect().y() - resizeMargins <= pointerPos.y() && globalRect().y() + resizeMargins >= pointerPos.y())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_TOP;
-    else if (globalRect().bottom() - resizeMargins <= pointerPos.y() && globalRect().bottom() + resizeMargins >= pointerPos.y())
-        resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
-
-    if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_LEFT || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
-        ak.root.setCursor(AKCursor::EWResize);
-    else if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_TOP || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
-        ak.root.setCursor(AKCursor::NSResize);
-    else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_LEFT) ||
-             resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT))
-        ak.root.setCursor(AKCursor::NWSEResize);
-    else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT) ||
-             resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_LEFT))
-        ak.root.setCursor(AKCursor::NESWResize);
-    else
-        ak.root.setCursor(AKCursor::Default);
+    return m_imp.get();
 }
