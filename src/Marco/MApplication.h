@@ -8,7 +8,6 @@
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
-#include <Marco/utils/MEventSource.h>
 #include <AK/AKApplication.h>
 #include <AK/AKWeak.h>
 #include <AK/events/AKPointerEnterEvent.h>
@@ -47,7 +46,6 @@ public:
     };
 
     MApplication() noexcept;
-    int exec();
 
     static MTheme *theme() noexcept
     {
@@ -88,25 +86,8 @@ public:
         return m_screens;
     }
 
-    MEventSource *addEventSource(Int32 fd, UInt32 events, const MEventSource::Callback &callback) noexcept;
-    void removeEventSource(MEventSource *source) noexcept;
 
-    void update() noexcept
-    {
-        //if (m_pendingUpdate)
-        //    return;
-        m_pendingUpdate = true;
-        eventfd_write(m_eventFdEventSource->fd(), 1);
-    }
-
-    void setTimeout(Int32 timeout = -1) noexcept
-    {
-        if (timeout < 0)
-            m_timeout = 0;
-        else if (timeout < m_timeout || m_timeout < 0)
-            m_timeout = timeout;
-    }
-
+    void update() noexcept;
     MPointer &pointer() noexcept { return (MPointer&)AKApplication::pointer(); }
     MKeyboard &keyboard() noexcept { return(MKeyboard&)AKApplication::keyboard(); }
 
@@ -149,22 +130,17 @@ private:
     static void xdg_wm_base_ping(void *data, xdg_wm_base *xdgWmBase, UInt32 serial);
     void initWayland() noexcept;
     void initGraphics() noexcept;
-    void updateEventSources() noexcept;
+    void updateSurfaces();
     bool m_running { false };
-    bool m_pendingUpdate { false };
-    Int32 m_timeout { -1 };
 
     Wayland wl;
     Graphics gl;
     std::string m_appId;
 
-    MEventSource* m_waylandEventSource, *m_eventFdEventSource;
-    std::vector<pollfd> m_fds;
-    bool m_eventSourcesChanged { false };
-    std::vector<std::shared_ptr<MEventSource>> m_pendingEventSources;
-    std::vector<std::shared_ptr<MEventSource>> m_currentEventSources;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
+    std::shared_ptr<AKBooleanEventSource> m_marcoSource;
+    AKEventSource *m_waylandEventSource { nullptr };
 };
 
 #endif // MAPPLICATION_H

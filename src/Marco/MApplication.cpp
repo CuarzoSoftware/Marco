@@ -1,4 +1,5 @@
 #include <AK/AKLog.h>
+#include <AK/AKBooleanEventSource.h>
 #include <include/gpu/ganesh/GrDirectContext.h>
 #include <include/gpu/ganesh/gl/GrGLBackendSurface.h>
 #include <include/gpu/ganesh/gl/GrGLDirectContext.h>
@@ -14,11 +15,8 @@
 
 using namespace Marco;
 
-static MApplication *m_app { nullptr };
-
-MApplication *Marco::app() noexcept { return m_app; }
-MPointer &Marco::pointer() noexcept { return m_app->pointer(); }
-MKeyboard &Marco::keyboard() noexcept { return m_app->keyboard(); }
+MPointer &Marco::pointer() noexcept { return app()->pointer(); }
+MKeyboard &Marco::keyboard() noexcept { return app()->keyboard(); }
 
 static wl_registry_listener wlRegistryListener;
 static wl_output_listener wlOutputListener;
@@ -29,8 +27,6 @@ static xdg_wm_base_listener xdgWmBaseListener;
 
 MApplication::MApplication() noexcept
 {
-    assert(!app() && "There can not be more than one MApplication per process");
-    m_app = this;
     setPointer(new MPointer());
     setKeyboard(new MKeyboard());
     AK::setTheme(new MTheme());
@@ -38,62 +34,9 @@ MApplication::MApplication() noexcept
     initGraphics();
 }
 
-int MApplication::exec()
+void MApplication::update() noexcept
 {
-    if (m_running)
-        return EXIT_FAILURE;
-
-    m_running = true;
-
-    update();
-
-    while (m_running)
-    {
-        updateEventSources();
-        poll(m_fds.data(), m_fds.size(), m_timeout);
-        m_timeout = -1;
-
-        for (size_t i = 0; i < m_fds.size(); i++)
-        {
-            if (m_currentEventSources[i]->m_callback && (m_fds[i].revents & m_fds[i].events))
-                m_currentEventSources[i]->m_callback(m_fds[i].fd, m_fds[i].revents);
-        }
-
-        for (MSurface *surf : m_surfaces)
-        {
-            if (surf->cl.pendingUpdate)
-            {
-                surf->cl.pendingUpdate = false;
-                surf->onUpdate();
-                surf->cl.changes.reset();
-                surf->se.changes.reset();
-            }
-        }
-
-        wl_display_flush(wl.display);
-    }
-
-    return EXIT_SUCCESS;
-}
-
-MEventSource *MApplication::addEventSource(Int32 fd, UInt32 events, const MEventSource::Callback &callback) noexcept
-{
-    m_eventSourcesChanged = true;
-    MEventSource *source { new MEventSource(fd, events, callback) };
-    m_pendingEventSources.push_back(std::shared_ptr<MEventSource>(source));
-    return source;
-}
-
-void MApplication::removeEventSource(MEventSource *source) noexcept
-{
-    for (size_t i = 0; i < m_pendingEventSources.size(); i++)
-    {
-        if (m_pendingEventSources[i].get() == source)
-        {
-            m_pendingEventSources.erase(m_pendingEventSources.begin() + i);
-            m_eventSourcesChanged = true;
-        }
-    }
+    m_marcoSource->setState(true);
 }
 
 void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 name, const char *interface, UInt32 version)
@@ -464,15 +407,18 @@ void MApplication::initWayland() noexcept
     wl.display = wl_display_connect(NULL);
     assert(wl.display && "wl_display_connect failed");
 
-    m_waylandEventSource = addEventSource(wl_display_get_fd(wl.display), POLLIN, [this](Int32, UInt32){
-        if (wl_display_dispatch(wl.display) == -1)
-            exit(EXIT_FAILURE);
+    m_waylandEventSource = addEventSource(wl_display_get_fd(wl.display), POLLIN | POLLOUT, [this](Int32, UInt32 events) {
+
+        if (events & POLLIN)
+            wl_display_dispatch(wl.display);
+
+        wl_display_flush(wl.display);
     });
 
-    m_eventFdEventSource = addEventSource(eventfd(0, O_CLOEXEC), POLLIN, [this](Int32 fd, UInt32){
-        m_pendingUpdate = false;
-        static eventfd_t val;
-        eventfd_read(fd, &val);
+    AKLog::debug("[MApplication] Wayland event source added fd %d.", m_waylandEventSource->fd());
+
+    m_marcoSource = AKBooleanEventSource::Make(true, [this](auto) {
+        updateSurfaces();
     });
 
     wl.registry.set(wl_display_get_registry(wl.display));
@@ -522,18 +468,18 @@ void MApplication::initGraphics() noexcept
     gl.eglSwapBuffersWithDamageKHR = (PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC)eglGetProcAddress("eglSwapBuffersWithDamageKHR");
 }
 
-void MApplication::updateEventSources() noexcept
+void MApplication::updateSurfaces()
 {
-    if (!m_eventSourcesChanged) return;
-    m_eventSourcesChanged = false;
-    m_currentEventSources = m_pendingEventSources;
-    m_fds.clear();
-    m_fds.reserve(m_currentEventSources.size());
+    for (MSurface *surf : m_surfaces)
+    {
+        if (surf->cl.pendingUpdate)
+        {
+            surf->cl.pendingUpdate = false;
+            surf->onUpdate();
+            surf->cl.changes.reset();
+            surf->se.changes.reset();
+        }
+    }
 
-    for (auto &source : m_currentEventSources)
-        m_fds.push_back({
-            .fd = source->fd(),
-            .events = (short)source->events(),
-            .revents = 0
-        });
+    wl_display_flush(wl.display);
 }
