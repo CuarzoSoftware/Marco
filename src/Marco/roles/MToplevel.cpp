@@ -329,17 +329,52 @@ void MToplevel::render() noexcept
 
     imp()->flags.remove(Imp::ForceUpdate);
 
-    SkISize size(
+    EGLint bufferAge { -1 };
+
+    SkISize newSize {
         SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
-        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom)));
+        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom))
+    };
 
-    if (size.fWidth <= 0) size.fWidth = 8;
-    if (size.fHeight <= 0) size.fHeight = 8;
+    if (newSize.fWidth < 8) newSize.fWidth = 8;
+    if (newSize.fHeight < 8) newSize.fHeight = 8;
 
-    const bool sizeChanged { resizeBuffer(size) };
+    bool sizeChanged = false;
+
+    if (MSurface::cl.viewportSize != newSize)
+    {
+        MSurface::cl.viewportSize = newSize;
+        bufferAge = 0;
+        sizeChanged = true;
+    }
+
+    SkISize eglWindowSize { newSize };
+
+    if (states().check(AKResizing))
+    {
+        eglWindowSize = bufferSize();
+        eglWindowSize.fWidth /= scale();
+        eglWindowSize.fHeight /= scale();
+
+        if (eglWindowSize.width() < newSize.width())
+            eglWindowSize.fWidth = newSize.width() * 1.75f;
+
+        if (eglWindowSize.height() < newSize.height())
+            eglWindowSize.fHeight = newSize.height() * 1.75f;
+    }
+
+    sizeChanged |= resizeBuffer(eglWindowSize);
 
     if (sizeChanged)
     {
+        app()->update();
+
+        wp_viewport_set_source(MSurface::wl.viewport,
+            wl_fixed_from_int(0),
+            wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
+            wl_fixed_from_int(newSize.width()),
+            wl_fixed_from_int(newSize.height()));
+
         xdg_surface_set_window_geometry(
             imp()->xdgSurface,
             imp()->shadowMargins.fLeft,
@@ -351,12 +386,12 @@ void MToplevel::render() noexcept
     eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
 
-    ak.target->setDstRect({ 0, 0, bufferSize().width(), bufferSize().height() });
+    ak.target->setDstRect({ 0, 0, surfaceSize().width() * scale(), surfaceSize().height() * scale() });
     ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
     ak.target->setSurface(gl.skSurface);
 
-    EGLint bufferAge { 0 };
-    eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
+    if (bufferAge != 0)
+        eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
     ak.target->setBakedComponentsScale(scale());
     ak.target->setRenderCalculatesLayout(false);
     ak.target->setAge(bufferAge);
@@ -417,7 +452,7 @@ void MToplevel::render() noexcept
     {
         *rectsIt = damageIt.rect().x() * scale();
         rectsIt++;
-        *rectsIt = (surfaceSize().height() - damageIt.rect().height() - damageIt.rect().y()) * scale();
+        *rectsIt = bufferSize().height() - ((eglWindowSize.height() - newSize.height()) + damageIt.rect().height() + damageIt.rect().y()) * scale();
         rectsIt++;
         *rectsIt = damageIt.rect().width() * scale();
         rectsIt++;
@@ -426,10 +461,7 @@ void MToplevel::render() noexcept
         damageIt.next();
     }
 
-    const UInt32 callbackMsA { MSurface::wl.callbackSendMs };
     createCallback();
-    const UInt32 callbackMsB { MSurface::wl.callbackSendMs };
-    const UInt32 callbackMsDiff { callbackMsB - callbackMsA };
 
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;

@@ -1,6 +1,7 @@
 #ifndef MWINDOWROLE_H
 #define MWINDOWROLE_H
 
+#include <Marco/protocols/viewporter-client.h>
 #include <AK/AKSignal.h>
 #include <AK/nodes/AKContainer.h>
 #include <AK/nodes/AKSolidColor.h>
@@ -33,6 +34,9 @@ public:
 
     const SkISize &surfaceSize() const noexcept
     {
+        if (cl.viewportSize.width() >= 0)
+            return cl.viewportSize;
+
         return cl.size;
     }
 
@@ -105,6 +109,7 @@ protected:
         UInt32 callbackSendMs { 0 };
         wl_callback *callback { nullptr };
         wl_surface *surface { nullptr };
+        wp_viewport *viewport { nullptr };
     } wl;
 
     struct {
@@ -117,6 +122,7 @@ protected:
         std::bitset<128> changes;
         SkISize size { 0, 0 };
         SkISize bufferSize { 0, 0 };
+        SkISize viewportSize { -1, -1 };
         Int32 scale { 1 };
         bool pendingUpdate { true };
     } cl;

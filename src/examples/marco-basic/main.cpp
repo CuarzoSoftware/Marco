@@ -42,11 +42,14 @@ public:
         body.layout().setAlignItems(YGAlignCenter);
         body.layout().setJustifyContent(YGJustifyCenter);
         body.layout().setPadding(YGEdgeAll, 48.f);
+        body.layout().setPadding(YGEdgeTop, 24.f);
         body.layout().setGap(YGGutterAll, 8.f);
+        cat.layout().setMargin(YGEdgeAll, 12.f);
+        cat.layout().setMinWidth(140);
+        cat.layout().setMinHeight(140);
         cat.layout().setWidthPercent(100);
-        cat.layout().setFlexGrow(2.f);
-        cat.layout().setMinHeight(200.f);
-        cat.setSizeMode(AKImageFrame::SizeMode::Cover);
+        cat.layout().setFlex(1.f);
+        cat.setSizeMode(AKImageFrame::SizeMode::Contain);
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
         exitButton.setBackgroundColor(AKTheme::SystemRed);
 
@@ -88,7 +91,7 @@ public:
 
     AKContainer topbarSpace { YGFlexDirectionColumn, false, this };
     AKContainer body { YGFlexDirectionColumn, true, this };
-    AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/cat.jpg"), &body };
+    AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/kay.png"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton newWindowButton { "➕  New Window", &body };

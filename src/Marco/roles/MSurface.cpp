@@ -1,4 +1,5 @@
 #include <AK/AKGLContext.h>
+#include <AK/AKLog.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/MApplication.h>
 #include <AK/AKColors.h>
@@ -58,6 +59,8 @@ MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLight
     wl.surface = wl_compositor_create_surface(app()->wayland().compositor);
     wl_surface_add_listener(wl.surface, &wlSurfaceListener, this);
     wl_surface_set_user_data(wl.surface, this);
+
+    wl.viewport = wp_viewporter_get_viewport(app()->wayland().viewporter, wl.surface);
 
     m_appLink = app()->m_surfaces.size();
     app()->m_surfaces.push_back(this);
@@ -153,7 +156,6 @@ bool MSurface::createCallback() noexcept
 
 bool MSurface::resizeBuffer(const SkISize &size) noexcept
 {
-
     const SkISize bufferSize { size.width() * cl.scale , size.height() * cl.scale };
 
     if (bufferSize == cl.bufferSize)
@@ -191,6 +193,8 @@ bool MSurface::resizeBuffer(const SkISize &size) noexcept
         gl.eglSurface = eglCreateWindowSurface(app()->gl.eglDisplay, app()->gl.eglConfig, (EGLNativeWindowType)gl.eglWindow, NULL);
         assert("Failed to create EGLSurface for MSurface" && gl.eglSurface != EGL_NO_SURFACE);
     }
+
+    AKLog::debug("Resized %d x %d", cl.bufferSize.width(), cl.bufferSize.height());
 
     static const SkSurfaceProps skSurfaceProps(0, kUnknown_SkPixelGeometry);
 

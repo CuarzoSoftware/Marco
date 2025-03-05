@@ -73,6 +73,10 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
     {
         wl.xdgDecorationManager.set(wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, version), name);
     }
+    else if (!wl.viewporter && strcmp(interface, wp_viewporter_interface.name) == 0)
+    {
+        wl.viewporter.set(wl_registry_bind(registry, name, &wp_viewporter_interface, version), name);
+    }
 }
 
 void MApplication::wl_registry_global_remove(void */*data*/, wl_registry */*registry*/, UInt32 name)
@@ -407,12 +411,9 @@ void MApplication::initWayland() noexcept
     wl.display = wl_display_connect(NULL);
     assert(wl.display && "wl_display_connect failed");
 
-    m_waylandEventSource = addEventSource(wl_display_get_fd(wl.display), POLLIN | POLLOUT, [this](Int32, UInt32 events) {
-
-        if (events & POLLIN)
-            wl_display_dispatch(wl.display);
-
-        wl_display_flush(wl.display);
+    m_waylandEventSource = addEventSource(wl_display_get_fd(wl.display), POLLIN, [this](Int32, UInt32) {
+        wl_display_dispatch(wl.display);
+        updateSurfaces();
     });
 
     AKLog::debug("[MApplication] Wayland event source added fd %d.", m_waylandEventSource->fd());
@@ -431,6 +432,7 @@ void MApplication::initWayland() noexcept
     assert(wl.seat && "wl_seat not supported by the compositor");
     assert(wl.pointer && "wl_pointer not supported by the compositor");
     assert(wl.xdgWmBase && "xdg_wm_base not supported by the compositor");
+    assert(wl.viewporter && "wp_viewporter not supported by the compositor");
 }
 
 void MApplication::initGraphics() noexcept

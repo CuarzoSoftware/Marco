@@ -8,6 +8,7 @@
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
 #include <Marco/protocols/wlr-layer-shell-unstable-v1-client.h>
+#include <Marco/protocols/viewporter-client.h>
 #include <AK/AKApplication.h>
 #include <AK/AKWeak.h>
 #include <AK/events/AKPointerEnterEvent.h>
@@ -35,6 +36,7 @@ public:
         MProxy<wl_seat> seat;
         MProxy<wl_pointer> pointer;
         MProxy<wl_keyboard> keyboard;
+        MProxy<wp_viewporter> viewporter;
     };
 
     struct Graphics
