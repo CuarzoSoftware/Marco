@@ -4,7 +4,7 @@
 
 #include <AK/events/AKWindowStateEvent.h>
 
-using namespace Marco;
+using namespace AK;
 
 MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
 {

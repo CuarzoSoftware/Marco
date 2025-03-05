@@ -7,7 +7,7 @@
 #include <Marco/nodes/MCSDShadow.h>
 #include <AK/nodes/AKRenderableImage.h>
 
-class Marco::MToplevel::Imp
+class AK::MToplevel::Imp
 {
 public:
     enum Flags

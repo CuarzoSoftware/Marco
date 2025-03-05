@@ -14,7 +14,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-class Marco::MPointer : public AKPointer
+class AK::MPointer : public AKPointer
 {
 public:
     MPointer() = default;

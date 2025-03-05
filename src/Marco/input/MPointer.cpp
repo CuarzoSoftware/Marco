@@ -2,7 +2,6 @@
 #include <Marco/MApplication.h>
 #include <Marco/roles/MSurface.h>
 
-using namespace Marco;
 using namespace AK;
 
 void MPointer::setCursor(AKCursor cursor) noexcept

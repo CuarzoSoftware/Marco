@@ -6,7 +6,7 @@
 #include <AK/utils/AKImageLoader.h>
 #include <AK/AKGLContext.h>
 
-class Marco::MImageLoader
+class AK::MImageLoader
 {
 public:
     static sk_sp<SkImage> loadFile(const std::filesystem::path &path) noexcept

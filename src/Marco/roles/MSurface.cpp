@@ -14,7 +14,6 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
-using namespace Marco;
 using namespace AK;
 
 static wl_surface_listener wlSurfaceListener;

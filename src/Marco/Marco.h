@@ -3,9 +3,7 @@
 
 #include <AK/AK.h>
 
-using namespace AK;
-
-namespace Marco
+namespace AK
 {
     class MApplication;
     class MScreen;

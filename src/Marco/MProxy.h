@@ -6,7 +6,7 @@
 #include <wayland-client.h>
 
 template<class T>
-class Marco::MProxy : public AK::AKObject
+class AK::MProxy : public AKObject
 {
 public:
     MProxy(void *proxy = nullptr, UInt32 name = 0) noexcept :

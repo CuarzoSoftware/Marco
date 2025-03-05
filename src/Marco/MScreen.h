@@ -11,7 +11,7 @@
 #include <include/core/SkSize.h>
 #include <include/core/SkSurface.h>
 
-class Marco::MScreen : public AK::AKObject
+class AK::MScreen : public AKObject
 {
 public:
     enum Changes
@@ -46,7 +46,7 @@ public:
         SkISize physicalSize;
         Int32 scale { 1 };
         SkPixelGeometry pixelGeometry;
-        AK::AKTransform transform;
+        AKTransform transform;
         std::vector<Mode> modes;
     };
 
@@ -57,7 +57,7 @@ public:
 
     struct
     {
-        AK::AKSignal<MScreen&, AK::AKBitset<Changes>> propsChanged;
+        AKSignal<MScreen&, AKBitset<Changes>> propsChanged;
     } on;
 
     constexpr static SkPixelGeometry wl2SkPixelGeometry(Int32 wlPixelGeometry) noexcept
@@ -94,7 +94,7 @@ private:
     }
 
     Props m_current, m_pending;
-    AK::AKBitset<Changes> m_changes;
+    AKBitset<Changes> m_changes;
     bool m_pendingFirstDone { true };
     MProxy<wl_output> m_proxy;
 };

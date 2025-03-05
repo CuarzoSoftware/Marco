@@ -13,10 +13,10 @@
 #include <sys/mman.h>
 #include <assert.h>
 
-using namespace Marco;
+using namespace AK;
 
-MPointer &Marco::pointer() noexcept { return app()->pointer(); }
-MKeyboard &Marco::keyboard() noexcept { return app()->keyboard(); }
+MPointer &AK::pointer() noexcept { return app()->pointer(); }
+MKeyboard &AK::keyboard() noexcept { return app()->keyboard(); }
 
 static wl_registry_listener wlRegistryListener;
 static wl_output_listener wlOutputListener;
@@ -304,7 +304,7 @@ void MApplication::wl_keyboard_keymap(void */*data*/, wl_keyboard */*keyboard*/,
 void MApplication::wl_keyboard_enter(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, wl_surface *surface, wl_array *keys)
 {
     MSurface *surf { static_cast<MSurface*>(wl_surface_get_user_data(surface)) };
-    auto &event { Marco::keyboard().m_eventHistory.enter };
+    auto &event { AK::keyboard().m_eventHistory.enter };
     event.setSerial(serial);
     event.setUs(AK::AKTime::us());
     event.setMs(AK::AKTime::ms());
@@ -313,12 +313,12 @@ void MApplication::wl_keyboard_enter(void */*data*/, wl_keyboard */*keyboard*/, 
     for (size_t i = 0; i < keys->size/sizeof(UInt32); i++)
         akKeyboard().updateKeyState(keyCodes[i], XKB_KEY_DOWN);
 
-    Marco::keyboard().m_focus.reset(surf);
+    AK::keyboard().m_focus.reset(surf);
 }
 
 void MApplication::wl_keyboard_leave(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, wl_surface */*surface*/)
 {
-    auto &event { Marco::keyboard().m_eventHistory.leave };
+    auto &event { AK::keyboard().m_eventHistory.leave };
     event.setSerial(serial);
     event.setUs(AK::AKTime::us());
     event.setMs(AK::AKTime::ms());
@@ -326,13 +326,13 @@ void MApplication::wl_keyboard_leave(void */*data*/, wl_keyboard */*keyboard*/, 
     while (!akKeyboard().pressedKeyCodes().empty())
         akKeyboard().updateKeyState(akKeyboard().pressedKeyCodes().back(), XKB_KEY_UP);
 
-    if (Marco::keyboard().focus())
-        Marco::keyboard().m_focus.reset();
+    if (AK::keyboard().focus())
+        AK::keyboard().m_focus.reset();
 }
 
 void MApplication::wl_keyboard_key(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, UInt32 time, UInt32 key, UInt32 state)
 {
-    auto &event { Marco::keyboard().m_eventHistory.key };
+    auto &event { AK::keyboard().m_eventHistory.key };
     event.setSerial(serial);
     event.setUs(AK::AKTime::us());
     event.setMs(time);
@@ -340,13 +340,13 @@ void MApplication::wl_keyboard_key(void */*data*/, wl_keyboard */*keyboard*/, UI
     event.setState((AK::AKKeyboardKeyEvent::State)state);
     akKeyboard().updateKeyState(key, state);
 
-    if (Marco::keyboard().focus())
-        akApp()->postEvent(event, Marco::keyboard().focus()->ak.scene);
+    if (AK::keyboard().focus())
+        akApp()->postEvent(event, AK::keyboard().focus()->ak.scene);
 }
 
 void MApplication::wl_keyboard_modifiers(void */*data*/, wl_keyboard */*keyboard*/, UInt32 serial, UInt32 depressed, UInt32 latched, UInt32 locked, UInt32 group)
 {
-    auto &event { Marco::keyboard().m_eventHistory.modifiers };
+    auto &event { AK::keyboard().m_eventHistory.modifiers };
     event.setMs(AK::AKTime::ms());
     event.setUs(AK::AKTime::us());
     event.setSerial(serial);

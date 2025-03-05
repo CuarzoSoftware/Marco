@@ -21,7 +21,7 @@
 #include <sys/poll.h>
 #include <fcntl.h>
 
-class Marco::MApplication : public AK::AKApplication
+class AK::MApplication : public AKApplication
 {
 public:
     struct Wayland
@@ -93,9 +93,9 @@ public:
 
     struct
     {
-        AK::AKSignal<MScreen&> screenPlugged;
-        AK::AKSignal<MScreen&> screenUnplugged;
-        AK::AKSignal<const std::string&> appIdChanged;
+        AKSignal<MScreen&> screenPlugged;
+        AKSignal<MScreen&> screenUnplugged;
+        AKSignal<const std::string&> appIdChanged;
     } on;
 private:
     friend class MSurface;

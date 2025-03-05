@@ -9,7 +9,7 @@
 #include <AK/input/AKKeyboard.h>
 #include <AK/AKWeak.h>
 
-class Marco::MKeyboard : public AKKeyboard
+class AK::MKeyboard : public AKKeyboard
 {
 public:
     MKeyboard() = default;

@@ -10,7 +10,7 @@
  * The `MToplevel` class represents the `xdg_toplevel` role of the `xdg_shell` protocol.
  * It is the most common type of window and can be maximized, set to fullscreen, minimized, etc.
  */
-class Marco::MToplevel : public MSurface
+class AK::MToplevel : public MSurface
 {
 public:
     /**

@@ -7,7 +7,6 @@
 #include <include/effects/SkImageFilters.h>
 #include <include/core/SkCanvas.h>
 
-using namespace Marco;
 using namespace AK;
 
 MTheme::MTheme() noexcept {}

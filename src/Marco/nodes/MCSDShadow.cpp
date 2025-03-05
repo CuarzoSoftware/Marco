@@ -5,7 +5,6 @@
 #include <AK/events/AKRenderEvent.h>
 #include <AK/events/AKLayoutEvent.h>
 
-using namespace Marco;
 using namespace AK;
 
 MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
@@ -19,7 +18,7 @@ MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
     layout().setHeightPercent(100);
 }
 
-void MCSDShadow::layoutEvent(const AK::AKLayoutEvent &e)
+void MCSDShadow::layoutEvent(const AKLayoutEvent &e)
 {
     if (!m_toplevel || !e.changes().check(AKLayoutEvent::Changes::Size | AKLayoutEvent::Changes::Scale))
         return;
@@ -44,7 +43,7 @@ void MCSDShadow::layoutEvent(const AK::AKLayoutEvent &e)
     addDamage(AK_IRECT_INF);
 }
 
-void MCSDShadow::renderEvent(const AK::AKRenderEvent &p)
+void MCSDShadow::renderEvent(const AKRenderEvent &p)
 {
     if (!m_toplevel || !m_image || p.damage.isEmpty())
         return;

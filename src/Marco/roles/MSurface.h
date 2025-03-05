@@ -11,7 +11,7 @@
 #include <EGL/egl.h>
 #include <set>
 
-class Marco::MSurface : public AK::AKSolidColor
+class AK::MSurface : public AKSolidColor
 {
 public:
     enum class Role
@@ -63,9 +63,9 @@ public:
 
     struct
     {
-        AK::AKSignal<MScreen&> enteredScreen;
-        AK::AKSignal<MScreen&> leftScreen;
-        AK::AKSignal<UInt32> presented; // ms
+        AKSignal<MScreen&> enteredScreen;
+        AKSignal<MScreen&> leftScreen;
+        AKSignal<UInt32> presented; // ms
     } on;
 protected:
     friend class MApplication;
@@ -96,9 +96,9 @@ protected:
     };
 
     struct {
-        AK::AKScene scene;
-        AK::AKWeak<AK::AKTarget> target;
-        AK::AKContainer root;
+        AKScene scene;
+        AKWeak<AKTarget> target;
+        AKContainer root;
     } ak;
 
     struct {

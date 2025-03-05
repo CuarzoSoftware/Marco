@@ -11,7 +11,7 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
-using namespace Marco;
+using namespace AK;
 
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {

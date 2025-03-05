@@ -5,7 +5,7 @@
 #include <AK/AKTheme.h>
 #include <AK/AKBitset.h>
 
-class Marco::MTheme : public AK::AKTheme
+class AK::MTheme : public AKTheme
 {
 public:
     MTheme() noexcept;
@@ -26,8 +26,8 @@ public:
     constexpr static Int32 CSDShadowInactiveRadius { 27 };
     constexpr static Int32 CSDShadowInactiveOffsetY { 8 };
     virtual sk_sp<SkImage> csdBorderRadiusMask(Int32 scale) noexcept;
-    virtual sk_sp<SkImage> csdShadowActive(Int32 scale, const SkISize &windowSize, AK::AKBitset<ShadowClamp> &sides) noexcept;
-    virtual sk_sp<SkImage> csdShadowInactive(Int32 scale, const SkISize &windowSize, AK::AKBitset<ShadowClamp> &sides) noexcept;
+    virtual sk_sp<SkImage> csdShadowActive(Int32 scale, const SkISize &windowSize, AKBitset<ShadowClamp> &sides) noexcept;
+    virtual sk_sp<SkImage> csdShadowInactive(Int32 scale, const SkISize &windowSize, AKBitset<ShadowClamp> &sides) noexcept;
 protected:
     std::unordered_map<Int32,sk_sp<SkImage>> m_csdBorderRadiusMask;
     std::unordered_map<Int32,sk_sp<SkImage>> m_csdShadowActive;

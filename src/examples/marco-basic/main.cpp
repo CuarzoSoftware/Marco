@@ -13,7 +13,6 @@
 #include <AK/AKLog.h>
 #include <iostream>
 
-using namespace Marco;
 using namespace AK;
 
 class Window : public MToplevel
@@ -100,6 +99,7 @@ public:
     AKButton exitButton { "╰┈➤🚪 Exit", &body };
     AKTextField textField { &body };
     AKTextField textField2 { &body };
+    AKTextField textField3 { &body };
 
     AKSolidColor topbar { 0xFFFAFAFA, this };
     AKText helloWorld { "🚀 Hello World!", &topbar };
