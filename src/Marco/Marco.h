@@ -16,9 +16,6 @@ namespace AK
     class MPointer;
     class MKeyboard;
 
-    /* Utils */
-    class MImageLoader;
-
     template <class T> class MProxy;
 
     inline MApplication *app() noexcept { return (MApplication*)akApp(); };

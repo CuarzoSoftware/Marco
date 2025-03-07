@@ -1,7 +1,7 @@
 #include <Marco/MApplication.h>
 #include <Marco/MScreen.h>
 #include <Marco/roles/MToplevel.h>
-#include <Marco/utils/MImageLoader.h>
+#include <AK/utils/AKImageLoader.h>
 #include <AK/nodes/AKContainer.h>
 #include <AK/nodes/AKText.h>
 #include <AK/nodes/AKButton.h>
@@ -91,7 +91,7 @@ public:
 
     AKContainer topbarSpace { YGFlexDirectionColumn, false, this };
     AKContainer body { YGFlexDirectionColumn, true, this };
-    AKImageFrame cat { MImageLoader::loadFile("/home/eduardo/kay.png"), &body };
+    AKImageFrame cat { AKImageLoader::loadFile("/home/eduardo/kay.png"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton newWindowButton { "➕  New Window", &body };

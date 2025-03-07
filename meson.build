@@ -37,7 +37,6 @@ header_dirs = [
     ['./src/Marco/roles', 'roles'],
     ['./src/Marco/nodes', 'nodes'],
     ['./src/Marco/protocols', 'protocols'],
-    ['./src/Marco/utils', 'utils'],
     ['./src/Marco/input', 'input']
 ]
 
