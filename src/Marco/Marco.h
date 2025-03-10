@@ -7,8 +7,13 @@ namespace AK
 {
     class MApplication;
     class MScreen;
+
     class MSurface;
     class MToplevel;
+    class MPopup;
+    class MLayerSurface;
+    class MSubSurface;
+
     class MTheme;
     class MCSDShadow;
 

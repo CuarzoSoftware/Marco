@@ -76,4 +76,5 @@ pkg.generate(
 
 if get_option('build_examples')
     subdir('src/examples/marco-basic')
+    subdir('src/examples/marco-layer-shell')
 endif

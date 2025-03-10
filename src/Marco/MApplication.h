@@ -37,6 +37,7 @@ public:
         MProxy<wl_pointer> pointer;
         MProxy<wl_keyboard> keyboard;
         MProxy<wp_viewporter> viewporter;
+        MProxy<zwlr_layer_shell_v1> layerShell;
     };
 
     struct Graphics

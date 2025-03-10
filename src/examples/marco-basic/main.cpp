@@ -91,7 +91,7 @@ public:
 
     AKContainer topbarSpace { YGFlexDirectionColumn, false, this };
     AKContainer body { YGFlexDirectionColumn, true, this };
-    AKImageFrame cat { AKImageLoader::loadFile("/home/eduardo/kay.png"), &body };
+    AKImageFrame cat { AKImageLoader::loadFile("/usr/local/share/Kay/assets/logo.png"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton newWindowButton { "➕  New Window", &body };

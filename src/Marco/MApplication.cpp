@@ -77,6 +77,10 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
     {
         wl.viewporter.set(wl_registry_bind(registry, name, &wp_viewporter_interface, version), name);
     }
+    else if (!wl.layerShell && strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0 && version >= 4)
+    {
+        wl.layerShell.set(wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, version), name);
+    }
 }
 
 void MApplication::wl_registry_global_remove(void */*data*/, wl_registry */*registry*/, UInt32 name)
