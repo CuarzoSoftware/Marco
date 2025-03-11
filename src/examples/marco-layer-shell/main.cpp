@@ -91,7 +91,7 @@ int main()
     {
         windows.emplace_back(std::make_unique<Window>(
             Window::Overlay,
-            AKEdgeLeft | AKEdgeBottom | AKEdgeRight,
+            AKEdgeBottom,
             0,
             screen,
             "Marco"));

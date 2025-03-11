@@ -87,7 +87,7 @@ const SkIRect &MLayerSurface::margin() const noexcept
 
 bool MLayerSurface::setKeyboardInteractivity(KeyboardInteractivity mode) noexcept
 {
-    if (imp()->keyboardInteractivity == mode)
+    if (imp()->keyboardInteractivity == mode || (app()->wayland().layerShell.version() < 4 && mode == OnDemand))
         return false;
 
     imp()->keyboardInteractivity = mode;
@@ -102,7 +102,7 @@ MLayerSurface::KeyboardInteractivity MLayerSurface::keyboardInteractivity() cons
 
 bool MLayerSurface::setLayer(Layer layer) noexcept
 {
-    if (imp()->layer == layer)
+    if (app()->wayland().layerShell.version() < 2 || imp()->layer == layer)
         return false;
 
     imp()->layer = layer;
@@ -117,7 +117,7 @@ MLayerSurface::Layer MLayerSurface::layer() const noexcept
 
 bool MLayerSurface::setExclusiveEdge(AKEdge edge) noexcept
 {
-    if (imp()->exclusiveEdge == edge)
+    if (app()->wayland().layerShell.version() < 5 || imp()->exclusiveEdge == edge)
         return false;
 
     imp()->exclusiveEdge = edge;
@@ -239,10 +239,17 @@ void MLayerSurface::render() noexcept
         margin().fTop, margin().fRight, margin().fBottom, margin().fLeft);
 
     zwlr_layer_surface_v1_set_size(imp()->layerSurface, surfaceSize().width(), surfaceSize().height());
-    zwlr_layer_surface_v1_set_layer(imp()->layerSurface, layer());
+
+    if (app()->wayland().layerShell.version() >= 2)
+    {
+        zwlr_layer_surface_v1_set_layer(imp()->layerSurface, layer());
+
+        if (app()->wayland().layerShell.version() >= 5)
+            zwlr_layer_surface_v1_set_exclusive_edge(imp()->layerSurface, exclusiveEdge());
+    }
+
     zwlr_layer_surface_v1_set_anchor(imp()->layerSurface, anchor().get());
     zwlr_layer_surface_v1_set_exclusive_zone(imp()->layerSurface, exclusiveZone());
-    zwlr_layer_surface_v1_set_exclusive_edge(imp()->layerSurface, exclusiveEdge());
     zwlr_layer_surface_v1_set_keyboard_interactivity(imp()->layerSurface, keyboardInteractivity());
 
     /* Input region */
