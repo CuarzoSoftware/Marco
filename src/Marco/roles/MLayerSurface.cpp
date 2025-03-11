@@ -237,6 +237,8 @@ void MLayerSurface::render() noexcept
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
     zwlr_layer_surface_v1_set_margin(imp()->layerSurface,
         margin().fTop, margin().fRight, margin().fBottom, margin().fLeft);
+
+    zwlr_layer_surface_v1_set_size(imp()->layerSurface, surfaceSize().width(), surfaceSize().height());
     zwlr_layer_surface_v1_set_layer(imp()->layerSurface, layer());
     zwlr_layer_surface_v1_set_anchor(imp()->layerSurface, anchor().get());
     zwlr_layer_surface_v1_set_exclusive_zone(imp()->layerSurface, exclusiveZone());
@@ -291,7 +293,6 @@ void MLayerSurface::render() noexcept
     }
 
     createCallback();
-
     assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;
 }

@@ -77,7 +77,7 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
     {
         wl.viewporter.set(wl_registry_bind(registry, name, &wp_viewporter_interface, version), name);
     }
-    else if (!wl.layerShell && strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0 && version >= 4)
+    else if (!wl.layerShell && strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0)
     {
         wl.layerShell.set(wl_registry_bind(registry, name, &zwlr_layer_shell_v1_interface, version), name);
     }
@@ -480,7 +480,8 @@ void MApplication::updateSurfaces()
     {
         if (surf->cl.pendingUpdate)
         {
-            surf->cl.pendingUpdate = false;
+            if (!surf->wl.callback)
+                surf->cl.pendingUpdate = false;
             surf->onUpdate();
             surf->cl.changes.reset();
             surf->se.changes.reset();

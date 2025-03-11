@@ -6,12 +6,19 @@
 #include <AK/AKLog.h>
 #include <AK/nodes/AKImageFrame.h>
 #include <AK/utils/AKImageLoader.h>
-#include <AK/AKTimer.h>
+#include <AK/AKAnimation.h>
 
 #include <DockContainer.h>
 #include <Theme.h>
 
 using namespace AK;
+
+static constexpr AKBitset<AKEdge> anchors[] {
+    AKEdgeLeft,
+    AKEdgeTop,
+    AKEdgeRight,
+    AKEdgeBottom
+};
 
 class Window : public MLayerSurface
 {
@@ -31,16 +38,24 @@ public:
             items.back()->layout().setHeightPercent(1.f);
             items.back()->setSizeMode(AKImageFrame::SizeMode::Contain);
             AKImageFrame *frame { items.back().get() };
-            AKTimer::OneShoot(1, [frame](AKTimer *timer){
-                frame->layout().setHeightPercent(frame->layout().height().value + 0.5f);
-
-                if (frame->layout().height().value > 75.f)
-                    frame->layout().setHeightPercent(75.f);
-                else
-                    timer->start(1);
+            AKAnimation::OneShot(300, [this, frame](AKAnimation *anim){
+                frame->layout().setHeightPercent(75.f * (1.f - (1.f - SkScalarPow(anim->value(), 2.f))) );
+                layout().calculate();
+                layout().setWidth(container.layout().calculatedWidth());
+                update();
             });
         });
         addButton.layout().setWidth(60);
+
+        anchorButton.on.clicked.subscribe(this, [this](){
+            if (anchorI == 1)
+                setMargin({0, -50, 0, 0});
+            else
+                setMargin({0, 0, 0, 0});
+            setAnchor(anchors[anchorI]);
+            if (anchorI == 3) anchorI = 0;
+            else anchorI++;
+        });
 
         layout().setHeight(Theme::DockHeight + 2 * Theme::DockShadowRadius);
         layout().setWidth(screen->props().modes.front().size.width() / screen->props().scale);
@@ -48,10 +63,12 @@ public:
         show();
     }
 
+    size_t anchorI { 0 };
     sk_sp<SkImage> logo;
     DockContainer container { this };
     std::vector<std::unique_ptr<AKImageFrame>> items;
     AKButton exitButton { "Exit", &container };
+    AKButton anchorButton { "Anchor", &container };
     AKButton addButton { "Add", &container };
 };
 

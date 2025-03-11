@@ -85,7 +85,6 @@ public:
             exit(0);
         });
 
-        cat.setAnimated(false);
         setMinSize(minContentSize());
     }
 
