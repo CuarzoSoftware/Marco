@@ -1,0 +1,7 @@
+[wrap-git]
+url = https://github.com/cuarzoSoftware/Kay.git
+revision = HEAD
+depth = 1
+
+[provide]
+Kay = kay_dep

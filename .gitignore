@@ -38,3 +38,6 @@
 *.exe
 *.out
 *.app
+
+subprojects/Kay/
+subprojects/XDGKit/

@@ -7,11 +7,14 @@
 #include <AK/nodes/AKImageFrame.h>
 #include <AK/utils/AKImageLoader.h>
 #include <AK/AKAnimation.h>
+#include <AK/AKGLContext.h>
+#include <XDGKit/XDGKit.h>
 
 #include <DockContainer.h>
 #include <Theme.h>
 
 using namespace AK;
+using namespace XDG;
 
 static constexpr AKBitset<AKEdge> anchors[] {
     AKEdgeLeft,
@@ -19,6 +22,9 @@ static constexpr AKBitset<AKEdge> anchors[] {
     AKEdgeRight,
     AKEdgeBottom
 };
+
+static const std::vector<std::string> icons {{"firefox", "spotify", "chrome", "inkscape", "code", "calendar", "gedit"}};
+static std::shared_ptr<XDGKit> xdg;
 
 class Window : public MLayerSurface
 {
@@ -32,14 +38,29 @@ public:
         exitButton.on.clicked.subscribe(this, [](){ exit(0); });
         exitButton.layout().setWidth(60);
 
-        addButton.on.clicked.subscribe(this, [this](){
-            items.emplace_back(std::make_unique<AKImageFrame>(logo, &container));
+        addButton.on.clicked.subscribe(this, [this, screen](){
+            const XDGIcon *iconInfo {
+                xdg->iconThemeManager().findIcon(icons[rand() % icons.size()], 128, screen->props().scale, XDGIcon::PNG | XDGIcon::SVG, { "WhiteSur", "" }) };
+
+            if (!iconInfo)
+                return;
+
+            auto iconPath = iconInfo->getPath((iconInfo->extensions() & XDGIcon::SVG) != 0 ? XDGIcon::SVG : XDGIcon::PNG);
+            auto image = AKImageLoader::loadFile(iconPath, { 128 * screen->props().scale, 128 * screen->props().scale });
+
+            if (!image)
+                return;
+
+            AKLog::debug("Found Icon: %s, %d@%d %s", iconInfo->name().c_str(), iconInfo->directory().size(), iconInfo->directory().scale(), iconPath.c_str());
+            container.layout().setMaxWidth(screen->props().modes[0].size.width() / screen->props().scale);
+            items.emplace_back(std::make_unique<AKImageFrame>(image, &container));
             items.back()->layout().setAspectRatio(1.f);
-            items.back()->layout().setHeightPercent(1.f);
+            items.back()->layout().setHeight(128);
             items.back()->setSizeMode(AKImageFrame::SizeMode::Contain);
             AKImageFrame *frame { items.back().get() };
+            frame->enableChildrenClipping(false);
             AKAnimation::OneShot(300, [this, frame](AKAnimation *anim){
-                frame->layout().setHeightPercent(75.f * (1.f - (1.f - SkScalarPow(anim->value(), 2.f))) );
+                frame->layout().setHeightPercent(100.f * (1.f - (1.f - SkScalarPow(anim->value(), 2.f))) );
                 layout().calculate();
                 layout().setWidth(container.layout().calculatedWidth());
                 update();
@@ -77,6 +98,7 @@ int main()
     setenv("KAY_DEBUG", "4", 0);
     MApplication app;
     setTheme(new Theme());
+    xdg = XDGKit::Make();
     app.setAppId("org.Cuarzo.marco-basic");
 
     if (app.screens().empty())

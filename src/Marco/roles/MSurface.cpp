@@ -42,10 +42,16 @@ void MSurface::update() noexcept
 
 SkISize MSurface::minContentSize() noexcept
 {
+    const YGValue width { layout().width() };
+    const YGValue height { layout().height() };
     layout().setWidthAuto();
     layout().setHeightAuto();
     ak.root.layout().calculate();
-    return SkISize::Make(layout().calculatedWidth(), layout().calculatedHeight());
+    const SkISize contentSize { SkISize::Make(layout().calculatedWidth(), layout().calculatedHeight()) };
+    layout().setWidthYGValue(width);
+    layout().setHeightYGValue(height);
+    ak.root.layout().calculate();
+    return contentSize;
 }
 
 MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLighten5), m_role(role)
@@ -194,7 +200,7 @@ bool MSurface::resizeBuffer(const SkISize &size) noexcept
         assert("Failed to create EGLSurface for MSurface" && gl.eglSurface != EGL_NO_SURFACE);
     }
 
-    AKLog::debug("Resized %d x %d", cl.bufferSize.width(), cl.bufferSize.height());
+    //AKLog::debug("Resized %d x %d", cl.bufferSize.width(), cl.bufferSize.height());
 
     static const SkSurfaceProps skSurfaceProps(0, kUnknown_SkPixelGeometry);
 
