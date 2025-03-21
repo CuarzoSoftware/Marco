@@ -21,10 +21,15 @@ void MLayerSurface::Imp::configure(void *data, zwlr_layer_surface_v1 *layerSurfa
     }
 
     if (notifySuggestedSize)
+    {
         role.suggestedSizeChanged();
+    }
 
-    role.imp()->flags.add(ForceUpdate);
-    role.update();
+    if (notifyStates)
+    {
+        role.imp()->flags.add(ForceUpdate);
+        role.update();
+    }
 }
 
 void MLayerSurface::Imp::closed(void *data, zwlr_layer_surface_v1 *layerSurface)

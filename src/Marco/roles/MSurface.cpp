@@ -96,7 +96,7 @@ void MSurface::wl_surface_enter(void *data, wl_surface */*surface*/, wl_output *
     surface.se.changes.set(Se_Screens);
     surface.on.enteredScreen.notify(*screen);
 
-    if (surface.se.preferredBufferScale != -1)
+    if (surface.se.preferredBufferScale == -1)
         surface.update();
 
     // TODO: Listen for screen prop changes
@@ -115,7 +115,7 @@ void MSurface::wl_surface_leave(void *data, wl_surface */*surface*/, wl_output *
     surface.se.changes.set(Se_Screens);
     surface.on.leftScreen.notify(*screen);
 
-    if (surface.se.preferredBufferScale != -1)
+    if (surface.se.preferredBufferScale == -1)
         surface.update();
 }
 

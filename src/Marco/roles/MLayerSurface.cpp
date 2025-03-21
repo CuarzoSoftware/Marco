@@ -196,6 +196,11 @@ void MLayerSurface::render() noexcept
         MSurface::cl.viewportSize = newSize;
         bufferAge = 0;
         sizeChanged = true;
+
+        zwlr_layer_surface_v1_set_size(
+            imp()->layerSurface,
+            newSize.width(),
+            newSize.height());
     }
 
     SkISize eglWindowSize { newSize };
@@ -204,18 +209,11 @@ void MLayerSurface::render() noexcept
 
     if (sizeChanged)
     {
-        app()->update();
-
         wp_viewport_set_source(MSurface::wl.viewport,
                                wl_fixed_from_int(0),
                                wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
                                wl_fixed_from_int(newSize.width()),
                                wl_fixed_from_int(newSize.height()));
-
-        zwlr_layer_surface_v1_set_size(
-            imp()->layerSurface,
-            layout().calculatedWidth(),
-            layout().calculatedHeight());
     }
 
     eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
@@ -237,8 +235,6 @@ void MLayerSurface::render() noexcept
     wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
     zwlr_layer_surface_v1_set_margin(imp()->layerSurface,
         margin().fTop, margin().fRight, margin().fBottom, margin().fLeft);
-
-    zwlr_layer_surface_v1_set_size(imp()->layerSurface, surfaceSize().width(), surfaceSize().height());
 
     if (app()->wayland().layerShell.version() >= 2)
     {

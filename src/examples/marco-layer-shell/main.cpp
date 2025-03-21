@@ -59,6 +59,7 @@ public:
             items.back()->setSizeMode(AKImageFrame::SizeMode::Contain);
             AKImageFrame *frame { items.back().get() };
             frame->enableChildrenClipping(false);
+
             AKAnimation::OneShot(300, [this, frame](AKAnimation *anim){
                 frame->layout().setHeightPercent(100.f * (1.f - (1.f - SkScalarPow(anim->value(), 2.f))) );
                 layout().calculate();
