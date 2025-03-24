@@ -66,7 +66,7 @@ public:
             return;
 
         m_appId = appId;
-        on.appIdChanged.notify(m_appId);
+        onAppIdChanged.notify();
     }
 
     Wayland &wayland() noexcept
@@ -94,12 +94,9 @@ public:
     MPointer &pointer() noexcept { return (MPointer&)AKApplication::pointer(); }
     MKeyboard &keyboard() noexcept { return(MKeyboard&)AKApplication::keyboard(); }
 
-    struct
-    {
-        AKSignal<MScreen&> screenPlugged;
-        AKSignal<MScreen&> screenUnplugged;
-        AKSignal<const std::string&> appIdChanged;
-    } on;
+    AKSignal<MScreen&> onScreenPlugged;
+    AKSignal<MScreen&> onScreenUnplugged;
+    AKSignal<> onAppIdChanged;
 private:
     friend class MSurface;
     friend class MScreen;

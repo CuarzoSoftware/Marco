@@ -32,6 +32,7 @@ MApplication::MApplication() noexcept
     AK::setTheme(new MTheme());
     initWayland();
     initGraphics();
+    m_running = true;
 }
 
 void MApplication::update() noexcept
@@ -90,7 +91,7 @@ void MApplication::wl_registry_global_remove(void */*data*/, wl_registry */*regi
         if (app()->m_screens[i]->m_proxy.name() == name)
         {
             if (app()->m_running)
-                app()->on.screenUnplugged.notify(*app()->m_screens[i]);
+                app()->onScreenUnplugged.notify(*app()->m_screens[i]);
 
             delete app()->m_screens[i];
             app()->m_screens[i] = app()->m_screens.back();
@@ -154,7 +155,7 @@ void MApplication::wl_output_done(void *data, wl_output */*output*/)
         app()->m_screens.push_back(&screen);
 
         if (app()->m_running)
-            app()->on.screenPlugged.notify(screen);
+            app()->onScreenPlugged.notify(screen);
     }
     else if (app()->m_running)
         screen.on.propsChanged.notify(screen, screen.m_changes);

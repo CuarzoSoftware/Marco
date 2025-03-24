@@ -27,8 +27,8 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     //if (app()->wayland().xdgDecorationManager)
     //    wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, imp()->xdgToplevel);
 
-    app()->on.appIdChanged.subscribe(this, [this](const std::string &appId){
-        xdg_toplevel_set_app_id(imp()->xdgToplevel, appId.c_str());
+    app()->onAppIdChanged.subscribe(this, [this](){
+        xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
     });
 
     /* CSD */

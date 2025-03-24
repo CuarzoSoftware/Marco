@@ -79,7 +79,7 @@ MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLight
         update();
     });
 
-    app()->on.screenUnplugged.subscribe(this, [this](MScreen &screen){
+    app()->onScreenUnplugged.subscribe(this, [this](MScreen &screen){
         wl_surface_leave(this, wl.surface, screen.wlOutput());
     });
 }

@@ -51,7 +51,7 @@ public:
             if (!image)
                 return;
 
-            AKLog::debug("Found Icon: %s, %d@%d %s", iconInfo->name().c_str(), iconInfo->directory().size(), iconInfo->directory().scale(), iconPath.c_str());
+            AKLog::debug("Found Icon: %s, %d@%d %s", iconInfo->name(), iconInfo->directory().size(), iconInfo->directory().scale(), iconPath.c_str());
             container.layout().setMaxWidth(screen->props().modes[0].size.width() / screen->props().scale);
             items.emplace_back(std::make_unique<AKImageFrame>(image, &container));
             items.back()->layout().setAspectRatio(1.f);

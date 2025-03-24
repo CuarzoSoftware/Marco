@@ -27,7 +27,11 @@ MLayerSurface::MLayerSurface(Layer layer, AKBitset<AKEdge> anchor, Int32 exclusi
 
 MLayerSurface::~MLayerSurface() noexcept
 {
-
+    if (imp()->layerSurface)
+    {
+        zwlr_layer_surface_v1_destroy(imp()->layerSurface);
+        imp()->layerSurface = nullptr;
+    }
 }
 
 bool MLayerSurface::setScreen(MScreen *screen) noexcept

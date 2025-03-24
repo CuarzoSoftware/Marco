@@ -114,11 +114,11 @@ int main()
     MApplication app;
     app.setAppId("org.Cuarzo.marco-basic");
 
-    app.on.screenPlugged.subscribe(&app, [](MScreen &screen){
+    app.onScreenPlugged.subscribe(&app, [](MScreen &screen){
         std::cout << "New Screen! " << screen.props().name << std::endl;
     });
 
-    app.on.screenUnplugged.subscribe(&app, [](MScreen &screen){
+    app.onScreenUnplugged.subscribe(&app, [](MScreen &screen){
         std::cout << "Bye bye Screen! " << screen.props().name << std::endl;
     });
 
