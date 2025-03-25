@@ -1,3 +1,4 @@
+#include <Marco/private/MSurfacePrivate.h>
 #include <Marco/nodes/MCSDShadow.h>
 #include <Marco/roles/MSurface.h>
 #include <Marco/roles/MToplevel.h>
@@ -8,7 +9,7 @@
 using namespace AK;
 
 MCSDShadow::MCSDShadow(MToplevel *toplevel) noexcept :
-    AKRenderable(AKRenderable::Texture, &toplevel->MSurface::ak.root),
+    AKRenderable(AKRenderable::Texture, &toplevel->MSurface::imp()->root),
     m_toplevel(toplevel)
 {
     SkRegion reg;

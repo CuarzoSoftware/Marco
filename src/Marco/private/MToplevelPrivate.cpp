@@ -52,7 +52,7 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
     if (ref && notifyStates)
     {
         if (activatedChanged)
-            akApp()->postEvent(AKWindowStateEvent(role.ak.scene.windowState().get() ^ role.imp()->currentStates.get()), role.ak.scene);
+            akApp()->postEvent(AKWindowStateEvent(role.scene().windowState().get() ^ role.imp()->currentStates.get()), role.scene());
     }
 
     role.imp()->flags.add(ForceUpdate);
@@ -122,7 +122,7 @@ void MToplevel::Imp::handleRootPointerMoveEvent(const AKPointerMoveEvent &event)
 {
     if (!obj.visible() || obj.fullscreen())
     {
-        obj.ak.root.setCursor(AKCursor::Default);
+        obj.rootNode()->setCursor(AKCursor::Default);
         return;
     }
 
@@ -141,15 +141,15 @@ void MToplevel::Imp::handleRootPointerMoveEvent(const AKPointerMoveEvent &event)
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
 
     if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_LEFT || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
-        obj.ak.root.setCursor(AKCursor::EWResize);
+        obj.rootNode()->setCursor(AKCursor::EWResize);
     else if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_TOP || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
-        obj.ak.root.setCursor(AKCursor::NSResize);
+        obj.rootNode()->setCursor(AKCursor::NSResize);
     else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_LEFT) ||
              resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT))
-        obj.ak.root.setCursor(AKCursor::NWSEResize);
+        obj.rootNode()->setCursor(AKCursor::NWSEResize);
     else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT) ||
              resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_LEFT))
-        obj.ak.root.setCursor(AKCursor::NESWResize);
+        obj.rootNode()->setCursor(AKCursor::NESWResize);
     else
-        obj.ak.root.setCursor(AKCursor::Default);
+        obj.rootNode()->setCursor(AKCursor::Default);
 }

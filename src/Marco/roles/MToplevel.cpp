@@ -1,4 +1,5 @@
 #include <Marco/private/MToplevelPrivate.h>
+#include <Marco/private/MSurfacePrivate.h>
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
 
@@ -16,9 +17,9 @@ using namespace AK;
 MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 {
     m_imp = std::make_unique<Imp>(*this);
-    ak.root.installEventFilter(this);
+    root()->installEventFilter(this);
 
-    imp()->xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, MSurface::wl.surface);
+    imp()->xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, wlSurface());
     xdg_surface_add_listener(imp()->xdgSurface, &Imp::xdgSurfaceListener, this);
     imp()->xdgToplevel = xdg_surface_get_toplevel(imp()->xdgSurface);
     xdg_toplevel_add_listener(imp()->xdgToplevel, &Imp::xdgToplevelListener, this);
@@ -35,7 +36,7 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 
     for (int i = 0; i < 4; i++)
     {
-        imp()->borderRadius[i].setParent(&MSurface::ak.root);
+        imp()->borderRadius[i].setParent(rootNode());
         imp()->borderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
         imp()->borderRadius[i].layout().setWidth(app()->theme()->CSDBorderRadius);
         imp()->borderRadius[i].layout().setHeight(app()->theme()->CSDBorderRadius);
@@ -76,7 +77,7 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, 0);
     imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, 0);
 
-    imp()->shadow.setParent(&MSurface::ak.root);
+    imp()->shadow.setParent(rootNode());
 }
 
 MToplevel::~MToplevel() noexcept
@@ -210,7 +211,7 @@ void MToplevel::windowStateEvent(const AKWindowStateEvent &event)
 
 bool MToplevel::eventFilter(const AKEvent &event, AKObject &object)
 {
-    if (&ak.root == &object)
+    if (rootNode() == &object)
     {
         if (event.type() == AKEvent::PointerButton)
             imp()->handleRootPointerButtonEvent(static_cast<const AKPointerButtonEvent&>(event));
@@ -237,8 +238,8 @@ void MToplevel::onUpdate() noexcept
         {
             imp()->flags.add(Imp::PendingFirstConfigure);
             imp()->flags.remove(Imp::PendingNullCommit);
-            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
-            wl_surface_commit(MSurface::wl.surface);
+            wl_surface_attach(wlSurface(), nullptr, 0, 0);
+            wl_surface_commit(wlSurface());
             update();
             return;
         }
@@ -248,8 +249,8 @@ void MToplevel::onUpdate() noexcept
         if (!imp()->flags.check(Imp::PendingNullCommit))
         {
             imp()->flags.add(Imp::PendingNullCommit);
-            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
-            wl_surface_commit(MSurface::wl.surface);
+            wl_surface_attach(wlSurface(), nullptr, 0, 0);
+            wl_surface_commit(wlSurface());
         }
 
         return;
@@ -258,7 +259,7 @@ void MToplevel::onUpdate() noexcept
     if (imp()->flags.check(Imp::PendingFirstConfigure | Imp::PendingNullCommit))
         return;
 
-    if (MSurface::se.changes.test(Cl_Scale))
+    if (MSurface::imp()->tmpFlags.check(MSurface::Imp::ScaleChanged))
         imp()->flags.add(Imp::ForceUpdate);
 
     if (states().check(AKMaximized | AKFullscreen))
@@ -314,7 +315,7 @@ void MToplevel::onUpdate() noexcept
 void MToplevel::render() noexcept
 {
     /*
-    const Int64 ms = Int64(AKTime::ms()) - Int64(MSurface::wl.callbackSendMs);
+    const Int64 ms = Int64(AKTime::ms()) - Int64(wlCallback()SendMs);
 
     if (ms < 8)
     {
@@ -322,9 +323,9 @@ void MToplevel::render() noexcept
         return;
     }*/
 
-    ak.scene.root()->layout().calculate();
+    scene().root()->layout().calculate();
 
-    if (MSurface::wl.callback && !imp()->flags.check(Imp::ForceUpdate))
+    if (wlCallback() && !imp()->flags.check(Imp::ForceUpdate))
         return;
 
     imp()->flags.remove(Imp::ForceUpdate);
@@ -341,9 +342,9 @@ void MToplevel::render() noexcept
 
     bool sizeChanged = false;
 
-    if (MSurface::cl.viewportSize != newSize)
+    if (MSurface::imp()->viewportSize != newSize)
     {
-        MSurface::cl.viewportSize = newSize;
+        MSurface::imp()->viewportSize = newSize;
         bufferAge = 0;
         sizeChanged = true;
     }
@@ -363,13 +364,13 @@ void MToplevel::render() noexcept
             eglWindowSize.fHeight = newSize.height() * 1.75f;
     }
 
-    sizeChanged |= resizeBuffer(eglWindowSize);
+    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
 
     if (sizeChanged)
     {
         app()->update();
 
-        wp_viewport_set_source(MSurface::wl.viewport,
+        wp_viewport_set_source(wlViewport(),
             wl_fixed_from_int(0),
             wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
             wl_fixed_from_int(newSize.width()),
@@ -383,21 +384,21 @@ void MToplevel::render() noexcept
             layout().calculatedHeight());
     }
 
-    eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
+    eglMakeCurrent(app()->graphics().eglDisplay, eglSurface(), eglSurface(), app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
 
-    ak.target->setDstRect({ 0, 0, surfaceSize().width() * scale(), surfaceSize().height() * scale() });
-    ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
-    ak.target->setSurface(gl.skSurface);
+    target()->setDstRect({ 0, 0, surfaceSize().width() * scale(), surfaceSize().height() * scale() });
+    target()->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
+    target()->setSurface(skSurface());
 
     if (bufferAge != 0)
-        eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
-    ak.target->setBakedComponentsScale(scale());
-    ak.target->setRenderCalculatesLayout(false);
-    ak.target->setAge(bufferAge);
+        eglQuerySurface(app()->graphics().eglDisplay, eglSurface(), EGL_BUFFER_AGE_EXT, &bufferAge);
+    target()->setBakedComponentsScale(scale());
+    target()->setRenderCalculatesLayout(false);
+    target()->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
-    ak.target->outDamageRegion = &skDamage;
-    ak.target->outOpaqueRegion = &skOpaque;
+    target()->outDamageRegion = &skDamage;
+    target()->outOpaqueRegion = &skOpaque;
 
     /* CSD */
     for (int i = 0; i < 4; i++)
@@ -407,12 +408,12 @@ void MToplevel::render() noexcept
     glScissor(0, 0, 1000000, 100000);
     glViewport(0, 0, 1000000, 100000);
     glClear(GL_COLOR_BUFFER_BIT);*/
-    ak.scene.render(ak.target);
+    scene().render(target());
 
     for (int i = 0; i < 4; i++)
-        ak.target->outOpaqueRegion->op(imp()->borderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
+        target()->outOpaqueRegion->op(imp()->borderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
 
-    wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
+    wl_surface_set_buffer_scale(wlSurface(), scale());
 
     /* Input region */
     if (sizeChanged)
@@ -421,7 +422,7 @@ void MToplevel::render() noexcept
         inputRect.outset(6, 6);
         wl_region *wlInputRegion = wl_compositor_create_region(app()->wayland().compositor);
         wl_region_add(wlInputRegion, inputRect.x(), inputRect.y(), inputRect.width(), inputRect.height());
-        wl_surface_set_input_region(MSurface::wl.surface, wlInputRegion);
+        wl_surface_set_input_region(wlSurface(), wlInputRegion);
         wl_region_destroy(wlInputRegion);
     }
 
@@ -437,7 +438,7 @@ void MToplevel::render() noexcept
         wl_region_add(wlOpaqueRegion, opaqueIt.rect().x(), opaqueIt.rect().y(), opaqueIt.rect().width(), opaqueIt.rect().height());
         opaqueIt.next();
     }
-    wl_surface_set_opaque_region(MSurface::wl.surface, wlOpaqueRegion);
+    wl_surface_set_opaque_region(wlSurface(), wlOpaqueRegion);
     wl_region_destroy(wlOpaqueRegion);
 
     const bool noDamage { skDamage.computeRegionComplexity() == 0 };
@@ -461,9 +462,9 @@ void MToplevel::render() noexcept
         damageIt.next();
     }
 
-    createCallback();
+    MSurface::imp()->createCallback();
 
-    assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
+    assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, eglSurface(), damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;
 
     /*

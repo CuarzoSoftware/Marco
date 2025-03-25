@@ -1,4 +1,5 @@
 #include <Marco/private/MLayerSurfacePrivate.h>
+#include <Marco/private/MSurfacePrivate.h>
 #include <Marco/MApplication.h>
 
 using namespace AK;
@@ -14,7 +15,7 @@ MLayerSurface::MLayerSurface(Layer layer, AKBitset<AKEdge> anchor, Int32 exclusi
 
     imp()->layerSurface = zwlr_layer_shell_v1_get_layer_surface(
         app()->wayland().layerShell,
-        wl.surface,
+        wlSurface(),
         screen ? screen->wlOutput() : nullptr,
         layer,
         scope.c_str());
@@ -176,9 +177,9 @@ void MLayerSurface::suggestedSizeChanged()
 
 void MLayerSurface::render() noexcept
 {
-    ak.scene.root()->layout().calculate();
+    scene().root()->layout().calculate();
 
-    if (wl.callback && !imp()->flags.check(Imp::ForceUpdate))
+    if (wlCallback() && !imp()->flags.check(Imp::ForceUpdate))
         return;
 
     imp()->flags.remove(Imp::ForceUpdate);
@@ -195,9 +196,9 @@ void MLayerSurface::render() noexcept
 
     bool sizeChanged = false;
 
-    if (MSurface::cl.viewportSize != newSize)
+    if (MSurface::imp()->viewportSize != newSize)
     {
-        MSurface::cl.viewportSize = newSize;
+        MSurface::imp()->viewportSize = newSize;
         bufferAge = 0;
         sizeChanged = true;
 
@@ -209,34 +210,34 @@ void MLayerSurface::render() noexcept
 
     SkISize eglWindowSize { newSize };
 
-    sizeChanged |= resizeBuffer(eglWindowSize);
+    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
 
     if (sizeChanged)
     {
-        wp_viewport_set_source(MSurface::wl.viewport,
+        wp_viewport_set_source(wlViewport(),
                                wl_fixed_from_int(0),
                                wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
                                wl_fixed_from_int(newSize.width()),
                                wl_fixed_from_int(newSize.height()));
     }
 
-    eglMakeCurrent(app()->graphics().eglDisplay, gl.eglSurface, gl.eglSurface, app()->graphics().eglContext);
+    eglMakeCurrent(app()->graphics().eglDisplay, eglSurface(), eglSurface(), app()->graphics().eglContext);
     eglSwapInterval(app()->graphics().eglDisplay, 0);
 
-    ak.target->setDstRect({ 0, 0, surfaceSize().width() * scale(), surfaceSize().height() * scale() });
-    ak.target->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
-    ak.target->setSurface(gl.skSurface);
+    target()->setDstRect({ 0, 0, surfaceSize().width() * scale(), surfaceSize().height() * scale() });
+    target()->setViewport(SkRect::MakeWH(surfaceSize().width(), surfaceSize().height()));
+    target()->setSurface(skSurface());
 
     if (bufferAge != 0)
-        eglQuerySurface(app()->graphics().eglDisplay, gl.eglSurface, EGL_BUFFER_AGE_EXT, &bufferAge);
-    ak.target->setBakedComponentsScale(scale());
-    ak.target->setRenderCalculatesLayout(false);
-    ak.target->setAge(bufferAge);
+        eglQuerySurface(app()->graphics().eglDisplay, eglSurface(), EGL_BUFFER_AGE_EXT, &bufferAge);
+    target()->setBakedComponentsScale(scale());
+    target()->setRenderCalculatesLayout(false);
+    target()->setAge(bufferAge);
     SkRegion skDamage, skOpaque;
-    ak.target->outDamageRegion = &skDamage;
-    ak.target->outOpaqueRegion = &skOpaque;
-    ak.scene.render(ak.target);
-    wl_surface_set_buffer_scale(MSurface::wl.surface, scale());
+    target()->outDamageRegion = &skDamage;
+    target()->outOpaqueRegion = &skOpaque;
+    scene().render(target());
+    wl_surface_set_buffer_scale(wlSurface(), scale());
     zwlr_layer_surface_v1_set_margin(imp()->layerSurface,
         margin().fTop, margin().fRight, margin().fBottom, margin().fLeft);
 
@@ -259,7 +260,7 @@ void MLayerSurface::render() noexcept
         inputRect.outset(6, 6);
         wl_region *wlInputRegion = wl_compositor_create_region(app()->wayland().compositor);
         wl_region_add(wlInputRegion, inputRect.x(), inputRect.y(), inputRect.width(), inputRect.height());
-        wl_surface_set_input_region(MSurface::wl.surface, wlInputRegion);
+        wl_surface_set_input_region(wlSurface(), wlInputRegion);
         wl_region_destroy(wlInputRegion);
     }
 
@@ -275,7 +276,7 @@ void MLayerSurface::render() noexcept
         wl_region_add(wlOpaqueRegion, opaqueIt.rect().x(), opaqueIt.rect().y(), opaqueIt.rect().width(), opaqueIt.rect().height());
         opaqueIt.next();
     }
-    wl_surface_set_opaque_region(MSurface::wl.surface, wlOpaqueRegion);
+    wl_surface_set_opaque_region(wlSurface(), wlOpaqueRegion);
     wl_region_destroy(wlOpaqueRegion);
 
     const bool noDamage { skDamage.computeRegionComplexity() == 0 };
@@ -299,8 +300,8 @@ void MLayerSurface::render() noexcept
         damageIt.next();
     }
 
-    createCallback();
-    assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, gl.eglSurface, damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
+    MSurface::imp()->createCallback();
+    assert(app()->graphics().eglSwapBuffersWithDamageKHR(app()->graphics().eglDisplay, eglSurface(), damageRects, skDamage.computeRegionComplexity()) == EGL_TRUE);
     delete []damageRects;
 }
 
@@ -320,8 +321,8 @@ void MLayerSurface::onUpdate() noexcept
         {
             imp()->flags.add(Imp::PendingFirstConfigure);
             imp()->flags.remove(Imp::PendingNullCommit);
-            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
-            wl_surface_commit(MSurface::wl.surface);
+            wl_surface_attach(wlSurface(), nullptr, 0, 0);
+            wl_surface_commit(wlSurface());
             update();
             return;
         }
@@ -331,8 +332,8 @@ void MLayerSurface::onUpdate() noexcept
         if (!imp()->flags.check(Imp::PendingNullCommit))
         {
             imp()->flags.add(Imp::PendingNullCommit);
-            wl_surface_attach(MSurface::wl.surface, nullptr, 0, 0);
-            wl_surface_commit(MSurface::wl.surface);
+            wl_surface_attach(wlSurface(), nullptr, 0, 0);
+            wl_surface_commit(wlSurface());
         }
 
         return;
@@ -341,7 +342,7 @@ void MLayerSurface::onUpdate() noexcept
     if (imp()->flags.check(Imp::PendingFirstConfigure | Imp::PendingNullCommit))
         return;
 
-    if (MSurface::se.changes.test(Cl_Scale))
+    if (MSurface::imp()->tmpFlags.check(MSurface::Imp::ScaleChanged))
         imp()->flags.add(Imp::ForceUpdate);
 
     render();

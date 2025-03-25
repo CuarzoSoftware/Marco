@@ -123,7 +123,7 @@ int main()
     });
 
     Window window;
-    window.::MSurface::on.presented.subscribe(&window, [&window](UInt32 ms){
+    window.::MSurface::onCallbackDone.subscribe(&window, [&window](UInt32 ms){
         //window.cat.renderableImage().setOpacity(1.f + 0.5f*SkScalarCos(ms * 0.005f));
         //std::cout << "Presented" << ms << std::endl;
     });
