@@ -66,7 +66,8 @@ public:
         });
 
         newWindowButton.on.clicked.subscribe(this, [](){
-            new Window();
+            Window *newWin = new Window();
+            newWin->setMapped(true);
         });
 
         maximizeButton.on.clicked.subscribe(this, [this](){
@@ -85,6 +86,13 @@ public:
             exit(0);
         });
 
+        mapButton.on.clicked.subscribe(this, [this]{
+            setMapped(false);
+            AKTimer::OneShoot(1000, [this](AKTimer*){
+                setMapped(true);
+            });
+        });
+
         setMinSize(minContentSize());
     }
 
@@ -94,6 +102,7 @@ public:
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton newWindowButton { "➕  New Window", &body };
+    AKButton mapButton { "Unmap for 1 sec", &body };
     AKButton maximizeButton { "🖥️ Toggle Maximized", &body };
     AKButton fullscreenButton { "🖥️ Toggle Fullscreen", &body };
     AKButton minimizeButton { "🖥️ Minimize", &body };
@@ -123,6 +132,8 @@ int main()
     });
 
     Window window;
+    window.setMapped(true);
+
     window.::MSurface::onCallbackDone.subscribe(&window, [&window](UInt32 ms){
         //window.cat.renderableImage().setOpacity(1.f + 0.5f*SkScalarCos(ms * 0.005f));
         //std::cout << "Presented" << ms << std::endl;

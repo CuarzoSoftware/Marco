@@ -70,9 +70,20 @@ const std::set<MScreen *> &MSurface::screens() const noexcept
     return imp()->screens;
 }
 
+void MSurface::setMapped(bool mapped) noexcept
+{
+    imp()->flags.setFlag(Imp::UserMapped, mapped);
+    update();
+}
+
+bool MSurface::mapped() const noexcept
+{
+    return imp()->flags.check(Imp::Mapped);
+}
+
 void MSurface::update() noexcept
 {
-    imp()->pendingUpdate = true;
+    imp()->flags.add(Imp::PendingUpdate);
     app()->update();
 }
 

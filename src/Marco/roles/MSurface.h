@@ -34,17 +34,8 @@ public:
     const SkISize &surfaceSize() const noexcept;
     const SkISize &bufferSize() const noexcept;
     const std::set<MScreen*> &screens() const noexcept;
-
-    void show() noexcept
-    {
-        setVisible(true);
-    }
-
-    void hide() noexcept
-    {
-        setVisible(false);
-    }
-
+    void setMapped(bool mapped) noexcept;
+    bool mapped() const noexcept;
     void update() noexcept;
     SkISize minContentSize() noexcept;
 
@@ -59,6 +50,7 @@ public:
     sk_sp<SkSurface> skSurface() const noexcept;
     EGLSurface eglSurface() const noexcept;
 
+    AKSignal<MScreen&> onMappedChanged;
     AKSignal<MScreen&> onEnteredScreen;
     AKSignal<MScreen&> onLeftScreen;
     AKSignal<UInt32> onCallbackDone;
@@ -67,7 +59,6 @@ protected:
     friend class MCSDShadow;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
-
     class Imp;
     Imp *imp() const noexcept;
 private:

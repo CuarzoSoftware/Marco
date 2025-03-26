@@ -10,19 +10,9 @@ class AK::MLayerSurface::Imp
 {
 public:
 
-    enum Flags
-    {
-        PendingNullCommit       = 1 << 0,
-        PendingFirstConfigure   = 1 << 1,
-        PendingConfigureAck     = 1 << 2,
-        Mapped                  = 1 << 3,
-        ForceUpdate             = 1 << 4,
-    };
 
     Imp(MLayerSurface &obj) noexcept;
     MLayerSurface &obj;
-
-    AKBitset<Flags> flags { PendingNullCommit };
     Layer layer;
     Int32 exclusiveZone { 0 };
     AKBitset<AKEdge> anchor { AKEdgeNone };

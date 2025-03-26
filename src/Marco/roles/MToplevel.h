@@ -140,6 +140,8 @@ public:
      * This signal is triggered after calling `setTitle()` with a new title.
      */
     AKSignal<> onTitleChanged;
+
+    AKSignal<const AKWindowCloseEvent&> onBeforeClose;
 protected:
 
     /**
@@ -164,6 +166,7 @@ protected:
      */
     void windowStateEvent(const AKWindowStateEvent &event) override;
     bool eventFilter(const AKEvent &event, AKObject &object) override;
+    bool event(const AKEvent &e) override;
     void onUpdate() noexcept override;
 
     class Imp;

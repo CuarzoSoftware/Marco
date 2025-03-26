@@ -82,7 +82,6 @@ public:
         layout().setHeight(Theme::DockHeight + 2 * Theme::DockShadowRadius);
         layout().setWidth(screen->props().modes.front().size.width() / screen->props().scale);
         layout().setAlignItems(YGAlignCenter);
-        show();
     }
 
     size_t anchorI { 0 };

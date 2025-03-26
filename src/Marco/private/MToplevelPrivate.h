@@ -1,6 +1,7 @@
 #ifndef MTOPLEVELPRIVATE_H
 #define MTOPLEVELPRIVATE_H
 
+#include <Marco/private/MSurfacePrivate.h>
 #include <Marco/roles/MToplevel.h>
 #include <Marco/protocols/xdg-shell-client.h>
 #include <Marco/protocols/xdg-decoration-unstable-v1-client.h>
@@ -10,19 +11,8 @@
 class AK::MToplevel::Imp
 {
 public:
-    enum Flags
-    {
-        PendingNullCommit       = 1 << 0,
-        PendingFirstConfigure   = 1 << 1,
-        PendingConfigureAck     = 1 << 2,
-        Mapped                  = 1 << 3,
-        ForceUpdate             = 1 << 4,
-    };
-
     Imp(MToplevel &obj) noexcept;
     MToplevel &obj;
-
-    AKBitset<Flags> flags { PendingNullCommit };
 
     std::string title;
     SkISize minSize, maxSize;
@@ -56,6 +46,7 @@ public:
     // Root node event filter
     void handleRootPointerButtonEvent(const AKPointerButtonEvent &event) noexcept;
     void handleRootPointerMoveEvent(const AKPointerMoveEvent &event) noexcept;
+    void unmap() noexcept;
 };
 
 #endif // MTOPLEVELPRIVATE_H

@@ -3,11 +3,13 @@
 #include <Marco/MApplication.h>
 
 #include <AK/events/AKWindowStateEvent.h>
+#include <AK/events/AKWindowCloseEvent.h>
 
 using namespace AK;
 
 MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
 {
+    obj.MSurface::imp()->flags.add(MSurface::Imp::PendingNullCommit);
     xdgSurfaceListener.configure = xdg_surface_configure;
     xdgToplevelListener.configure = xdg_toplevel_configure;
     xdgToplevelListener.configure_bounds = xdg_toplevel_configure_bounds;
@@ -18,13 +20,17 @@ MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
 void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
 {
     auto &role { *static_cast<MToplevel*>(data) };
-    role.imp()->flags.add(PendingConfigureAck);
+
+    if (!role.MSurface::imp()->flags.check(MSurface::Imp::UserMapped))
+        return;
+
+    role.MSurface::imp()->flags.add(MSurface::Imp::PendingConfigureAck);
     role.imp()->configureSerial = serial;
 
-    bool notifyStates { role.imp()->flags.check(PendingFirstConfigure) };
+    bool notifyStates { role.MSurface::imp()->flags.check(MSurface::Imp::PendingFirstConfigure) };
     bool notifySuggestedSize { notifyStates };
     bool activatedChanged { false };
-    role.imp()->flags.remove(PendingFirstConfigure);
+    role.MSurface::imp()->flags.remove(MSurface::Imp::PendingFirstConfigure);
 
     if (notifyStates)
     {
@@ -55,13 +61,20 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
             akApp()->postEvent(AKWindowStateEvent(role.scene().windowState().get() ^ role.imp()->currentStates.get()), role.scene());
     }
 
-    role.imp()->flags.add(ForceUpdate);
+    if (!role.MSurface::imp()->flags.check(MSurface::Imp::Mapped))
+        role.MSurface::imp()->flags.add(MSurface::Imp::Mapped);
+
+    role.MSurface::imp()->flags.add(MSurface::Imp::ForceUpdate);
     role.update();
 }
 
-void MToplevel::Imp::xdg_toplevel_configure(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height, wl_array *states)
+void MToplevel::Imp::xdg_toplevel_configure(void *data, xdg_toplevel *, Int32 width, Int32 height, wl_array *states)
 {
     auto &role { *static_cast<MToplevel*>(data) };
+
+    if (!role.MSurface::imp()->flags.check(MSurface::Imp::UserMapped))
+        return;
+
     role.imp()->pendingStates.set(0);
     const UInt32 *stateVals = (UInt32*)states->data;
     for (UInt32 i = 0; i < states->size/sizeof(*stateVals); i++)
@@ -72,9 +85,14 @@ void MToplevel::Imp::xdg_toplevel_configure(void *data, xdg_toplevel *xdgTopleve
     role.imp()->pendingSuggestedSize.fHeight = height < 0 ? 0 : height;
 }
 
-void MToplevel::Imp::xdg_toplevel_close(void *data, xdg_toplevel *xdgToplevel)
+void MToplevel::Imp::xdg_toplevel_close(void *data, xdg_toplevel *)
 {
+    auto &role { *static_cast<MToplevel*>(data) };
+    AKWeak<MToplevel> ref { &role };
+    const bool accepted = app()->sendEvent(AKWindowCloseEvent(), role);
 
+    if (ref && accepted)
+        role.setMapped(false);
 }
 
 void MToplevel::Imp::xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height)
@@ -152,4 +170,16 @@ void MToplevel::Imp::handleRootPointerMoveEvent(const AKPointerMoveEvent &event)
         obj.rootNode()->setCursor(AKCursor::NESWResize);
     else
         obj.rootNode()->setCursor(AKCursor::Default);
+}
+
+void MToplevel::Imp::unmap() noexcept
+{
+    using SF = MSurface::Imp::Flags;
+    obj.MSurface::imp()->flags.add(SF::PendingNullCommit);
+    obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure | SF::Mapped);
+    wl_surface_attach(obj.wlSurface(), nullptr, 0, 0);
+    wl_surface_commit(obj.wlSurface());
+    pendingStates.set(0);
+    pendingSuggestedSize.setEmpty();
+    configureSerial = 0;
 }

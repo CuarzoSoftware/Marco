@@ -179,10 +179,10 @@ void MLayerSurface::render() noexcept
 {
     scene().root()->layout().calculate();
 
-    if (wlCallback() && !imp()->flags.check(Imp::ForceUpdate))
+    if (wlCallback() && !MSurface::imp()->flags.check(MSurface::Imp::ForceUpdate))
         return;
 
-    imp()->flags.remove(Imp::ForceUpdate);
+    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
 
     EGLint bufferAge { -1 };
 
@@ -309,18 +309,18 @@ void MLayerSurface::onUpdate() noexcept
 {
     MSurface::onUpdate();
 
-    if (imp()->flags.check(Imp::PendingConfigureAck))
+    if (MSurface::imp()->flags.check(MSurface::Imp::PendingConfigureAck))
     {
-        imp()->flags.remove(Imp::PendingConfigureAck);
+        MSurface::imp()->flags.remove(MSurface::Imp::PendingConfigureAck);
         zwlr_layer_surface_v1_ack_configure(imp()->layerSurface, imp()->configureSerial);
     }
 
     if (visible())
     {
-        if (imp()->flags.check(Imp::PendingNullCommit))
+        if (MSurface::imp()->flags.check(MSurface::Imp::PendingNullCommit))
         {
-            imp()->flags.add(Imp::PendingFirstConfigure);
-            imp()->flags.remove(Imp::PendingNullCommit);
+            MSurface::imp()->flags.add(MSurface::Imp::PendingFirstConfigure);
+            MSurface::imp()->flags.remove(MSurface::Imp::PendingNullCommit);
             wl_surface_attach(wlSurface(), nullptr, 0, 0);
             wl_surface_commit(wlSurface());
             update();
@@ -329,9 +329,9 @@ void MLayerSurface::onUpdate() noexcept
     }
     else
     {
-        if (!imp()->flags.check(Imp::PendingNullCommit))
+        if (!MSurface::imp()->flags.check(MSurface::Imp::PendingNullCommit))
         {
-            imp()->flags.add(Imp::PendingNullCommit);
+            MSurface::imp()->flags.add(MSurface::Imp::PendingNullCommit);
             wl_surface_attach(wlSurface(), nullptr, 0, 0);
             wl_surface_commit(wlSurface());
         }
@@ -339,11 +339,11 @@ void MLayerSurface::onUpdate() noexcept
         return;
     }
 
-    if (imp()->flags.check(Imp::PendingFirstConfigure | Imp::PendingNullCommit))
+    if (MSurface::imp()->flags.check(MSurface::Imp::PendingFirstConfigure | MSurface::Imp::PendingNullCommit))
         return;
 
-    if (MSurface::imp()->tmpFlags.check(MSurface::Imp::ScaleChanged))
-        imp()->flags.add(Imp::ForceUpdate);
+    if (MSurface::MSurface::imp()->tmpFlags.check(MSurface::Imp::ScaleChanged))
+        MSurface::imp()->flags.add(MSurface::Imp::ForceUpdate);
 
     render();
 }

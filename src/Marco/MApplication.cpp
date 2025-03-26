@@ -479,10 +479,10 @@ void MApplication::updateSurfaces()
 {
     for (MSurface *surf : m_surfaces)
     {
-        if (surf->imp()->pendingUpdate)
+        if (surf->imp()->flags.check(MSurface::Imp::PendingUpdate))
         {
             if (!surf->wlCallback())
-                surf->imp()->pendingUpdate = false;
+                surf->imp()->flags.remove(MSurface::Imp::PendingUpdate);
             surf->onUpdate();
             surf->imp()->tmpFlags.set(0);
         }

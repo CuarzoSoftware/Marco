@@ -7,6 +7,26 @@ class AK::MSurface::Imp
 {
 public:
 
+    enum Flags
+    {
+        PendingUpdate             = 1 << 0,
+
+        // Commit even if pending callback
+        ForceUpdate               = 1 << 1,
+
+        // The surface is actually mapped
+        Mapped                    = 1 << 2,
+
+        // The user wants to map the surface
+        UserMapped                = 1 << 3,
+
+        // Shared between some roles
+        PendingNullCommit         = 1 << 4,
+        PendingFirstConfigure     = 1 << 5,
+        PendingConfigureAck       = 1 << 6,
+        Last                      = 1 << 7,
+    };
+
     enum TmpFlags
     {
         ScaleChanged              = 1 << 0,
@@ -19,6 +39,9 @@ public:
 
     // Cleared after onUpdate
     AKBitset<TmpFlags> tmpFlags;
+
+    // Persistent
+    AKBitset<Flags> flags;
 
     // Kay
     AKScene scene;
@@ -37,7 +60,6 @@ public:
     SkISize size { 0, 0 };
     SkISize bufferSize { 0, 0 };
     SkISize viewportSize { -1, -1 };
-    bool pendingUpdate { true };
 
     UInt32 callbackSendMs { 0 };
     wl_callback *wlCallback { nullptr };

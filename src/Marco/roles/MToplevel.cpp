@@ -222,45 +222,67 @@ bool MToplevel::eventFilter(const AKEvent &event, AKObject &object)
    return MSurface::eventFilter(event, object);
 }
 
+bool MToplevel::event(const AKEvent &e)
+{
+    if (e.type() == AKEvent::WindowClose)
+    {
+        onBeforeClose.notify((const AKWindowCloseEvent &)e);
+        return e.isAccepted();
+    }
+
+    return MSurface::event(e);
+}
+
 void MToplevel::onUpdate() noexcept
 {
+    auto &flags = MSurface::imp()->flags;
+    using SF = MSurface::Imp::Flags;
+    auto &tmpFlags = MSurface::imp()->tmpFlags;
+    using STF = MSurface::Imp::TmpFlags;
+
     MSurface::onUpdate();
 
-    if (imp()->flags.check(Imp::PendingConfigureAck))
+    if (!flags.check(SF::UserMapped))
     {
-        imp()->flags.remove(Imp::PendingConfigureAck);
+        if (flags.check(SF::PendingNullCommit))
+            return;
+
+        if (mapped())
+            imp()->unmap();
+
+        return;
+    }
+
+    if (flags.check(SF::PendingNullCommit))
+    {
+        if (fullscreen())
+            xdg_toplevel_set_fullscreen(imp()->xdgToplevel, nullptr);
+
+        if (maximized())
+            xdg_toplevel_set_maximized(imp()->xdgToplevel);
+
+        xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
+        xdg_toplevel_set_title(imp()->xdgToplevel, imp()->title.c_str());
+
+        flags.add(SF::PendingFirstConfigure);
+        flags.remove(SF::PendingNullCommit);
+        wl_surface_attach(wlSurface(), nullptr, 0, 0);
+        wl_surface_commit(wlSurface());
+        update();
+        return;
+    }
+
+    if (flags.check(SF::PendingConfigureAck))
+    {
+        flags.remove(SF::PendingConfigureAck);
         xdg_surface_ack_configure(imp()->xdgSurface, imp()->configureSerial);
     }
 
-    if (visible())
-    {
-        if (imp()->flags.check(Imp::PendingNullCommit))
-        {
-            imp()->flags.add(Imp::PendingFirstConfigure);
-            imp()->flags.remove(Imp::PendingNullCommit);
-            wl_surface_attach(wlSurface(), nullptr, 0, 0);
-            wl_surface_commit(wlSurface());
-            update();
-            return;
-        }
-    }
-    else
-    {
-        if (!imp()->flags.check(Imp::PendingNullCommit))
-        {
-            imp()->flags.add(Imp::PendingNullCommit);
-            wl_surface_attach(wlSurface(), nullptr, 0, 0);
-            wl_surface_commit(wlSurface());
-        }
-
-        return;
-    }
-
-    if (imp()->flags.check(Imp::PendingFirstConfigure | Imp::PendingNullCommit))
+    if (flags.check(SF::PendingFirstConfigure | SF::PendingNullCommit))
         return;
 
-    if (MSurface::imp()->tmpFlags.check(MSurface::Imp::ScaleChanged))
-        imp()->flags.add(Imp::ForceUpdate);
+    if (tmpFlags.check(STF::ScaleChanged))
+        flags.add(SF::ForceUpdate);
 
     if (states().check(AKMaximized | AKFullscreen))
     {
@@ -325,10 +347,10 @@ void MToplevel::render() noexcept
 
     scene().root()->layout().calculate();
 
-    if (wlCallback() && !imp()->flags.check(Imp::ForceUpdate))
+    if (wlCallback() && !MSurface::imp()->flags.check(MSurface::Imp::ForceUpdate))
         return;
 
-    imp()->flags.remove(Imp::ForceUpdate);
+    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
 
     EGLint bufferAge { -1 };
 

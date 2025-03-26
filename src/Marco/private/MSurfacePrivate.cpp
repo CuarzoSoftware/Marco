@@ -89,7 +89,7 @@ void MSurface::Imp::wl_callback_done(void *data, wl_callback *callback, UInt32 m
     surface.imp()->wlCallback = nullptr;
     surface.onCallbackDone.notify(ms);
 
-    if (surface.imp()->pendingUpdate || surface.target()->isDirty())
+    if (surface.imp()->flags.check(PendingUpdate) || surface.target()->isDirty())
         surface.update();
 }
 
