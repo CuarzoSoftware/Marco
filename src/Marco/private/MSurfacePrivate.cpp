@@ -129,6 +129,15 @@ bool MSurface::Imp::createCallback() noexcept
     return true;
 }
 
+void MSurface::Imp::setMapped(bool mapped) noexcept
+{
+    if (mapped == obj.mapped())
+        return;
+
+    flags.setFlag(Mapped, mapped);
+    obj.onMappedChanged.notify();
+}
+
 bool MSurface::Imp::resizeBuffer(const SkISize &size) noexcept
 {
     const SkISize bufferSize { size.width() * scale , size.height() * scale };

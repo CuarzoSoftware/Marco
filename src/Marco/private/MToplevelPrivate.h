@@ -19,17 +19,27 @@ public:
 
     // From the last xdg_surface_configure
     AKBitset<AKWindowState> currentStates;
+    AKBitset<WMCapabilities> currentWMCaps;
     SkISize currentSuggestedSize { 0, 0 };
+    SkISize currentSuggestedBounds { 0, 0 };
     UInt32 configureSerial { 0 };
 
     // From xdg_toplevel_configure but not yet xdg_surface_configure(d)
     AKBitset<AKWindowState> pendingStates;
+    AKBitset<WMCapabilities> pendingWMCaps;
     SkISize pendingSuggestedSize { 0, 0 };
+    SkISize pendingSuggestedBounds { 0, 0 };
 
     // Built-in decorations
     AKRenderableImage borderRadius[4]; // Border radius masks
     SkIRect shadowMargins { 48, 30, 48, 66 }; // L, T, R, B shadow margins
     MCSDShadow shadow; // Shadow node
+
+    AKWeak<MToplevel> parentToplevel;
+    std::unordered_set<MToplevel*> childToplevels;
+
+    void applyPendingParent() noexcept;
+    void applyPendingChildren() noexcept;
 
     // Wayland
     xdg_surface *xdgSurface { nullptr };

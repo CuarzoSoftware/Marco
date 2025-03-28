@@ -50,7 +50,7 @@ public:
     sk_sp<SkSurface> skSurface() const noexcept;
     EGLSurface eglSurface() const noexcept;
 
-    AKSignal<MScreen&> onMappedChanged;
+    AKSignal<> onMappedChanged;
     AKSignal<MScreen&> onEnteredScreen;
     AKSignal<MScreen&> onLeftScreen;
     AKSignal<UInt32> onCallbackDone;

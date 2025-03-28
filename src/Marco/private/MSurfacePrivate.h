@@ -24,7 +24,9 @@ public:
         PendingNullCommit         = 1 << 4,
         PendingFirstConfigure     = 1 << 5,
         PendingConfigureAck       = 1 << 6,
-        Last                      = 1 << 7,
+        PendingChildren           = 1 << 7,
+        PendingParent             = 1 << 8,
+        Last                      = 1 << 9,
     };
 
     enum TmpFlags
@@ -77,6 +79,7 @@ public:
     // Prev surface and viewporter are destroyed
     void createSurface() noexcept;
     bool createCallback() noexcept;
+    void setMapped(bool mapped) noexcept;
 
     /**
      * @brief Resize the wl_egl_window

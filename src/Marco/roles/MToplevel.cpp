@@ -19,6 +19,9 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     m_imp = std::make_unique<Imp>(*this);
     root()->installEventFilter(this);
 
+    if (app()->wayland().xdgWmBase.version() < 5)
+        imp()->pendingWMCaps = imp()->currentWMCaps = { WindowMenuCap | MinimizeCap | MaximizeCap | FullscreenCap };
+
     imp()->xdgSurface = xdg_wm_base_get_xdg_surface(app()->wayland().xdgWmBase, wlSurface());
     xdg_surface_add_listener(imp()->xdgSurface, &Imp::xdgSurfaceListener, this);
     imp()->xdgToplevel = xdg_surface_get_toplevel(imp()->xdgSurface);
@@ -30,6 +33,30 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 
     app()->onAppIdChanged.subscribe(this, [this](){
         xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
+    });
+
+    onMappedChanged.subscribe(this, [this](){
+
+        if (!mapped())
+            return;
+
+        if (!childToplevels().empty())
+        {
+            MSurface::imp()->flags.add(MSurface::Imp::PendingChildren | MSurface::Imp::ForceUpdate);
+            update();
+
+            for (const auto &child : childToplevels())
+            {
+                child->MSurface::imp()->flags.add(MSurface::Imp::PendingParent | MSurface::Imp::ForceUpdate);
+                child->update();
+            }
+        }
+
+        if (parentToplevel())
+        {
+            MSurface::imp()->flags.add(MSurface::Imp::PendingParent | MSurface::Imp::ForceUpdate);
+            update();
+        }
     });
 
     /* CSD */
@@ -82,12 +109,16 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 
 MToplevel::~MToplevel() noexcept
 {
+    setParentToplevel(nullptr);
     xdg_toplevel_destroy(imp()->xdgToplevel);
     xdg_surface_destroy(imp()->xdgSurface);
 }
 
 void MToplevel::setMaximized(bool maximized) noexcept
 {
+    if (!wmCapabilities().check(MaximizeCap))
+        return;
+
     if (maximized)
         xdg_toplevel_set_maximized(imp()->xdgToplevel);
     else
@@ -101,6 +132,9 @@ bool MToplevel::maximized() const noexcept
 
 void MToplevel::setFullscreen(bool fullscreen, MScreen *screen) noexcept
 {
+    if (!wmCapabilities().check(FullscreenCap))
+        return;
+
     if (fullscreen)
         xdg_toplevel_set_fullscreen(imp()->xdgToplevel, screen ? screen->wlOutput() : nullptr);
     else
@@ -114,6 +148,9 @@ bool MToplevel::fullscreen() const noexcept
 
 void MToplevel::setMinimized() noexcept
 {
+    if (!wmCapabilities().check(MinimizeCap))
+        return;
+
     xdg_toplevel_set_minimized(imp()->xdgToplevel);
 }
 
@@ -158,6 +195,11 @@ const SkISize &MToplevel::suggestedSize() const noexcept
     return imp()->currentSuggestedSize;
 }
 
+const SkISize &MToplevel::suggestedBounds() const noexcept
+{
+    return imp()->currentSuggestedBounds;
+}
+
 void MToplevel::suggestedSizeChanged()
 {
     if (suggestedSize().width() == 0)
@@ -175,6 +217,13 @@ void MToplevel::suggestedSizeChanged()
     }
     else
         layout().setHeight(suggestedSize().height());
+
+    onSuggestedSizeChanged.notify();
+}
+
+void MToplevel::suggestedBoundsChanged()
+{
+    onSuggestedSizeChanged.notify();
 }
 
 AKBitset<AKWindowState> MToplevel::states() const noexcept
@@ -200,6 +249,73 @@ const std::string &MToplevel::title() const noexcept
 const SkIRect &MToplevel::decorationMargins() const noexcept
 {
     return imp()->shadowMargins;
+}
+
+AKBitset<MToplevel::WMCapabilities> MToplevel::wmCapabilities() const noexcept
+{
+    return imp()->currentWMCaps;
+}
+
+bool MToplevel::showWindowMenu(const AKInputEvent &event, const SkIPoint &pos) noexcept
+{
+    if (!wmCapabilities().check(WindowMenuCap))
+        return false;
+
+    xdg_toplevel_show_window_menu(imp()->xdgToplevel, app()->wayland().seat, event.serial(), pos.x(), pos.y());
+    return true;
+}
+
+bool MToplevel::setParentToplevel(MToplevel *parent) noexcept
+{
+    if (parent == parentToplevel())
+        return true;
+
+    if (parent)
+    {
+        MToplevel *tl = parent;
+
+        while (tl)
+        {
+            if (tl == this) return false;
+            tl = tl->parentToplevel();
+        }
+
+        if (imp()->parentToplevel)
+            imp()->parentToplevel->imp()->childToplevels.erase(this);
+
+        // TODO: handle later
+        imp()->parentToplevel.reset(parent);
+        parent->imp()->childToplevels.insert(this);
+        parent->MSurface::imp()->flags.add(MSurface::Imp::PendingChildren);
+        MSurface::imp()->flags.add(MSurface::Imp::PendingParent);
+        update();
+    }
+    else
+    {
+        if (imp()->parentToplevel)
+            imp()->parentToplevel->imp()->childToplevels.erase(this);
+
+        imp()->parentToplevel.reset();
+        MSurface::imp()->flags.add(MSurface::Imp::PendingParent);
+        update();
+    }
+
+    return true;
+}
+
+MToplevel *MToplevel::parentToplevel() const noexcept
+{
+    return imp()->parentToplevel;
+}
+
+std::unordered_set<AK::MToplevel *> MToplevel::childToplevels() const noexcept
+{
+    return imp()->childToplevels;
+}
+
+void MToplevel::wmCapabilitiesChanged()
+{
+    onWMCapabilitiesChanged.notify();
 }
 
 void MToplevel::windowStateEvent(const AKWindowStateEvent &event)
@@ -498,6 +614,9 @@ void MToplevel::render() noexcept
     }*/
 
     //eglSwapBuffers(app()->graphics().eglDisplay, m_eglSurface);
+
+    imp()->applyPendingParent();
+    imp()->applyPendingChildren();
 }
 
 MToplevel::Imp *MToplevel::imp() const noexcept

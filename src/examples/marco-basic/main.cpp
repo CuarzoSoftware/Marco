@@ -65,9 +65,14 @@ public:
             pointer().setCursor((AKCursor)cursor);
         });
 
-        newWindowButton.on.clicked.subscribe(this, [](){
+        newWindowButton.on.clicked.subscribe(this, [this](){
             Window *newWin = new Window();
             newWin->setMapped(true);
+            AKWeak<MToplevel> ref(this);
+            newWin->onMappedChanged.subscribe(newWin, [ref, newWin](){
+                if (ref && newWin->mapped())
+                    newWin->setParentToplevel(ref);
+            });
         });
 
         maximizeButton.on.clicked.subscribe(this, [this](){
@@ -101,7 +106,7 @@ public:
     AKImageFrame cat { AKImageLoader::loadFile("/usr/local/share/Kay/assets/logo.png"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
-    AKButton newWindowButton { "➕  New Window", &body };
+    AKButton newWindowButton { "➕  New Child Window", &body };
     AKButton mapButton { "Unmap for 1 sec", &body };
     AKButton maximizeButton { "🖥️ Toggle Maximized", &body };
     AKButton fullscreenButton { "🖥️ Toggle Fullscreen", &body };

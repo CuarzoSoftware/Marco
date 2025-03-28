@@ -13,6 +13,15 @@
 class AK::MToplevel : public MSurface
 {
 public:
+
+    enum WMCapabilities
+    {
+        WindowMenuCap = 1 << 1,
+        MaximizeCap   = 1 << 2,
+        FullscreenCap = 1 << 3,
+        MinimizeCap   = 1 << 4,
+    };
+
     /**
      * @brief Default constructor for `MToplevel`.
      */
@@ -102,6 +111,19 @@ public:
     const SkISize &suggestedSize() const noexcept;
 
     /**
+     * @brief Retrieves the last bounds suggested by the compositor.
+     *
+     * If either the width or height is `0`, it means the compositor is allowing the application
+     * to decide the size for that axis.
+     *
+     * The bounds can for example correspond to the size of a monitor excluding any panels or other shell components,
+     * so that a surface isn't created in a way that it cannot fit.
+     *
+     * @return The suggested window bounds.
+     */
+    const SkISize &suggestedBounds() const noexcept;
+
+    /**
      * @brief Sets the title of the window.
      *
      * @param title The new title for the window.
@@ -127,6 +149,13 @@ public:
      */
     const SkIRect &decorationMargins() const noexcept;
 
+    AKBitset<WMCapabilities> wmCapabilities() const noexcept;
+    bool showWindowMenu(const AKInputEvent &event, const SkIPoint &pos) noexcept;
+
+    bool setParentToplevel(MToplevel *parent) noexcept;
+    MToplevel *parentToplevel() const noexcept;
+    std::unordered_set<MToplevel*> childToplevels() const noexcept;
+
     /**
      * @brief Signal emitted when the window states change.
      *
@@ -141,8 +170,22 @@ public:
      */
     AKSignal<> onTitleChanged;
 
+    /**
+     * @brief Signal triggered when the compositor requests to close the window.
+     *
+     * To ignore the request, call `event->ignore()`.
+     *
+     * If the request is not ignored, the toplevel window will be unmapped (see setMapped()) but not
+     * destroyed.
+     */
     AKSignal<const AKWindowCloseEvent&> onBeforeClose;
+
+    AKSignal<> onSuggestedSizeChanged;
+    AKSignal<> onSuggestedBoundsChanged;
+    AKSignal<> onWMCapabilitiesChanged;
 protected:
+
+    virtual void wmCapabilitiesChanged();
 
     /**
      * @brief Notifies the window that the compositor has suggested a new size.
@@ -155,6 +198,16 @@ protected:
      * @see suggestedSize()
      */
     virtual void suggestedSizeChanged();
+
+    /**
+     * @brief Notifies the window that the compositor has suggested new bounds.
+     *
+     * This method could be triggered before the window is mapped and whenever the compositor
+     * suggests new bounds.
+     *
+     * @see suggestedBounds()
+     */
+    virtual void suggestedBoundsChanged();
 
     /**
      * @brief Handles changes in the window states.

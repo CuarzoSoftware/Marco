@@ -17,6 +17,26 @@ MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
     xdgToplevelListener.wm_capabilities = xdg_toplevel_wm_capabilities;
 }
 
+void MToplevel::Imp::applyPendingParent() noexcept
+{
+    if (!obj.MSurface::imp()->flags.check(MSurface::Imp::PendingParent))
+        return;
+
+    obj.MSurface::imp()->flags.remove(MSurface::Imp::PendingParent);
+    xdg_toplevel_set_parent(xdgToplevel, parentToplevel ? parentToplevel->imp()->xdgToplevel : nullptr);
+}
+
+void MToplevel::Imp::applyPendingChildren() noexcept
+{
+    if (!obj.MSurface::imp()->flags.check(MSurface::Imp::PendingChildren))
+        return;
+
+    obj.MSurface::imp()->flags.remove(MSurface::Imp::PendingChildren);
+
+    for (const auto &child : childToplevels)
+        xdg_toplevel_set_parent(child->imp()->xdgToplevel, xdgToplevel);
+}
+
 void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
 {
     auto &role { *static_cast<MToplevel*>(data) };
@@ -29,7 +49,10 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
 
     bool notifyStates { role.MSurface::imp()->flags.check(MSurface::Imp::PendingFirstConfigure) };
     bool notifySuggestedSize { notifyStates };
+    bool notifyBounds { false };
     bool activatedChanged { false };
+    bool notifyWMCaps { false };
+
     role.MSurface::imp()->flags.remove(MSurface::Imp::PendingFirstConfigure);
 
     if (notifyStates)
@@ -50,10 +73,28 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
         notifySuggestedSize = true;
     }
 
+    if (role.imp()->pendingSuggestedBounds != role.imp()->currentSuggestedBounds)
+    {
+        notifyBounds = true;
+        role.imp()->currentSuggestedBounds = role.imp()->pendingSuggestedBounds;
+    }
+
+    if (role.imp()->pendingWMCaps.get() != role.imp()->currentWMCaps.get())
+    {
+        role.imp()->currentWMCaps = role.imp()->pendingWMCaps;
+        notifyWMCaps = true;
+    }
+
     AKWeak<MToplevel> ref { &role };
+
+    if (ref && notifyWMCaps)
+        role.wmCapabilitiesChanged();
 
     if (notifySuggestedSize)
         role.suggestedSizeChanged();
+
+    if (ref && notifyBounds)
+        role.suggestedBoundsChanged();
 
     if (ref && notifyStates)
     {
@@ -61,11 +102,17 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
             akApp()->postEvent(AKWindowStateEvent(role.scene().windowState().get() ^ role.imp()->currentStates.get()), role.scene());
     }
 
-    if (!role.MSurface::imp()->flags.check(MSurface::Imp::Mapped))
-        role.MSurface::imp()->flags.add(MSurface::Imp::Mapped);
+    if (ref && !role.MSurface::imp()->flags.check(MSurface::Imp::Mapped))
+    {
+        role.MSurface::imp()->setMapped(true);
+        role.imp()->applyPendingParent();
+    }
 
-    role.MSurface::imp()->flags.add(MSurface::Imp::ForceUpdate);
-    role.update();
+    if (ref)
+    {
+        role.MSurface::imp()->flags.add(MSurface::Imp::ForceUpdate);
+        role.update();
+    }
 }
 
 void MToplevel::Imp::xdg_toplevel_configure(void *data, xdg_toplevel *, Int32 width, Int32 height, wl_array *states)
@@ -95,14 +142,21 @@ void MToplevel::Imp::xdg_toplevel_close(void *data, xdg_toplevel *)
         role.setMapped(false);
 }
 
-void MToplevel::Imp::xdg_toplevel_configure_bounds(void *data, xdg_toplevel *xdgToplevel, Int32 width, Int32 height)
+void MToplevel::Imp::xdg_toplevel_configure_bounds(void *data, xdg_toplevel */*xdgToplevel*/, Int32 width, Int32 height)
 {
-
+    auto &role { *static_cast<MToplevel*>(data) };
+    role.imp()->pendingSuggestedBounds = { width, height };
 }
 
-void MToplevel::Imp::xdg_toplevel_wm_capabilities(void *data, xdg_toplevel *xdgToplevel, wl_array *capabilities)
+void MToplevel::Imp::xdg_toplevel_wm_capabilities(void *data, xdg_toplevel */*xdgToplevel*/, wl_array *capabilities)
 {
+    auto &role { *static_cast<MToplevel*>(data) };
+    role.imp()->pendingWMCaps.set(0);
 
+    const Int32 *caps { static_cast<const Int32*>(capabilities->data) };
+
+    for (size_t i = 0; i < capabilities->size/sizeof(*caps); i++)
+        role.imp()->pendingWMCaps.add(1 << caps[i]);
 }
 
 void MToplevel::Imp::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) noexcept
@@ -176,10 +230,11 @@ void MToplevel::Imp::unmap() noexcept
 {
     using SF = MSurface::Imp::Flags;
     obj.MSurface::imp()->flags.add(SF::PendingNullCommit);
-    obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure | SF::Mapped);
+    obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure);
     wl_surface_attach(obj.wlSurface(), nullptr, 0, 0);
     wl_surface_commit(obj.wlSurface());
     pendingStates.set(0);
     pendingSuggestedSize.setEmpty();
     configureSerial = 0;
+    obj.MSurface::imp()->setMapped(false);
 }
