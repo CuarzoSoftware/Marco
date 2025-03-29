@@ -26,7 +26,8 @@ public:
         PendingConfigureAck       = 1 << 6,
         PendingChildren           = 1 << 7,
         PendingParent             = 1 << 8,
-        Last                      = 1 << 9,
+        BuiltinDecorations        = 1 << 9,
+        Last                      = 1 << 10,
     };
 
     enum TmpFlags
@@ -43,7 +44,7 @@ public:
     AKBitset<TmpFlags> tmpFlags;
 
     // Persistent
-    AKBitset<Flags> flags;
+    AKBitset<Flags> flags { BuiltinDecorations };
 
     // Kay
     AKScene scene;

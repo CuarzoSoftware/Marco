@@ -12,6 +12,37 @@
 #include <EGL/egl.h>
 #include <set>
 
+/**
+ * @brief Base class for surface roles.
+ *
+ * ### UI Structure
+ *
+ * Each MSurface is an AKSolidColor node that represents the central node of the surface.
+ * From the data perspective, the MSurface class contains the following members:
+ * - `AKScene` (accessible via `scene()`)
+ * - `AKTarget` (accessible via `target()`)
+ * - `AKContainer` (accessible via `rootNode()`)
+ *
+ * From the UI perspective, the hierarchy is structured as follows:
+ *
+ * | - AKScene (scene())
+ *   | - AKTarget (target())
+ *     | - AKContainer (rootNode())
+ *       |- MSurface (this class, the central node)
+ *
+ * ### Wayland Surface and Layout
+ *
+ * Most roles configure the internal Wayland surface dimensions to align with the layout of the central node.
+ * Use the `layout()` functions to modify the dimensions of the Wayland surface accordingly.
+ *
+ * In specific cases, such as in `MToplevel`, the central node may be smaller than the actual surface size.
+ * This allows room for additional features like window decorations.
+ *
+ * ### Adding Child Nodes
+ *
+ * As the central node itself, `MSurface` supports the addition of child nodes, like any other node. However,
+ * its `setParent()` function is private and should not be accessed, as doing so would disrupt it's internal logic.
+ */
 class AK::MSurface : public AKSolidColor
 {
 public:
@@ -36,7 +67,7 @@ public:
     const std::set<MScreen*> &screens() const noexcept;
     void setMapped(bool mapped) noexcept;
     bool mapped() const noexcept;
-    void update() noexcept;
+    void update(bool force = false) noexcept;
     SkISize minContentSize() noexcept;
 
     AKScene &scene() const noexcept;

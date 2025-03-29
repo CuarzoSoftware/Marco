@@ -1,3 +1,4 @@
+#include <AK/AKLog.h>
 #include <Marco/private/MSurfacePrivate.h>
 #include <Marco/nodes/MCSDShadow.h>
 #include <Marco/roles/MSurface.h>
@@ -26,18 +27,20 @@ void MCSDShadow::layoutEvent(const AKLayoutEvent &e)
 
     if (m_toplevel->activated())
     {
+        AKLog::fatal("ACTIVATED");
         m_image = app()->theme()->csdShadowActive(
             scale(),
-            SkISize(layout().calculatedWidth() -  m_toplevel->decorationMargins().fLeft - m_toplevel->decorationMargins().fRight,
-                    layout().calculatedHeight() - m_toplevel->decorationMargins().fTop - m_toplevel->decorationMargins().fBottom),
+            SkISize(layout().calculatedWidth() -  m_toplevel->builtinDecorationMargins().fLeft - m_toplevel->builtinDecorationMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->builtinDecorationMargins().fTop - m_toplevel->builtinDecorationMargins().fBottom),
             m_clampSides);
     }
     else
     {
+        AKLog::fatal("NO ACTIVATED");
         m_image = app()->theme()->csdShadowInactive(
             scale(),
-            SkISize(layout().calculatedWidth() -  m_toplevel->decorationMargins().fLeft - m_toplevel->decorationMargins().fRight,
-                    layout().calculatedHeight() - m_toplevel->decorationMargins().fTop - m_toplevel->decorationMargins().fBottom),
+            SkISize(layout().calculatedWidth() -  m_toplevel->builtinDecorationMargins().fLeft - m_toplevel->builtinDecorationMargins().fRight,
+                    layout().calculatedHeight() - m_toplevel->builtinDecorationMargins().fTop - m_toplevel->builtinDecorationMargins().fBottom),
             m_clampSides);
     }
 
@@ -54,7 +57,7 @@ void MCSDShadow::renderEvent(const AKRenderEvent &p)
     SkIRect rect = p.rect;
     rect.fRight++;
 
-    const auto &margins { m_toplevel->decorationMargins() };
+    const auto &margins { m_toplevel->builtinDecorationMargins() };
     SkIRect centerV = SkIRect(
         margins.fLeft,
         margins.fTop,

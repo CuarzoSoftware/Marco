@@ -75,6 +75,14 @@ public:
             });
         });
 
+        builtinDecorationsButton.on.clicked.subscribe(this, [this](){
+            enableBuiltinDecorations(!builtinDecorationsEnabled());
+        });
+
+        decorationsButton.on.clicked.subscribe(this, [this]() {
+            setDecorationMode(decorationMode() == ClientSide ? ServerSide : ClientSide);
+        });
+
         maximizeButton.on.clicked.subscribe(this, [this](){
            setMaximized(!maximized());
         });
@@ -98,6 +106,10 @@ public:
             });
         });
 
+        onDecorationModeChanged.subscribe(this, [this](){
+            topbar.setVisible(decorationMode() == ClientSide);
+        });
+
         setMinSize(minContentSize());
     }
 
@@ -106,6 +118,8 @@ public:
     AKImageFrame cat { AKImageLoader::loadFile("/usr/local/share/Kay/assets/logo.png"), &body };
     UInt32 cursor { 1 };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
+    AKButton builtinDecorationsButton { "Toggle built-in decorations", &body };
+    AKButton decorationsButton { "Toggle decoration mode", &body };
     AKButton newWindowButton { "➕  New Child Window", &body };
     AKButton mapButton { "Unmap for 1 sec", &body };
     AKButton maximizeButton { "🖥️ Toggle Maximized", &body };

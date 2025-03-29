@@ -1,3 +1,4 @@
+#include <AK/AKLog.h>
 #include <Marco/private/MToplevelPrivate.h>
 #include <Marco/input/MPointer.h>
 #include <Marco/MApplication.h>
@@ -15,6 +16,7 @@ MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
     xdgToplevelListener.configure_bounds = xdg_toplevel_configure_bounds;
     xdgToplevelListener.close = xdg_toplevel_close;
     xdgToplevelListener.wm_capabilities = xdg_toplevel_wm_capabilities;
+    xdgDecorationListener.configure = xdg_decoration_configure;
 }
 
 void MToplevel::Imp::applyPendingParent() noexcept
@@ -37,12 +39,32 @@ void MToplevel::Imp::applyPendingChildren() noexcept
         xdg_toplevel_set_parent(child->imp()->xdgToplevel, xdgToplevel);
 }
 
+void MToplevel::Imp::setShadowMargins(const SkIRect &margins) noexcept
+{
+    if (margins == shadowMargins)
+        return;
+
+    // This is used to ensure the cursor position keeps relative to the central node
+    // otherwise stuff like clicking a button won't work properly
+    if (app()->pointer().focus() == &obj)
+    {
+        const SkIPoint offset { margins.topLeft() - shadowMargins.topLeft() };
+        akPointer().setPos(akPointer().pos() + SkPoint::Make(offset.x(), offset.y()));
+    }
+
+    shadowMargins = margins;
+    obj.update(true);
+}
+
 void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)
 {
     auto &role { *static_cast<MToplevel*>(data) };
 
     if (!role.MSurface::imp()->flags.check(MSurface::Imp::UserMapped))
+    {
+        xdg_surface_ack_configure(role.imp()->xdgSurface, serial);
         return;
+    }
 
     role.MSurface::imp()->flags.add(MSurface::Imp::PendingConfigureAck);
     role.imp()->configureSerial = serial;
@@ -50,19 +72,16 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
     bool notifyStates { role.MSurface::imp()->flags.check(MSurface::Imp::PendingFirstConfigure) };
     bool notifySuggestedSize { notifyStates };
     bool notifyBounds { false };
-    bool activatedChanged { false };
     bool notifyWMCaps { false };
+    bool notifyDecoration { false };
 
     role.MSurface::imp()->flags.remove(MSurface::Imp::PendingFirstConfigure);
 
-    if (notifyStates)
-    {
-        xdg_toplevel_set_title(role.imp()->xdgToplevel, role.title().c_str());
-    }
+    const AKBitset<AKWindowState> stateChanges {
+        (role.imp()->currentStates.get() ^ role.imp()->pendingStates.get()) & AKAllWindowStates };
 
-    if (role.imp()->currentStates.get() != role.imp()->pendingStates.get())
+    if (stateChanges.get() != 0)
     {
-        activatedChanged = role.imp()->currentStates.check(AKActivated) != role.imp()->pendingStates.check(AKActivated);
         role.imp()->currentStates = role.imp()->pendingStates;
         notifyStates = true;
     }
@@ -85,7 +104,16 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
         notifyWMCaps = true;
     }
 
+    if (role.imp()->pendingDecorationMode != role.imp()->currentDecorationMode)
+    {
+        role.imp()->currentDecorationMode = role.imp()->pendingDecorationMode;
+        notifyDecoration = true;
+    }
+
     AKWeak<MToplevel> ref { &role };
+
+    if (ref && notifyDecoration)
+        role.decorationModeChanged();
 
     if (ref && notifyWMCaps)
         role.wmCapabilitiesChanged();
@@ -98,20 +126,17 @@ void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface
 
     if (ref && notifyStates)
     {
-        if (activatedChanged)
-            akApp()->postEvent(AKWindowStateEvent(role.scene().windowState().get() ^ role.imp()->currentStates.get()), role.scene());
+        akApp()->sendEvent(AKWindowStateEvent(role.states(), stateChanges), role.scene());
+        role.update(true);
     }
 
     if (ref && !role.MSurface::imp()->flags.check(MSurface::Imp::Mapped))
     {
+        xdg_toplevel_set_title(role.imp()->xdgToplevel, role.title().c_str());
+        xdg_toplevel_set_app_id(role.imp()->xdgToplevel, app()->appId().c_str());
         role.MSurface::imp()->setMapped(true);
         role.imp()->applyPendingParent();
-    }
-
-    if (ref)
-    {
-        role.MSurface::imp()->flags.add(MSurface::Imp::ForceUpdate);
-        role.update();
+        role.update(true);
     }
 }
 
@@ -126,6 +151,8 @@ void MToplevel::Imp::xdg_toplevel_configure(void *data, xdg_toplevel *, Int32 wi
     const UInt32 *stateVals = (UInt32*)states->data;
     for (UInt32 i = 0; i < states->size/sizeof(*stateVals); i++)
         role.imp()->pendingStates.add(1 << stateVals[i]);
+
+    role.imp()->pendingStates.set(role.imp()->pendingStates.get() & AKAllWindowStates);
 
     // Just in case the compositor is insane
     role.imp()->pendingSuggestedSize.fWidth = width < 0 ? 0 : width;
@@ -157,6 +184,12 @@ void MToplevel::Imp::xdg_toplevel_wm_capabilities(void *data, xdg_toplevel */*xd
 
     for (size_t i = 0; i < capabilities->size/sizeof(*caps); i++)
         role.imp()->pendingWMCaps.add(1 << caps[i]);
+}
+
+void MToplevel::Imp::xdg_decoration_configure(void *data, zxdg_toplevel_decoration_v1 *, UInt32 mode)
+{
+    auto &role { *static_cast<MToplevel*>(data) };
+    role.imp()->pendingDecorationMode = (DecorationMode)mode;
 }
 
 void MToplevel::Imp::handleRootPointerButtonEvent(const AKPointerButtonEvent &event) noexcept

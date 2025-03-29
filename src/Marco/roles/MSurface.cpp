@@ -6,7 +6,7 @@
 
 using namespace AK;
 
-MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(AK::AKColor::GrayLighten5)
+MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(SK_ColorWHITE)
 {
     m_imp = std::make_unique<Imp>(*this);
     imp()->role = role;
@@ -81,9 +81,13 @@ bool MSurface::mapped() const noexcept
     return imp()->flags.check(Imp::Mapped);
 }
 
-void MSurface::update() noexcept
+void MSurface::update(bool force) noexcept
 {
     imp()->flags.add(Imp::PendingUpdate);
+
+    if (force)
+        imp()->flags.add(Imp::ForceUpdate);
+
     app()->update();
 }
 

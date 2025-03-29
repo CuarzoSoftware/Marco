@@ -3,6 +3,7 @@
 #include <Marco/MApplication.h>
 #include <Marco/MTheme.h>
 
+#include <AK/events/AKLayoutEvent.h>
 #include <AK/events/AKWindowStateEvent.h>
 #include <AK/AKLog.h>
 
@@ -27,9 +28,6 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     imp()->xdgToplevel = xdg_surface_get_toplevel(imp()->xdgSurface);
     xdg_toplevel_add_listener(imp()->xdgToplevel, &Imp::xdgToplevelListener, this);
     xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
-
-    //if (app()->wayland().xdgDecorationManager)
-    //    wl.xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, imp()->xdgToplevel);
 
     app()->onAppIdChanged.subscribe(this, [this](){
         xdg_toplevel_set_app_id(imp()->xdgToplevel, app()->appId().c_str());
@@ -110,6 +108,13 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 MToplevel::~MToplevel() noexcept
 {
     setParentToplevel(nullptr);
+
+    if (imp()->xdgDecoration)
+    {
+        zxdg_toplevel_decoration_v1_destroy(imp()->xdgDecoration);
+        imp()->xdgDecoration = nullptr;
+    }
+
     xdg_toplevel_destroy(imp()->xdgToplevel);
     xdg_surface_destroy(imp()->xdgSurface);
 }
@@ -204,7 +209,7 @@ void MToplevel::suggestedSizeChanged()
 {
     if (suggestedSize().width() == 0)
     {
-        if (globalRect().width() == 0)
+        if (layout().width().value == 0.f || layout().width().value == YGUndefined)
             layout().setWidthAuto();
     }
     else
@@ -212,7 +217,7 @@ void MToplevel::suggestedSizeChanged()
 
     if (suggestedSize().height() == 0)
     {
-        if (globalRect().height() == 0)
+        if (layout().height().value == 0.f || layout().height().value == YGUndefined)
             layout().setHeightAuto();
     }
     else
@@ -246,9 +251,34 @@ const std::string &MToplevel::title() const noexcept
     return imp()->title;
 }
 
-const SkIRect &MToplevel::decorationMargins() const noexcept
+const SkIRect &MToplevel::builtinDecorationMargins() const noexcept
 {
     return imp()->shadowMargins;
+}
+
+const SkIRect &MToplevel::decorationMargins() const noexcept
+{
+    return imp()->userDecorationMargins;
+}
+
+void MToplevel::setDecorationMargins(const SkIRect &margins) noexcept
+{
+    SkIRect m { margins };
+
+    if (m.fLeft < 0) m.fLeft = 0;
+    if (m.fTop < 0) m.fTop = 0;
+    if (m.fRight < 0) m.fRight = 0;
+    if (m.fBottom < 0) m.fBottom = 0;
+
+    if (imp()->userDecorationMargins == margins)
+        return;
+
+    imp()->userDecorationMargins = margins;
+
+    if (decorationMode() == ClientSide && !builtinDecorationsEnabled())
+        update();
+
+    decorationMarginsChanged();
 }
 
 AKBitset<MToplevel::WMCapabilities> MToplevel::wmCapabilities() const noexcept
@@ -263,6 +293,74 @@ bool MToplevel::showWindowMenu(const AKInputEvent &event, const SkIPoint &pos) n
 
     xdg_toplevel_show_window_menu(imp()->xdgToplevel, app()->wayland().seat, event.serial(), pos.x(), pos.y());
     return true;
+}
+
+MToplevel::DecorationMode MToplevel::decorationMode() const noexcept
+{
+    return imp()->currentDecorationMode;
+}
+
+void MToplevel::setDecorationMode(DecorationMode mode) noexcept
+{
+    if (mode == ClientSide)
+    {
+        if (imp()->xdgDecoration)
+        {
+            zxdg_toplevel_decoration_v1_destroy(imp()->xdgDecoration);
+            imp()->xdgDecoration = nullptr;
+            update();
+        }
+
+        imp()->pendingDecorationMode = ClientSide;
+
+        if (imp()->pendingDecorationMode != imp()->currentDecorationMode)
+        {
+            imp()->currentDecorationMode = ClientSide;
+            decorationModeChanged();
+        }
+    }
+    else
+    {
+        if (!app()->wayland().xdgDecorationManager)
+            return;
+
+        const bool wasMapped { mapped() };
+
+        if (!imp()->xdgDecoration)
+        {
+            if (wasMapped)
+                imp()->unmap();
+
+            imp()->xdgDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(app()->wayland().xdgDecorationManager, imp()->xdgToplevel);
+            zxdg_toplevel_decoration_v1_add_listener(imp()->xdgDecoration, &imp()->xdgDecorationListener, this);
+            zxdg_toplevel_decoration_v1_set_mode(imp()->xdgDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+
+            if (wasMapped)
+                setMapped(true);
+        }
+        else
+        {
+            zxdg_toplevel_decoration_v1_set_mode(imp()->xdgDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+        }
+
+        update();
+    }
+}
+
+bool MToplevel::builtinDecorationsEnabled() const noexcept
+{
+    return MSurface::imp()->flags.check(MSurface::Imp::BuiltinDecorations);
+}
+
+void MToplevel::enableBuiltinDecorations(bool enabled) noexcept
+{
+    if (builtinDecorationsEnabled() == enabled)
+        return;
+
+    MSurface::imp()->flags.setFlag(MSurface::Imp::BuiltinDecorations, enabled);
+
+    if (decorationMode() == ClientSide)
+        update(true);
 }
 
 bool MToplevel::setParentToplevel(MToplevel *parent) noexcept
@@ -308,7 +406,7 @@ MToplevel *MToplevel::parentToplevel() const noexcept
     return imp()->parentToplevel;
 }
 
-std::unordered_set<AK::MToplevel *> MToplevel::childToplevels() const noexcept
+const std::unordered_set<AK::MToplevel *> &MToplevel::childToplevels() const noexcept
 {
     return imp()->childToplevels;
 }
@@ -316,6 +414,16 @@ std::unordered_set<AK::MToplevel *> MToplevel::childToplevels() const noexcept
 void MToplevel::wmCapabilitiesChanged()
 {
     onWMCapabilitiesChanged.notify();
+}
+
+void MToplevel::decorationModeChanged()
+{
+    onDecorationModeChanged.notify();
+}
+
+void MToplevel::decorationMarginsChanged()
+{
+
 }
 
 void MToplevel::windowStateEvent(const AKWindowStateEvent &event)
@@ -400,9 +508,13 @@ void MToplevel::onUpdate() noexcept
     if (tmpFlags.check(STF::ScaleChanged))
         flags.add(SF::ForceUpdate);
 
-    if (states().check(AKMaximized | AKFullscreen))
+    if (states().check(AKMaximized | AKFullscreen) || decorationMode() == ServerSide || !builtinDecorationsEnabled())
     {
-        imp()->shadowMargins = { 0, 0, 0, 0 };
+        if (decorationMode() == ServerSide || builtinDecorationsEnabled())
+            imp()->setShadowMargins({ 0, 0, 0, 0 });
+        else
+            imp()->setShadowMargins(imp()->userDecorationMargins);
+
         imp()->shadow.setVisible(false);
         for (int i = 0; i < 4; i++)
             imp()->borderRadius[i].setVisible(false);
@@ -415,22 +527,31 @@ void MToplevel::onUpdate() noexcept
 
         if (activated())
         {
-            imp()->shadowMargins = {
+            imp()->setShadowMargins({
                 app()->theme()->CSDShadowActiveRadius,
                 app()->theme()->CSDShadowActiveRadius - app()->theme()->CSDShadowActiveOffsetY,
                 app()->theme()->CSDShadowActiveRadius,
                 app()->theme()->CSDShadowActiveRadius + app()->theme()->CSDShadowActiveOffsetY,
-            };
+            });
         }
         else
         {
-            imp()->shadowMargins = {
+            imp()->setShadowMargins({
                 app()->theme()->CSDShadowInactiveRadius,
                 app()->theme()->CSDShadowInactiveRadius - app()->theme()->CSDShadowInactiveOffsetY,
                 app()->theme()->CSDShadowInactiveRadius,
                 app()->theme()->CSDShadowInactiveRadius + app()->theme()->CSDShadowInactiveOffsetY,
-            };
+            });
         }
+
+        imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
+        imp()->borderRadius[0].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
+        imp()->borderRadius[1].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
+        imp()->borderRadius[1].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
+        imp()->borderRadius[2].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
+        imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
+        imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
+        imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
     }
 
     layout().setPosition(YGEdgeLeft, 0.f);
@@ -439,14 +560,7 @@ void MToplevel::onUpdate() noexcept
     layout().setMargin(YGEdgeTop, imp()->shadowMargins.fTop);
     layout().setMargin(YGEdgeRight, imp()->shadowMargins.fRight);
     layout().setMargin(YGEdgeBottom, imp()->shadowMargins.fBottom);
-    imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
-    imp()->borderRadius[0].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
-    imp()->borderRadius[1].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
-    imp()->borderRadius[1].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
-    imp()->borderRadius[2].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
-    imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
-    imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
-    imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
+
     render();
 }
 
@@ -539,8 +653,9 @@ void MToplevel::render() noexcept
     target()->outOpaqueRegion = &skOpaque;
 
     /* CSD */
-    for (int i = 0; i < 4; i++)
-        imp()->borderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(scale()));
+    if (decorationMode() == ClientSide && builtinDecorationsEnabled())
+        for (int i = 0; i < 4; i++)
+            imp()->borderRadius[i].setImage(app()->theme()->csdBorderRadiusMask(scale()));
 
     /*
     glScissor(0, 0, 1000000, 100000);
@@ -548,8 +663,9 @@ void MToplevel::render() noexcept
     glClear(GL_COLOR_BUFFER_BIT);*/
     scene().render(target());
 
-    for (int i = 0; i < 4; i++)
-        target()->outOpaqueRegion->op(imp()->borderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
+    if (decorationMode() == ClientSide && builtinDecorationsEnabled())
+        for (int i = 0; i < 4; i++)
+            target()->outOpaqueRegion->op(imp()->borderRadius[i].globalRect(), SkRegion::Op::kDifference_Op);
 
     wl_surface_set_buffer_scale(wlSurface(), scale());
 
@@ -566,9 +682,13 @@ void MToplevel::render() noexcept
 
     /* In some compositors using fractional scaling (without oversampling), the opaque region
      * can leak, causing borders to appear black. This inset prevents that. */
-    SkIRect opaqueClip { globalRect() };
-    opaqueClip.inset(1, 1);
-    skOpaque.op(opaqueClip, SkRegion::Op::kIntersect_Op);
+
+    if (decorationMode() == ClientSide && builtinDecorationsEnabled())
+    {
+        SkIRect opaqueClip { globalRect() };
+        opaqueClip.inset(1, 1);
+        skOpaque.op(opaqueClip, SkRegion::Op::kIntersect_Op);
+    }
     wl_region *wlOpaqueRegion = wl_compositor_create_region(app()->wayland().compositor);
     SkRegion::Iterator opaqueIt(skOpaque);
     while (!opaqueIt.done())
