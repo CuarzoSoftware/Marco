@@ -84,6 +84,8 @@ public:
             if (animated)
                 a->start();
         });
+
+        setMinSize(minContentSize());
     }
 
     bool animated { false };

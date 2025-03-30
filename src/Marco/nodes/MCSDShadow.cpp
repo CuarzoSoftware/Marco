@@ -27,7 +27,6 @@ void MCSDShadow::layoutEvent(const AKLayoutEvent &e)
 
     if (m_toplevel->activated())
     {
-        AKLog::fatal("ACTIVATED");
         m_image = app()->theme()->csdShadowActive(
             scale(),
             SkISize(layout().calculatedWidth() -  m_toplevel->builtinDecorationMargins().fLeft - m_toplevel->builtinDecorationMargins().fRight,
@@ -36,7 +35,6 @@ void MCSDShadow::layoutEvent(const AKLayoutEvent &e)
     }
     else
     {
-        AKLog::fatal("NO ACTIVATED");
         m_image = app()->theme()->csdShadowInactive(
             scale(),
             SkISize(layout().calculatedWidth() -  m_toplevel->builtinDecorationMargins().fLeft - m_toplevel->builtinDecorationMargins().fRight,

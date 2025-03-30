@@ -145,14 +145,18 @@ void MSubSurface::setPos(const SkIPoint &pos) noexcept
     if (pos == imp()->pos)
         return;
 
-    imp()->posChanged = true;
     imp()->pos = pos;
 
-    if (parent())
+    if (parent() && mapped())
     {
-        update(true);
+        wl_subsurface_set_position(imp()->wlSubSurface, pos.x(), pos.y());
+        wl_surface_commit(wlSurface());
         parent()->update(true);
+        return;
     }
+
+    update(true);
+    imp()->posChanged = true;
 }
 
 MSubSurface::Imp *MSubSurface::imp() const noexcept
