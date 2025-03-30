@@ -31,6 +31,7 @@ public:
         MProxy<wl_registry> registry;
         MProxy<wl_shm> shm;
         MProxy<wl_compositor> compositor;
+        MProxy<wl_subcompositor> subCompositor;
         MProxy<xdg_wm_base> xdgWmBase;
         MProxy<zxdg_decoration_manager_v1> xdgDecorationManager;
         MProxy<wl_seat> seat;
@@ -131,6 +132,7 @@ private:
     void initWayland() noexcept;
     void initGraphics() noexcept;
     void updateSurfaces();
+    void updateSurface(MSurface *surface);
     bool m_running { false };
 
     Wayland wl;

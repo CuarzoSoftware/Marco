@@ -566,19 +566,12 @@ void MToplevel::onUpdate() noexcept
 
 void MToplevel::render() noexcept
 {
-    /*
-    const Int64 ms = Int64(AKTime::ms()) - Int64(wlCallback()SendMs);
-
-    if (ms < 8)
-    {
-        app()->setTimeout(8 - ms);
-        return;
-    }*/
-
     scene().root()->layout().calculate();
 
     if (wlCallback() && !MSurface::imp()->flags.check(MSurface::Imp::ForceUpdate))
         return;
+
+    bool repaint { false };
 
     MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
 
@@ -620,6 +613,7 @@ void MToplevel::render() noexcept
 
     if (sizeChanged)
     {
+        repaint = true;
         app()->update();
 
         wp_viewport_set_source(wlViewport(),
@@ -634,6 +628,16 @@ void MToplevel::render() noexcept
             imp()->shadowMargins.fTop,
             layout().calculatedWidth(),
             layout().calculatedHeight());
+    }
+
+    repaint |= target()->isDirty() || target()->bakedComponentsScale() != scale();
+
+    if (!repaint)
+    {
+        imp()->applyPendingParent();
+        imp()->applyPendingChildren();
+        wl_surface_commit(wlSurface());
+        return;
     }
 
     eglMakeCurrent(app()->graphics().eglDisplay, eglSurface(), eglSurface(), app()->graphics().eglContext);

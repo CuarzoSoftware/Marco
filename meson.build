@@ -78,5 +78,6 @@ pkg.generate(
 if get_option('build_examples')
     subdir('src/examples/marco-toplevel')
     subdir('src/examples/marco-toplevel-custom-csd')
+    subdir('src/examples/marco-subsurfaces')
     subdir('src/examples/marco-layer-shell')
 endif

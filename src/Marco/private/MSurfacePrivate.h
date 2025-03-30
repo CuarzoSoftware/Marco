@@ -73,6 +73,8 @@ public:
     EGLSurface eglSurface { EGL_NO_SURFACE };
     sk_sp<SkSurface> skSurface;
 
+    std::list<MSubSurface*> subSurfaces;
+
     Role role;
     size_t appLink;
 

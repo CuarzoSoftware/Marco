@@ -468,6 +468,9 @@ public:
      */
     AKSignal<> onDecorationMarginsChanged;
 
+    class Imp;
+    Imp *imp() const noexcept;
+
 protected:
 
     /**
@@ -528,8 +531,6 @@ protected:
     bool event(const AKEvent &e) override;
     void onUpdate() noexcept override;
 
-    class Imp;
-    Imp *imp() const noexcept;
 private:
     std::unique_ptr<Imp> m_imp;
     void render() noexcept;

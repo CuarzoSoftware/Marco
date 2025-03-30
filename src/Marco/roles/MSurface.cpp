@@ -3,6 +3,7 @@
 #include <Marco/private/MSurfacePrivate.h>
 #include <AK/AKColors.h>
 #include <Marco/MApplication.h>
+#include <Marco/roles/MSubSurface.h>
 
 using namespace AK;
 
@@ -30,6 +31,9 @@ MSurface::MSurface(Role role) noexcept : AK::AKSolidColor(SK_ColorWHITE)
 
 MSurface::~MSurface()
 {
+    while (!subSurfaces().empty())
+        subSurfaces().back()->setParent(nullptr);
+
     app()->m_surfaces[imp()->appLink] = app()->m_surfaces.back();
     app()->m_surfaces.pop_back();
     scene().destroyTarget(target());
@@ -103,6 +107,11 @@ SkISize MSurface::minContentSize() noexcept
     layout().setHeightYGValue(height);
     rootNode()->layout().calculate();
     return contentSize;
+}
+
+const std::list<MSubSurface *> &MSurface::subSurfaces() const noexcept
+{
+    return imp()->subSurfaces;
 }
 
 AKScene &MSurface::scene() const noexcept

@@ -49,6 +49,7 @@ public:
     enum class Role
     {
         Toplevel,
+        SubSurface,
         LayerSurface
     };
 
@@ -69,6 +70,7 @@ public:
     bool mapped() const noexcept;
     void update(bool force = false) noexcept;
     SkISize minContentSize() noexcept;
+    const std::list<MSubSurface*> &subSurfaces() const noexcept;
 
     AKScene &scene() const noexcept;
     AKTarget *target() const noexcept;
@@ -85,13 +87,13 @@ public:
     AKSignal<MScreen&> onEnteredScreen;
     AKSignal<MScreen&> onLeftScreen;
     AKSignal<UInt32> onCallbackDone;
+    class Imp;
+    Imp *imp() const noexcept;
 protected:
     friend class MApplication;
     friend class MCSDShadow;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
-    class Imp;
-    Imp *imp() const noexcept;
 private:
     std::unique_ptr<Imp> m_imp;
     using AKNode::setParent;

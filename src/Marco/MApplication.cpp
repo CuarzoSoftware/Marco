@@ -52,6 +52,10 @@ void MApplication::wl_registry_global(void *data, wl_registry *registry, UInt32 
     {
         wl.compositor.set(wl_registry_bind(registry, name, &wl_compositor_interface, version), name);
     }
+    else if (!wl.subCompositor && strcmp(interface, wl_subcompositor_interface.name) == 0)
+    {
+        wl.subCompositor.set(wl_registry_bind(registry, name, &wl_subcompositor_interface, version), name);
+    }
     else if (!wl.xdgWmBase && strcmp(interface, xdg_wm_base_interface.name) == 0)
     {
         wl.xdgWmBase.set(wl_registry_bind(registry, name, &xdg_wm_base_interface, version), name);
@@ -479,14 +483,25 @@ void MApplication::updateSurfaces()
 {
     for (MSurface *surf : m_surfaces)
     {
-        if (surf->imp()->flags.check(MSurface::Imp::PendingUpdate))
-        {
-            if (!surf->wlCallback())
-                surf->imp()->flags.remove(MSurface::Imp::PendingUpdate);
-            surf->onUpdate();
-            surf->imp()->tmpFlags.set(0);
-        }
+        if (surf->role() == MSurface::Role::SubSurface)
+            continue;
+
+        updateSurface(surf);
     }
 
     wl_display_flush(wl.display);
+}
+
+void MApplication::updateSurface(MSurface *surf)
+{
+    for (MSubSurface *subSurf : surf->subSurfaces())
+        updateSurface((MSurface*)subSurf);
+
+    if (surf->imp()->flags.check(MSurface::Imp::PendingUpdate))
+    {
+        if (!surf->wlCallback())
+            surf->imp()->flags.remove(MSurface::Imp::PendingUpdate);
+        surf->onUpdate();
+        surf->imp()->tmpFlags.set(0);
+    }
 }
