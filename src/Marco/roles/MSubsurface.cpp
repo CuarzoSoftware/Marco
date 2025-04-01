@@ -1,10 +1,10 @@
-#include <Marco/private/MSubSurfacePrivate.h>
+#include <Marco/private/MSubsurfacePrivate.h>
 #include <Marco/private/MSurfacePrivate.h>
 #include <Marco/MApplication.h>
 
 using namespace AK;
 
-MSubSurface::MSubSurface(MSurface *parent) noexcept :
+MSubsurface::MSubsurface(MSurface *parent) noexcept :
     MSurface(MSurface::Role::SubSurface)
 {
     assert("wl_subcompositor not supported by the compositor" && app()->wayland().subCompositor);
@@ -12,17 +12,17 @@ MSubSurface::MSubSurface(MSurface *parent) noexcept :
     setParent(parent);
 }
 
-MSubSurface::~MSubSurface()
+MSubsurface::~MSubsurface()
 {
     setParent(nullptr);
 }
 
-MSurface *MSubSurface::parent() const noexcept
+MSurface *MSubsurface::parent() const noexcept
 {
     return imp()->parent;
 }
 
-bool MSubSurface::setParent(MSurface *surface) noexcept
+bool MSubsurface::setParent(MSurface *surface) noexcept
 {
     if (imp()->parent == surface)
         return true;
@@ -30,7 +30,7 @@ bool MSubSurface::setParent(MSurface *surface) noexcept
     // Check if it is a descendant
     if (surface && surface->role() == MSurface::Role::SubSurface)
     {
-        MSubSurface *check { (MSubSurface*)surface };
+        MSubsurface *check { (MSubsurface*)surface };
 
         while (check)
         {
@@ -38,7 +38,7 @@ bool MSubSurface::setParent(MSurface *surface) noexcept
                 return false;
 
             if (check->parent() && check->parent()->role() == MSurface::Role::SubSurface)
-                check = (MSubSurface*)check->parent();
+                check = (MSubsurface*)check->parent();
             else
                 break;
         }
@@ -78,7 +78,12 @@ bool MSubSurface::setParent(MSurface *surface) noexcept
     return true;
 }
 
-bool MSubSurface::placeAbove(MSubSurface *subSurface) noexcept
+const std::list<MSubsurface*>::iterator &MSubsurface::parentLink() const noexcept
+{
+    return imp()->parentLink;
+}
+
+bool MSubsurface::placeAbove(MSubsurface *subSurface) noexcept
 {
     if (!parent() || subSurface == this)
         return false;
@@ -119,7 +124,7 @@ bool MSubSurface::placeAbove(MSubSurface *subSurface) noexcept
     return true;
 }
 
-bool MSubSurface::placeBelow(MSubSurface *subSurface) noexcept
+bool MSubsurface::placeBelow(MSubsurface *subSurface) noexcept
 {
     if (!subSurface || !parent() || subSurface->parent() != parent())
         return false;
@@ -128,19 +133,19 @@ bool MSubSurface::placeBelow(MSubSurface *subSurface) noexcept
         return true;
 
     parent()->imp()->subSurfaces.erase(imp()->parentLink);
-    imp()->parentLink = parent()->imp()->subSurfaces.insert(std::next(subSurface->imp()->parentLink), this);
-    wl_subsurface_place_below(imp()->wlSubSurface, parent()->wlSurface());
+    imp()->parentLink = parent()->imp()->subSurfaces.insert(subSurface->imp()->parentLink, this);
+    wl_subsurface_place_below(imp()->wlSubSurface, subSurface->wlSurface());
     update();
     parent()->update(true);
     return true;
 }
 
-const SkIPoint &MSubSurface::pos() const noexcept
+const SkIPoint &MSubsurface::pos() const noexcept
 {
     return imp()->pos;
 }
 
-void MSubSurface::setPos(const SkIPoint &pos) noexcept
+void MSubsurface::setPos(const SkIPoint &pos) noexcept
 {
     if (pos == imp()->pos)
         return;
@@ -151,37 +156,44 @@ void MSubSurface::setPos(const SkIPoint &pos) noexcept
     {
         wl_subsurface_set_position(imp()->wlSubSurface, pos.x(), pos.y());
         wl_surface_commit(wlSurface());
+
+        // Protocol: The position is always applied when the parent commits
         parent()->update(true);
         return;
     }
 
+    // From onUpdate() the parent is requested to commit later
     update(true);
     imp()->posChanged = true;
 }
 
-MSubSurface::Imp *MSubSurface::imp() const noexcept
+MSubsurface::Imp *MSubsurface::imp() const noexcept
 {
     return m_imp.get();
 }
 
-void MSubSurface::onUpdate() noexcept
+void MSubsurface::onUpdate() noexcept
 {
     MSurface::onUpdate();
 
     if (!parent())
         return;
 
-    AKWeak<MSubSurface> ref { this };
+    AKWeak<MSubsurface> ref { this };
 
     if (MSurface::imp()->flags.check(MSurface::Imp::UserMapped))
     {
         if (!mapped())
+        {
+            parent()->update(true);
             MSurface::imp()->setMapped(true);
+        }
     }
     else
     {
         if (mapped())
         {
+            parent()->update(true);
             wl_surface_attach(wlSurface(), NULL, 0, 0);
             wl_surface_commit(wlSurface());
             MSurface::imp()->setMapped(false);
@@ -204,7 +216,7 @@ void MSubSurface::onUpdate() noexcept
     render();
 }
 
-void MSubSurface::render() noexcept
+void MSubsurface::render() noexcept
 {
     scene().root()->layout().calculate();
 

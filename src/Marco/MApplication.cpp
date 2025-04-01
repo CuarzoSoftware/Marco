@@ -494,7 +494,7 @@ void MApplication::updateSurfaces()
 
 void MApplication::updateSurface(MSurface *surf)
 {
-    for (MSubSurface *subSurf : surf->subSurfaces())
+    for (MSubsurface *subSurf : surf->subSurfaces())
         updateSurface((MSurface*)subSurf);
 
     if (surf->imp()->flags.check(MSurface::Imp::PendingUpdate))

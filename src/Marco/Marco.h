@@ -12,7 +12,7 @@ namespace AK
     class MToplevel;
     class MPopup;
     class MLayerSurface;
-    class MSubSurface;
+    class MSubsurface;
 
     class MTheme;
     class MCSDShadow;

@@ -70,7 +70,7 @@ public:
     bool mapped() const noexcept;
     void update(bool force = false) noexcept;
     SkISize minContentSize() noexcept;
-    const std::list<MSubSurface*> &subSurfaces() const noexcept;
+    const std::list<MSubsurface*> &subSurfaces() const noexcept;
 
     AKScene &scene() const noexcept;
     AKTarget *target() const noexcept;

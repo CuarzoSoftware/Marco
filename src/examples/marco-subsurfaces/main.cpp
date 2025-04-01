@@ -1,18 +1,18 @@
 #include <AK/AKLog.h>
 #include <Marco/MApplication.h>
 #include <Marco/roles/MToplevel.h>
-#include <Marco/roles/MSubSurface.h>
+#include <Marco/roles/MSubsurface.h>
 #include <AK/nodes/AKButton.h>
 #include <AK/nodes/AKText.h>
 #include <AK/AKAnimation.h>
 
 using namespace AK;
 
-class SubWindow : public MSubSurface
+class SubWindow : public MSubsurface
 {
 public:
     SubWindow(MSurface *parent, Int32 size, size_t n) :
-        MSubSurface(parent),
+        MSubsurface(parent),
         n(n),
         label {std::to_string(n), this }
     {
@@ -26,12 +26,43 @@ public:
         layout().setHeight(size);
         layout().setJustifyContent(YGJustifyCenter);
         layout().setAlignItems(YGAlignCenter);
-        setPos({200, 200});
+        setPos({-size, -size});
         setMapped(true);
+
+        toggleMap.on.clicked.subscribe(this, [this](){
+            setMapped(false);
+            AKTimer::OneShoot(1000, [this](AKTimer*){
+                setMapped(true);
+            });
+        });
+
+        addButton.on.clicked.subscribe(this, [this](){
+            SubWindow *w = new SubWindow(this, surfaceSize().width(), subSurfaces().size() + 1);
+            w->addButton.setVisible(false);
+            w->setPos(-(surfaceSize().width()/2.5) * w->n, -(surfaceSize().width()/2.5) * w->n + 20);
+        });
+
+        upButton.on.clicked.subscribe(this, [this](){
+
+            if (this->parent()->subSurfaces().back() == this)
+                return;
+            placeAbove(*std::next(parentLink()));
+        });
+
+        downButton.on.clicked.subscribe(this, [this](){
+
+            if (this->parent()->subSurfaces().front() == this)
+                return;
+            placeBelow(*std::prev(parentLink()));
+        });
     }
 
     size_t n;
     AKText label;
+    AKButton toggleMap { "Hide 1 sec", this };
+    AKButton addButton { "Add sub", this };
+    AKButton upButton { "Up", this };
+    AKButton downButton { "Down", this };
 };
 
 class Window : public MToplevel
@@ -43,7 +74,7 @@ public:
         layout().setGap(YGGutterAll, 32.f);
 
         addButton.on.clicked.subscribe(this, [this](){
-            new SubWindow(this, 48, subSurfaces().size());
+            new SubWindow(this, 120, subSurfaces().size());
         });
 
         animateButton.on.clicked.subscribe(this, [this](){
@@ -53,6 +84,11 @@ public:
                 spinAnimation.start();
             else
                 spinAnimation.stop();
+        });
+
+        destroyButton.on.clicked.subscribe(this, [this](){
+            while (!subSurfaces().empty())
+                delete subSurfaces().back();
         });
 
         exitButton.on.clicked.subscribe(this, [](){exit(0);});
@@ -68,7 +104,7 @@ public:
             const SkSize radius (tlCenter.width() + 100.f, tlCenter.height() + 100.f );
 
             SkScalar x, y;
-            for (MSubSurface *subS : subSurfaces())
+            for (MSubsurface *subS : subSurfaces())
             {
                 SubWindow *s = (SubWindow*)subS;
                 x = SkScalarCos(phaseSlice * s->n + phase);
@@ -80,7 +116,7 @@ public:
 
         });
 
-        spinAnimation.setOnFinishCallback([this](AKAnimation *a){
+        spinAnimation.setOnFinishCallback([this](AKAnimation *a) {
             if (animated)
                 a->start();
         });
@@ -92,6 +128,7 @@ public:
     AKAnimation spinAnimation;
     AKButton addButton { "Create subsurface", this };
     AKButton animateButton { "Animate subsurfaces", this };
+    AKButton destroyButton { "Destoy subsurfaces", this };
     AKButton exitButton { "Exit", this };
 };
 

@@ -3,7 +3,7 @@
 #include <Marco/private/MSurfacePrivate.h>
 #include <AK/AKColors.h>
 #include <Marco/MApplication.h>
-#include <Marco/roles/MSubSurface.h>
+#include <Marco/roles/MSubsurface.h>
 
 using namespace AK;
 
@@ -109,7 +109,7 @@ SkISize MSurface::minContentSize() noexcept
     return contentSize;
 }
 
-const std::list<MSubSurface *> &MSurface::subSurfaces() const noexcept
+const std::list<MSubsurface *> &MSurface::subSurfaces() const noexcept
 {
     return imp()->subSurfaces;
 }

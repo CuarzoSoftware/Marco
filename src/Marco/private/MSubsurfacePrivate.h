@@ -1,17 +1,17 @@
 #ifndef MSUBSURFACEPRIVATE_H
 #define MSUBSURFACEPRIVATE_H
 
-#include <Marco/roles/MSubSurface.h>
+#include <Marco/roles/MSubsurface.h>
 
-class AK::MSubSurface::Imp
+class AK::MSubsurface::Imp
 {
 public:
-    Imp(MSubSurface &obj) noexcept;
-    MSubSurface &obj;
+    Imp(MSubsurface &obj) noexcept;
+    MSubsurface &obj;
     SkIPoint pos { 0, 0 };
     AKWeak<MSurface> parent;
     wl_subsurface *wlSubSurface { nullptr };
-    std::list<MSubSurface*>::iterator parentLink;
+    std::list<MSubsurface*>::iterator parentLink;
     bool posChanged { false };
 };
 
