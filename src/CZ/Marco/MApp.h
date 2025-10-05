@@ -27,6 +27,8 @@ public:
         MProxy<lvr_background_blur_manager> backgroundBlurManager;
         MProxy<lvr_svg_path_manager> svgPathManager;
         MProxy<lvr_invisible_region_manager> invisibleRegionManager;
+        MProxy<wp_cursor_shape_manager_v1> cursorShapeManager;
+        MProxy<wp_cursor_shape_device_v1> cursorShapePointer;
     };
 
     enum MaskingCapabilities : UInt32

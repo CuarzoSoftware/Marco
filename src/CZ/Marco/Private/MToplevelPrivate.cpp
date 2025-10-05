@@ -254,9 +254,9 @@ void MToplevel::Imp::handleRootPointerMoveEvent(const CZPointerMoveEvent &event)
         resizeEdges |= XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
 
     if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_LEFT || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
-        obj.rootNode()->setCursor(CZCursorShape::ResizeRow);
-    else if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_TOP || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
         obj.rootNode()->setCursor(CZCursorShape::ResizeColumn);
+    else if (resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_TOP || resizeEdges == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
+        obj.rootNode()->setCursor(CZCursorShape::ResizeRow);
     else if (resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_TOP | XDG_TOPLEVEL_RESIZE_EDGE_LEFT) ||
              resizeEdges == (XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM | XDG_TOPLEVEL_RESIZE_EDGE_RIGHT))
         obj.rootNode()->setCursor(CZCursorShape::ResizeTLBR);

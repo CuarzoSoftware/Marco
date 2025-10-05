@@ -69,6 +69,8 @@ header_dirs = [
   ['./src/CZ/Marco/Protocols/WlrLayerShell', 'CZ/Marco/Protocols/WlrLayerShell'],
   ['./src/CZ/Marco/Protocols/XdgShell', 'CZ/Marco/Protocols/XdgShell'],
   ['./src/CZ/Marco/Protocols/XdgDecoration', 'CZ/Marco/Protocols/XdgDecoration'],
+  ['./src/CZ/Marco/Protocols/CursorShape', 'CZ/Marco/Protocols/CursorShape'],
+  ['./src/CZ/Marco/Protocols/Tablet', 'CZ/Marco/Protocols/Tablet'],
 ]
 
 foreach header_dir : header_dirs

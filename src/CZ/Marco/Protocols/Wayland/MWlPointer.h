@@ -20,6 +20,8 @@ struct MWlPointer
     static void axis_value120(void *data, wl_pointer *pointer, UInt32 axis, Int32 value120);
     static void axis_relative_direction(void *data, wl_pointer *pointer, UInt32 axis, UInt32 direction);
 
+    static void SetCursorFromFocus() noexcept;
+
     static constexpr wl_pointer_listener Listener
     {
         .enter = enter,

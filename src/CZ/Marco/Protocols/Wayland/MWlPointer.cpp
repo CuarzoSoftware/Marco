@@ -1,4 +1,5 @@
 #include <CZ/Marco/Protocols/Wayland/MWlPointer.h>
+#include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
 #include <CZ/Marco/Roles/MSurface.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/AK/AKApp.h>
@@ -19,8 +20,7 @@ void MWlPointer::enter(void *data, wl_pointer *pointer, UInt32 serial, wl_surfac
     e.serial = serial;
 
     CZCore::Get()->sendEvent(e, surf->scene());
-
-    // TODO: Set cursor
+    SetCursorFromFocus();
 }
 
 void MWlPointer::leave(void *data, wl_pointer *pointer, UInt32 serial, wl_surface *surface)
@@ -47,8 +47,7 @@ void MWlPointer::motion(void *data, wl_pointer *pointer, UInt32 time, wl_fixed_t
     e.pos.fY = wl_fixed_to_double(y);
 
     CZCore::Get()->sendEvent(e, *AKApp::Get());
-
-    // TODO: Set cursor
+    SetCursorFromFocus();
 }
 
 void MWlPointer::button(void *data, wl_pointer *pointer, UInt32 serial, UInt32 time, UInt32 button, UInt32 state)
@@ -92,6 +91,7 @@ void MWlPointer::button(void *data, wl_pointer *pointer, UInt32 serial, UInt32 t
 
 void MWlPointer::axis(void *data, wl_pointer *pointer, UInt32 time, UInt32 axis, wl_fixed_t value)
 {
+    CZ_UNUSED(time)
     CZ_UNUSED(data)
     CZ_UNUSED(pointer)
 
@@ -247,4 +247,30 @@ void MWlPointer::axis_relative_direction(void *data, wl_pointer *pointer, UInt32
         app->m_pendingScrollEvent->relativeDirectionX = (CZPointerScrollEvent::RelativeDirection)direction;
     else if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL)
         app->m_pendingScrollEvent->relativeDirectionY = (CZPointerScrollEvent::RelativeDirection)direction;
+}
+
+void MWlPointer::SetCursorFromFocus() noexcept
+{
+    auto app { MApp::Get() };
+    auto kay { AKApp::Get() };
+
+    if (!kay->pointer().focus() || !kay->pointer().focus()->pointerFocus())
+    {
+        wp_cursor_shape_device_v1_set_shape(
+            app->wl.cursorShapePointer,
+            kay->pointer().history().enter.serial,
+            (UInt32)CZCursorShape::Default);
+        return;
+    }
+
+    if (kay->pointer().focus()->pointerFocus()->cursor())
+        wp_cursor_shape_device_v1_set_shape(
+            app->wl.cursorShapePointer,
+            kay->pointer().history().enter.serial,
+            (UInt32)kay->pointer().focus()->pointerFocus()->cursor().value());
+    else
+        wl_pointer_set_cursor(
+            app->wl.pointer,
+            kay->pointer().history().enter.serial,
+            NULL, 0, 0);
 }

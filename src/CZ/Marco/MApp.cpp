@@ -1,4 +1,4 @@
-#include <CZ/AK/AKLog.h>
+#include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Private/MPopupPrivate.h>
@@ -128,6 +128,9 @@ bool MApp::init() noexcept
 
     wl.registry.set(wl_display_get_registry(wl.display));
     wl_registry_add_listener(wl.registry, &MWlRegistry::Listener, &wl);
+    usleep(10000);
+    wl_display_roundtrip(wl.display);
+    wl_display_roundtrip(wl.display);
     wl_display_roundtrip(wl.display);
 
     if (!wl.shm)
@@ -147,6 +150,20 @@ bool MApp::init() noexcept
         MLog(CZFatal, CZLN, "wl_seat not supported by the compositor");
         return false;
     }
+
+    if (!wl.pointer)
+    {
+        MLog(CZFatal, CZLN, "wl_pointer not supported by the compositor");
+        return false;
+    }
+
+    if (!wl.cursorShapeManager)
+    {
+        MLog(CZFatal, CZLN, "wp_cursor_shape_v1 not supported by the compositor");
+        return false;
+    }
+
+    wl.cursorShapePointer.set(wp_cursor_shape_manager_v1_get_pointer(wl.cursorShapeManager, wl.pointer));
 
     if (!wl.xdgWmBase)
     {

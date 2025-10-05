@@ -333,10 +333,13 @@ public:
 
 int main()
 {
-    setenv("KAY_DEBUG", "4", 1);
+    setenv("CZ_MARCO_LOG_LEVEL", "4", 1);
     setenv("CZ_REAM_GAPI", "GL", 1);
     xdg = XDGKit::Make();
     auto app { MApp::GetOrMake() };
+
+    if (!app) return 1;
+
     app->setAppId("org.Cuarzo.marco-basic");
 
     app->onScreenPlugged.subscribe(app.get(), [](MScreen &screen){
