@@ -96,7 +96,7 @@ void MCSDShadow::renderEvent(const AKRenderEvent &e)
         p->drawImage(info, &maskedDamage);
 
         /* Right mirrored side */
-        info.dst.fLeft = halfWidth;
+        info.dst.offsetTo(halfWidth, info.dst.y());
         info.srcTransform = CZTransform::Flipped;
         p->drawImage(info, &maskedDamage);
     }
@@ -108,18 +108,18 @@ void MCSDShadow::renderEvent(const AKRenderEvent &e)
             (MTheme::CSDShadowInactiveRadius - MTheme::CSDShadowInactiveOffsetY)) + (2 * MTheme::CSDBorderRadius) + 1 };
         const Int32 L { margins.fLeft + 2 };
 
-        /* Top Left */
+        /* TOP LEFT */
         info.dst.setWH(margins.fLeft + L, margins.fTop  + T);
         info.src.setWH(info.dst.width(), info.dst.height()),
         info.srcTransform = CZTransform::Normal;
         p->drawImage(info, &maskedDamage);
 
-        /* Top Right */
+        /* TOP RIGHT */
         info.dst.offsetTo(rect.width() - margins.fLeft - L, 0);
         info.srcTransform = CZTransform::Flipped;
         p->drawImage(info, &maskedDamage);
 
-        /* Top */
+        /* TOP */
         info.dst = SkIRect::MakeXYWH(
             margins.fLeft + L,
             0,
@@ -129,7 +129,7 @@ void MCSDShadow::renderEvent(const AKRenderEvent &e)
         info.srcTransform = CZTransform::Normal;
         p->drawImage(info, &maskedDamage);
 
-        /* Left */
+        /* LEFT */
         info.dst = SkIRect::MakeXYWH(
             0,
             margins.fTop + T,
@@ -139,29 +139,29 @@ void MCSDShadow::renderEvent(const AKRenderEvent &e)
         info.srcTransform = CZTransform::Normal;
         p->drawImage(info, &maskedDamage);
 
-        /* Right */
+        /* RIGHT */
         info.dst.offsetTo(rect.width() - margins.fLeft - L, info.dst.top());
         info.srcTransform = CZTransform::Flipped;
         p->drawImage(info, &maskedDamage);
 
-        /* Bottom Left */
+        /* BOTTOM LEFT */
         const Int32 bottom { m_image->size().height()/scale() - margins.bottom() - B };
         info.dst = SkIRect::MakeXYWH(
             0,
             rect.height() - margins.fBottom - B,
-            info.dst.height(),
+            info.dst.width(),
             margins.fBottom + B);
         info.src.setXYWH(0, bottom, info.dst.width(), info.dst.height());
         info.srcTransform = CZTransform::Normal;
         p->drawImage(info, &maskedDamage);
 
-        /* Bottom Right */
+        /* BOTTOM RIGHT */
         info.dst.offsetTo(rect.width() - margins.fLeft - L, info.dst.top());
         info.src.setXYWH(0, bottom, info.dst.width(), info.dst.height());
         info.srcTransform = CZTransform::Flipped;
         p->drawImage(info, &maskedDamage);
 
-        /* Bottom */
+        /* BOTTOM */
         info.dst = SkIRect::MakeXYWH(
             margins.fLeft + L,
             info.dst.top(),

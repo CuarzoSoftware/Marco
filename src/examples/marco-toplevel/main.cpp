@@ -99,7 +99,6 @@ public:
         layout().setFlex(1.f);
         enableChildrenClipping(false);
 
-        inAppBlur.shader = 3;
         leftShadow.setCursor(CZCursorShape::ResizeColumn);
         leftShadow.enableDiminishOpacityOnInactive(true);
         shadow.enableDiminishOpacityOnInactive(true);
@@ -108,7 +107,7 @@ public:
         topbar.layout().setPosition(YGEdgeTop, 0);
         topbar.layout().setAlignItems(YGAlignCenter);
         topbar.layout().setJustifyContent(YGJustifyCenter);
-        topbar.layout().setHeight(52);
+        topbar.layout().setHeight(252);
         topbar.layout().setWidthPercent(100);
         topbar.userCaps.add(UCWindowMove);
         auto textStyle = helloWorld.textStyle();
@@ -206,20 +205,12 @@ public:
 
     Window() noexcept : MToplevel()
     {
-        /*
-        auto *t = new AKSolidColor(SK_ColorBLUE, this);
-        t->layout().setWidth(200);
-        t->layout().setHeight(200);
-        t->layout().setPositionType(YGPositionTypeStatic);
-        t->layout().setPosition(YGEdgeLeft, -500);*/
-
         rightContainer.leftShadow.installEventFilter(this);
         layout().setFlexDirection(YGFlexDirectionRow);
         layout().setWidth(800);
         layout().setHeight(600);
         setColor(MApp::Get()->wl.backgroundBlurManager ? 0x00FFFFFF : 0xffF0F0F0);
         setTitle("Hello world!");
-        //setMinSize(minContentSize());
 
         rightContainer.cursorButton.onClick.subscribe(this, [this](const auto &){
             if (cursor == 34)
@@ -227,8 +218,16 @@ public:
             else
                 cursor++;
 
-            //rightContainer.cursorButton.setText(std::string("🖱️ Cursor: ") + cursorToString((CZCursorShape)cursor));
-            //pointer().setCursor((CZCursorShape)cursor);
+            if (cursor == 0)
+            {
+                rightContainer.cursorButton.setCursor(std::nullopt);
+                rightContainer.cursorButton.setText("Cursor: Invisible");
+            }
+            else
+            {
+                rightContainer.cursorButton.setCursor((CZCursorShape)cursor);
+                rightContainer.cursorButton.setText("Cursor: " + CZCursorShapeString((CZCursorShape)cursor));
+            }
         });
 
         rightContainer.newWindowButton.onClick.subscribe(this, [this](const auto &){
@@ -333,7 +332,10 @@ public:
 
 int main()
 {
-    setenv("CZ_MARCO_LOG_LEVEL", "4", 1);
+    setenv("CZ_CORE_LOG_LEVEL", "6", 1);
+    setenv("CZ_KAY_LOG_LEVEL", "6", 1);
+    setenv("CZ_MARCO_LOG_LEVEL", "6", 1);
+    setenv("CZ_REAM_LOG_LEVEL", "3", 1);
     setenv("CZ_REAM_GAPI", "GL", 1);
     xdg = XDGKit::Make();
     auto app { MApp::GetOrMake() };

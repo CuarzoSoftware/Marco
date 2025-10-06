@@ -228,7 +228,6 @@ bool MSurface::Imp::resizeBuffer(const SkISize &size) noexcept
     this->size = size;
     this->bufferSize = bufferSize;
 
-
     if (size.isEmpty())
     {
         swapchain.reset();

@@ -1,3 +1,4 @@
+#include "CZ/Marco/MLog.h"
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
@@ -665,7 +666,7 @@ void MToplevel::render() noexcept
 
         wp_viewport_set_source(wlViewport(),
             wl_fixed_from_int(0),
-            wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
+            wl_fixed_from_int(0),
             wl_fixed_from_int(newSize.width()),
             wl_fixed_from_int(newSize.height()));
 
@@ -699,9 +700,9 @@ void MToplevel::render() noexcept
     scene().render(target());
 
     /* Vibrancy */
-    if (MSurface::imp()->backgroundBlur && app->wl.svgPathManager)
+    if (MSurface::imp()->backgroundBlur/* && app->wl.svgPathManager*/)
     {
-        if (vibrancyState() == AKVibrancyState::Enabled && opacity() < 1.f)
+        if (vibrancyState() == AKVibrancyState::Enabled && (SkColorGetA(m_color) < 255 || opacity() < 1.f))
         {
             std::vector<MVibrancyView*> vibrancyViews;
             vibrancyViews.reserve(10);

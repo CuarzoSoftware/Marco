@@ -20,7 +20,6 @@ void MWlPointer::enter(void *data, wl_pointer *pointer, UInt32 serial, wl_surfac
     e.serial = serial;
 
     CZCore::Get()->sendEvent(e, surf->scene());
-    SetCursorFromFocus();
 }
 
 void MWlPointer::leave(void *data, wl_pointer *pointer, UInt32 serial, wl_surface *surface)
@@ -47,7 +46,6 @@ void MWlPointer::motion(void *data, wl_pointer *pointer, UInt32 time, wl_fixed_t
     e.pos.fY = wl_fixed_to_double(y);
 
     CZCore::Get()->sendEvent(e, *AKApp::Get());
-    SetCursorFromFocus();
 }
 
 void MWlPointer::button(void *data, wl_pointer *pointer, UInt32 serial, UInt32 time, UInt32 button, UInt32 state)
@@ -249,6 +247,8 @@ void MWlPointer::axis_relative_direction(void *data, wl_pointer *pointer, UInt32
         app->m_pendingScrollEvent->relativeDirectionY = (CZPointerScrollEvent::RelativeDirection)direction;
 }
 
+static std::optional<CZCursorShape> LastSentCursor;
+
 void MWlPointer::SetCursorFromFocus() noexcept
 {
     auto app { MApp::Get() };
@@ -256,21 +256,37 @@ void MWlPointer::SetCursorFromFocus() noexcept
 
     if (!kay->pointer().focus() || !kay->pointer().focus()->pointerFocus())
     {
-        wp_cursor_shape_device_v1_set_shape(
-            app->wl.cursorShapePointer,
-            kay->pointer().history().enter.serial,
-            (UInt32)CZCursorShape::Default);
+        if (!LastSentCursor || LastSentCursor.value() != CZCursorShape::Default)
+        {
+            wp_cursor_shape_device_v1_set_shape(
+                app->wl.cursorShapePointer,
+                kay->pointer().history().enter.serial,
+                (UInt32)CZCursorShape::Default);
+            LastSentCursor = CZCursorShape::Default;
+        }
         return;
     }
 
     if (kay->pointer().focus()->pointerFocus()->cursor())
-        wp_cursor_shape_device_v1_set_shape(
-            app->wl.cursorShapePointer,
-            kay->pointer().history().enter.serial,
-            (UInt32)kay->pointer().focus()->pointerFocus()->cursor().value());
+    {
+        if (!LastSentCursor || LastSentCursor != kay->pointer().focus()->pointerFocus()->cursor())
+        {
+            wp_cursor_shape_device_v1_set_shape(
+                app->wl.cursorShapePointer,
+                kay->pointer().history().enter.serial,
+                (UInt32)kay->pointer().focus()->pointerFocus()->cursor().value());
+            LastSentCursor = kay->pointer().focus()->pointerFocus()->cursor();
+        }
+    }
     else
-        wl_pointer_set_cursor(
-            app->wl.pointer,
-            kay->pointer().history().enter.serial,
-            NULL, 0, 0);
+    {
+        if (LastSentCursor)
+        {
+            wl_pointer_set_cursor(
+                app->wl.pointer,
+                kay->pointer().history().enter.serial,
+                NULL, 0, 0);
+            LastSentCursor = std::nullopt;
+        }
+    }
 }

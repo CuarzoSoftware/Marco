@@ -1,4 +1,5 @@
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
+#include <CZ/Marco/Protocols/Wayland/MWlPointer.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Private/MPopupPrivate.h>
@@ -73,6 +74,7 @@ int MApp::dispatch(int timeoutMs) noexcept
     {
         m_core->dispatch(0);
         updateSurfaces();
+        MWlPointer::SetCursorFromFocus();
     }
 
     return ret;
