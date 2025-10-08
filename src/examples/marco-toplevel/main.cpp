@@ -92,7 +92,7 @@ class RightContainer : public AKSolidColor
 public:
 
     RightContainer(AKNode *parent = nullptr) :
-        AKSolidColor(0xFFFFFFFF, parent)
+        AKSolidColor(0xFF111111, parent)
     {
         layout().setMinWidth(250);
         layout().setMinHeight(250);
@@ -107,14 +107,17 @@ public:
         topbar.layout().setPosition(YGEdgeTop, 0);
         topbar.layout().setAlignItems(YGAlignCenter);
         topbar.layout().setJustifyContent(YGJustifyCenter);
-        topbar.layout().setHeight(252);
+        topbar.layout().setHeight(72);
         topbar.layout().setWidthPercent(100);
         topbar.userCaps.add(UCWindowMove);
         auto textStyle = helloWorld.textStyle();
         textStyle.setFontStyle(
             SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant));
         textStyle.setFontSize(14);
-        textStyle.setColor(0xb3000000);
+        //textStyle.setColor(0xb3000000);
+        SkPaint p;
+        p.setColor(SK_ColorWHITE);
+        textStyle.setForegroundColor(p);
         helloWorld.setTextStyle(textStyle);
         helloWorld.enableDiminishOpacityOnInactive(true);
         body.slot()->layout().setGap(YGGutterAll, 16.f);

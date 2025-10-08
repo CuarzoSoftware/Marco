@@ -308,9 +308,7 @@ void MSubsurface::render() noexcept
     auto ssImage { MSurface::imp()->swapchain->acquire() };
     PrepareTarget(*this, ssImage.value(), &outDamage, &outOpaque, &outInvisible, fullDamage);
     scene().render(target());
-
-    wl_surface_set_buffer_scale(wlSurface(), scale());
-
+    AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);
     PresentImage(*this, *ssImage, outDamage);

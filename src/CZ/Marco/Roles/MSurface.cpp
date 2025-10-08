@@ -252,6 +252,8 @@ void MSurface::PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, S
     window.target()->outDamage = outDamage;
     window.target()->setBakedNodesScale(window.scale());
 
+    wl_surface_set_buffer_scale(window.wlSurface(), window.scale());
+
     if (true || window.opacity() == 1.f)
         window.target()->outOpaque = outOpaque;
     else
@@ -261,6 +263,18 @@ void MSurface::PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, S
         window.target()->outInvisible = outInvisible;
     else
         window.target()->outInvisible = nullptr;
+}
+
+void MSurface::AttachInputRegion(MSurface &window) noexcept
+{
+    // This input region is set to prevent decorations to be considered
+    // part of the window when clicked by the compositor.
+    // An outset of 6 is added for toplevel resize zones
+    auto rect { window.worldRect().makeOutset(6, 6) };
+    auto *region { wl_compositor_create_region(MApp::Get()->wl.compositor) };
+    wl_region_add(region, rect.x(), rect.y(), rect.width(), rect.height());
+    wl_surface_set_input_region(window.wlSurface(), region);
+    wl_region_destroy(region);
 }
 
 void MSurface::AttachOpaqueRegion(MSurface &window, SkRegion &outOpaque) noexcept

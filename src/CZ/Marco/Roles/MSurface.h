@@ -102,6 +102,7 @@ protected:
     bool event(const CZEvent &event) noexcept override;
 
     static void PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, SkRegion *outDamage, SkRegion *outOpaque, SkRegion *outInvisible, bool forceFullDamage) noexcept;
+    static void AttachInputRegion(MSurface &window) noexcept;
     static void AttachOpaqueRegion(MSurface &window, SkRegion &outOpaque) noexcept;
     static void AttachInvisibleRegion(MSurface &window, SkRegion &outInvisible) noexcept;
     static void PresentImage(MSurface &window, const RSwapchainImage &ssImage, SkRegion &outDamage) noexcept;

@@ -738,8 +738,7 @@ void MToplevel::render() noexcept
             for (int i = 0; i < 4; i++)
                 target()->outOpaque->op(imp()->borderRadius[i].worldRect(), SkRegion::Op::kDifference_Op);
 
-    wl_surface_set_buffer_scale(wlSurface(), scale());
-
+    AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);
     PresentImage(*this, *ssImage, outDamage);
