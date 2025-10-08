@@ -84,7 +84,6 @@ public:
     lvr_invisible_region *wlInvisibleRegion() const noexcept;
 
     AKVibrancyState vibrancyState() const noexcept;
-    AKVibrancyStyle vibrancyStyle() const noexcept;
     virtual void vibrancyEvent(const AKVibrancyEvent &event);
 
     CZSignal<const AKVibrancyEvent &> onVibrancyChanged;

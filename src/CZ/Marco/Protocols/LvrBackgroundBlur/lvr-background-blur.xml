@@ -82,11 +82,10 @@
         the already_constructed error is emitted.
 
         Immediately after the object is created, the compositor will send a 
-        lvr_background_blur.set_state event, a lvr_background_blur.set_color_hint event, 
-        and finally a lvr_background_blur.configure event.
+        lvr_background_blur.set_state event, followed by a lvr_background_blur.configure event.
 
-        Surfaces must acknowledge the configure event and may then define the blur 
-        region and optionally a supported clipping mask before the next commit.
+        Surfaces must acknowledge the configure event and may then define the color scheme,
+        region, and a supported clipping mask before the next commit.
 
         The client may ignore all configure events except for the last one.
 
@@ -109,30 +108,34 @@
 
   <interface name="lvr_background_blur" version="1">
     <description summary="blur effect applied to the background of a surface">
+      A single instance of this object can be used to blur multiple sections of a surface.
+
       The set_region request defines the blur area in local surface coordinates.
+      From a toolkit perspective, this should typically be the union of the rectangles corresponding
+      to all UI components requiring the blur effect.
 
-      An optional mask can be specified using either set_round_rect_mask or 
-      set_svg_path_mask, if supported by the compositor. Setting one mask replaces 
-      the other.
+      If the surface has rounded corners or a more complex shape (e.g., a tooltip with a caret),
+      an optional mask can be provided to further clip the blur region. This can be done using either
+      set_round_rect_mask or set_svg_path_mask, depending on compositor support.
+      Setting one mask overrides the other.
 
-      The final blur area is determined by the intersection of the surface bounds, 
-      the blur region, and the optional mask.
+      The final blur area is determined by the intersection of the surface bounds, the blur region,
+      and the optional mask.
 
-      Providing only a mask without a region is equivalent to defining an empty region.
+      Note: providing only a mask without setting a blur region is equivalent to defining an empty region.
 
-      The client should avoid rendering fully opaque content within the blur area while 
-      it is enabled. 
-      Ideally, if the region is 100% transparent, the client should mark it as invisible 
-      using the lvr_invisible_region protocol.
+      Clients should avoid rendering fully opaque content within the blur region while the effect is enabled.
+      Ideally, if the region is entirely transparent, the client should mark it as invisible using the
+      lvr_invisible_region protocol.
 
-      For the blur effect to take effect, the compositor must send an enabled state event, 
-      a configure event, and the client must acknowledge and commit either a null or 
+      For the blur effect to take effect, the compositor must first send an enabled state event
+      followed by a configure event. The client must acknowledge and commit either a null or
       non-empty region.
 
-      Thereafter, the compositor should maintain the effect state and color hint until 
-      the client acknowledges and commits a new configuration.
+      After this, the compositor is expected to preserve the blur state until the client acknowledges and
+      commits a new configuration.
 
-      Initially, the blur area is an empty region (no blur).
+      Initially, the blur region is empty (no blur is applied).
     </description>
 
     <enum name="error">
@@ -140,12 +143,14 @@
         value="0" summary="surface destroyed before object"/>
       <entry name="invalid_serial" 
         value="1" summary="invalid ack serial"/>
+      <entry name="invalid_color_scheme"
+        value="2" summary="invalid color scheme"/>
       <entry name="unsupported_mask" 
-        value="2" summary="the mask is not supported by the compositor"/>
+        value="3" summary="the mask is not supported by the compositor"/>
       <entry name="invalid_round_rect" 
-        value="3" summary="invalid round rect"/>
+        value="4" summary="invalid round rect"/>
       <entry name="invalid_svg_path" 
-        value="4" summary="invalid svg path"/>
+        value="5" summary="invalid svg path"/>
     </enum>
     
     <enum name="state">
@@ -155,10 +160,10 @@
         summary="the blur effect is displayed by the compositor"/>
     </enum>
     
-    <enum name="color_hint">
-      <entry name="unknown" value="0" summary="the blur effect color is unknown"/>
-      <entry name="dark" value="1" summary="the blur effect has a dark tone"/>
-      <entry name="light" value="2" summary="the blur effect has a light tone"/>
+    <enum name="color_scheme">
+      <entry name="unknown" value="0" summary="the color scheme is unknown"/>
+      <entry name="dark" value="1" summary="the color scheme is dark"/>
+      <entry name="light" value="2" summary="the color scheme is light"/>
     </enum>
 
     <request name="destroy" type="destructor">
@@ -172,23 +177,23 @@
     
     <request name="set_region">
       <description summary="set the blurred region">
-        This is a double-buffered operation, refer to wl_surface.commit. 
+        This is a double-buffered operation, see wl_surface.commit for details.
 
-        Setting the pending blur region has copy semantics, allowing the 
-        wl_region object to be destroyed immediately. 
+        Setting the pending blur region uses copy semantics, meaning the wl_region object
+        can be safely destroyed immediately after the request.
 
-        The region is defined in local surface coordinates and may extend
-        beyond the surface bounds.
+        The region is specified in local surface coordinates and may extend beyond the surface bounds.
 
-        Setting a null region means that the blur area automatically adapts 
-        to the entire surface dimensions.
+        Passing a null region indicates that the blur area should automatically cover the entire surface.
 
-        The region is not considered a mask and is always supported by the compositor.
+        This region is not treated as a mask and is always supported by the compositor.
 
-        The initial blur area is an empty region (no blur).
+        Note: Clients can disable the blur effect by providing an empty region or by destroying this object.
+        However, whether the effect is enabled is ultimately controlled by the compositor.
+
+        By default, the blur region is empty (no blur is applied).
       </description>
-      <arg name="region" type="object" allow-null="true" 
-        interface="wl_region"/>
+      <arg name="region" type="object" allow-null="true" interface="wl_region"/>
     </request>
     
     <request name="ack_configure">
@@ -198,6 +203,77 @@
       </description>
       
       <arg name="serial" type="uint" summary="serial of the configure event"/>
+    </request>
+
+    <request name="set_color_scheme">
+      <description summary="set the color scheme for the blur effect">
+        Clients should send this request to inform the compositor of the application's
+        preferred color scheme, so that the blur effect can be rendered accordingly.
+
+        The color scheme should ideally correspond to the one exposed by the
+        org.freedesktop.appearance interface provided by the XDG Settings Portal.
+
+        This is a double-buffered request, see wl_surface.commit for details.
+
+        The initial value is unknown.
+      </description>
+      <arg name="color_scheme" type="uint" enum="color_scheme" summary="the color scheme for the blur effect"/>
+    </request>
+
+    <request name="clear_mask">
+      <description summary="clear any previously set mask">
+        This is a double-buffered operation, refer to wl_surface.commit.
+
+        This doesn't affect the blur region set with set_region.
+
+        If no clipping was set previously, this is a no-op.
+      </description>
+    </request>
+
+    <request name="set_round_rect_mask">
+      <description summary="mask the blur region using a rounded rectangle">
+        This is a double-buffered operation, refer to wl_surface.commit.
+
+        The rounded rectangle is defined in local surface coordinates and may extend
+        beyond the surface bounds.
+
+        If the width, height, or radius is negative, or if the sum of radii for an edge
+        exceeds the corresponding axis dimension, the invalid_round_rect error is emitted.
+
+        If the compositor has not advertised support for this type of mask, the unsupported_mask
+        error is emitted.
+
+        This request overrides any previously set mask.
+      </description>
+
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
+      <arg name="width" type="int"/>
+      <arg name="height" type="int"/>
+      <arg name="radTL" type="int"/>
+      <arg name="radTR" type="int"/>
+      <arg name="radBR" type="int"/>
+      <arg name="radBL" type="int"/>
+    </request>
+
+    <request name="set_svg_path_mask">
+      <description summary="mask the blur region using an SVG path">
+        This is a double-buffered operation, refer to wl_surface.commit.
+
+        Setting the SVG path mask has copy semantics, allowing the
+        lvr_svg_path object to be destroyed immediately.
+
+        The SVG path is defined in local surface coordinates and may extend
+        beyond the surface bounds.
+
+        Setting an unconstructed or invalid path triggers the invalid_svg_path error.
+
+        If the compositor has not advertised support for this type of mask, the unsupported_mask
+        error is emitted.
+
+        This request replaces any previously set clipping.
+      </description>
+      <arg name="path" type="object" interface="lvr_svg_path" summary="the SVG path mask"/>
     </request>
     
     <event name="state">
@@ -217,24 +293,7 @@
       </description>
       <arg name="state" type="uint" enum="state" summary="the state of the blur effect."/>
     </event>
-    
-    <event name="color_hint">
-      <description summary="set the color hint of the blur effect">
-        This provides a color tone hint for the blur effect, allowing clients to adjust 
-        their content accordingly. For example, white text may be preferable if the tone 
-        is dark, while black text may be more suitable if the tone is light.
-
-        This event is part of a configuration sequence and must later be framed by a 
-        configure event for the client to process it.
-
-        The compositor must wait for the client to acknowledge and commit the configuration 
-        before applying the change.
-
-        The initial value is unknown.
-      </description>
-      <arg name="color_hint" type="uint" enum="color_hint" summary="the color tone of the blur effect."/>
-    </event>
-    
+        
     <event name="configure">
       <description summary="notifies a blur effect change">
         The configure event marks the end of a configure sequence.
@@ -244,62 +303,6 @@
       </description>
       <arg name="serial" type="uint" summary="serial of the configure event"/>
     </event>
-
-    <request name="clear_mask">
-      <description summary="clear any previously set mask">
-        This is a double-buffered operation, refer to wl_surface.commit. 
- 
-        This doesn't affect the blur region set with set_region.
-
-        If no clipping was set previously, this is a no-op.
-      </description>
-    </request>
-
-    <request name="set_round_rect_mask">
-      <description summary="mask the blur region using a rounded rectangle">
-        This is a double-buffered operation, refer to wl_surface.commit.
-
-        The rounded rectangle is defined in local surface coordinates and may extend 
-        beyond the surface bounds.
-
-        If the width, height, or radius is negative, or if the sum of radii for an edge 
-        exceeds the corresponding axis dimension, the invalid_round_rect error is emitted.
-
-        If the compositor has not advertised support for this type of mask, the unsupported_mask 
-        error is emitted.
-
-        This request overrides any previously set mask.
-      </description>
-
-      <arg name="x" type="int"/>
-      <arg name="y" type="int"/>
-      <arg name="width" type="int"/>
-      <arg name="height" type="int"/>
-      <arg name="radTL" type="int"/>
-      <arg name="radTR" type="int"/>
-      <arg name="radBR" type="int"/>
-      <arg name="radBL" type="int"/>
-    </request>
-    
-    <request name="set_svg_path_mask">
-      <description summary="mask the blur region using an SVG path">
-        This is a double-buffered operation, refer to wl_surface.commit.
-
-        Setting the SVG path mask has copy semantics, allowing the 
-        lvr_svg_path object to be destroyed immediately. 
-
-        The SVG path is defined in local surface coordinates and may extend
-        beyond the surface bounds.
-        
-        Setting an unconstructed or invalid path triggers the invalid_svg_path error.
-
-        If the compositor has not advertised support for this type of mask, the unsupported_mask 
-        error is emitted.
-
-        This request replaces any previously set clipping.
-      </description>
-      <arg name="path" type="object" interface="lvr_svg_path" summary="the SVG path mask"/>
-    </request>
     
   </interface>
 </protocol>

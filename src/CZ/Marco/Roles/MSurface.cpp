@@ -179,11 +179,6 @@ AKVibrancyState MSurface::vibrancyState() const noexcept
     return imp()->currentVibrancyState;
 }
 
-AKVibrancyStyle MSurface::vibrancyStyle() const noexcept
-{
-    return imp()->currentVibrancyStyle;
-}
-
 void MSurface::vibrancyEvent(const AKVibrancyEvent &event)
 {
     CZSafeEventQueue queue;

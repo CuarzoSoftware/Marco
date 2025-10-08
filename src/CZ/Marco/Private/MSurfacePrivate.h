@@ -71,8 +71,6 @@ public:
     // Vibrancy
     AKVibrancyState currentVibrancyState { AKVibrancyState::Disabled };
     AKVibrancyState pendingVibrancyState { AKVibrancyState::Disabled };
-    AKVibrancyStyle currentVibrancyStyle { AKVibrancyStyle::Light };
-    AKVibrancyStyle pendingVibrancyStyle { AKVibrancyStyle::Light };
 
     UInt32 callbackSendMs { 0 };
     wl_callback *wlCallback { nullptr };
@@ -108,7 +106,6 @@ public:
     static void wl_callback_done(void *data, wl_callback *callback, UInt32 ms);
 
     static void background_blur_state(void *data, lvr_background_blur *backgroundBlur, UInt32 state);
-    static void background_blur_color_hint(void *data, lvr_background_blur *backgroundBlur, UInt32 style);
     static void background_blur_configure(void *data, lvr_background_blur *backgroundBlur, UInt32 serial);
 };
 

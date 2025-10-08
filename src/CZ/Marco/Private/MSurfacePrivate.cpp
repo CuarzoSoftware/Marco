@@ -21,7 +21,6 @@ MSurface::Imp::Imp(MSurface &obj) noexcept : obj(obj), root(obj)
     wlSurfaceListener.preferred_buffer_transform = wl_surface_preferred_buffer_transform;
     wlCallbackListener.done = wl_callback_done;
     backgroundBlurListener.state = background_blur_state;
-    backgroundBlurListener.color_hint = background_blur_color_hint;
     backgroundBlurListener.configure = background_blur_configure;
 }
 
@@ -96,27 +95,18 @@ void MSurface::Imp::background_blur_state(void *data, lvr_background_blur *, UIn
     surface.imp()->pendingVibrancyState = (AKVibrancyState)state;
 }
 
-void MSurface::Imp::background_blur_color_hint(void *data, lvr_background_blur *, UInt32 style)
-{
-    MSurface &surface { *static_cast<MSurface*>(data) };
-    surface.imp()->pendingVibrancyStyle = (AKVibrancyStyle)style;
-}
-
 void MSurface::Imp::background_blur_configure(void *data, lvr_background_blur *backgroundBlur, UInt32 serial)
 {
     MSurface &surface { *static_cast<MSurface*>(data) };
     lvr_background_blur_ack_configure(backgroundBlur, serial);
     auto core { CZCore::Get() };
 
-    if (surface.imp()->pendingVibrancyState != surface.imp()->currentVibrancyState ||
-        surface.imp()->pendingVibrancyStyle != surface.imp()->currentVibrancyStyle)
+    if (surface.imp()->pendingVibrancyState != surface.imp()->currentVibrancyState)
     {
         surface.update(true);
         surface.imp()->currentVibrancyState = surface.imp()->pendingVibrancyState;
-        surface.imp()->currentVibrancyStyle = surface.imp()->pendingVibrancyStyle;
         core->sendEvent(AKVibrancyEvent(
-            surface.imp()->currentVibrancyState,
-            surface.imp()->currentVibrancyStyle),
+            surface.imp()->currentVibrancyState),
             surface);
     }
 }
