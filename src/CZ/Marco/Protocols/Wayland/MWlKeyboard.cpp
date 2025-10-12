@@ -1,5 +1,5 @@
-#include <CZ/Events/CZKeyboardEnterEvent.h>
-#include <CZ/Events/CZKeyboardKeyEvent.h>
+#include <CZ/Core/Events/CZKeyboardEnterEvent.h>
+#include <CZ/Core/Events/CZKeyboardKeyEvent.h>
 #include <CZ/Marco/Roles/MSurface.h>
 #include <CZ/Marco/Protocols/Wayland/MWlKeyboard.h>
 #include <CZ/Marco/MLog.h>

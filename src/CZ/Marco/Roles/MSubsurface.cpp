@@ -6,7 +6,7 @@
 
 #include <CZ/Ream/RSurface.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
-#include <CZ/Utils/CZRegionUtils.h>
+#include <CZ/Core/Utils/CZRegionUtils.h>
 
 using namespace CZ;
 

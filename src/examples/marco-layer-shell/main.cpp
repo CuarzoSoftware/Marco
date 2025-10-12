@@ -1,18 +1,17 @@
-#include <CZ/Marco/roles/MSubsurface.h>
-#include <CZ/Marco/MApplication.h>
+#include <CZ/Marco/Roles/MSubsurface.h>
+#include <CZ/Marco/MApp.h>
 #include <CZ/Marco/MScreen.h>
-#include <CZ/Marco/roles/MLayerSurface.h>
-#include <CZ/Marco/roles/MSubsurface.h>
-#include <CZ/Marco/roles/MPopup.h>
+#include <CZ/Marco/Roles/MLayerSurface.h>
+#include <CZ/Marco/Roles/MSubsurface.h>
+#include <CZ/Marco/Roles/MPopup.h>
 #include <CZ/AK/Nodes/AKText.h>
 #include <CZ/AK/Nodes/AKButton.h>
 #include <CZ/AK/AKLog.h>
 #include <CZ/AK/Nodes/AKImageFrame.h>
-#include <CZ/AK/Utils/AKImageLoader.h>
-#include <CZ/AK/AKAnimation.h>
-#include <CZ/AK/AKGLContext.h>
-#include <CZ/AK/Events/AKWindowCloseEvent.h>
-#include <CZ/Events/CZPointerButtonEvent.h>
+
+#include <CZ/Core/CZAnimation.h>
+#include <CZ/Core/Events/CZCloseEvent.h>
+#include <CZ/Core/Events/CZPointerButtonEvent.h>
 
 using namespace CZ;
 
@@ -27,9 +26,9 @@ public:
         : MLayerSurface()
     {
 
-        onBeforeClose.subscribe(this, [this](const AKWindowCloseEvent &e){
+        onBeforeClose.subscribe(this, [this](const CZCloseEvent &e){
             e.ignore(); // Prevent Marco from unmapping it
-            AKLog::warning("The server sent a close event.");
+            AKLog(CZWarning, CZLN, "The server sent a close event.");
             pickAnotherScreen();
         });
 
@@ -39,7 +38,7 @@ public:
             setAnchor(tmpAnchor);
             anchorLButton.setText(std::string("Anchor L: ") + (anchor().has(CZEdgeLeft) ? "ON" : "OFF"));
 
-            if (anchor().checkAll(CZEdgeLeft | CZEdgeRight))
+            if (anchor().hasAll(CZEdgeLeft | CZEdgeRight))
                 requestAvailableWidth();
             else
                 layout().setWidthAuto();
@@ -51,7 +50,7 @@ public:
             setAnchor(tmpAnchor);
             anchorTButton.setText(std::string("Anchor T: ") + (anchor().has(CZEdgeTop) ? "ON" : "OFF"));
 
-            if (anchor().checkAll(CZEdgeTop | CZEdgeBottom))
+            if (anchor().hasAll(CZEdgeTop | CZEdgeBottom))
                 requestAvailableHeight();
             else
                 layout().setHeightAuto();
@@ -63,7 +62,7 @@ public:
             setAnchor(tmpAnchor);
             anchorBButton.setText(std::string("Anchor B: ") + (anchor().has(CZEdgeBottom) ? "ON" : "OFF"));
 
-            if (anchor().checkAll(CZEdgeTop | CZEdgeBottom))
+            if (anchor().hasAll(CZEdgeTop | CZEdgeBottom))
                 requestAvailableHeight();
             else
                 layout().setHeightAuto();
@@ -75,13 +74,13 @@ public:
             setAnchor(tmpAnchor);
             anchorRButton.setText(std::string("Anchor R: ") + (anchor().has(CZEdgeRight) ? "ON" : "OFF"));
 
-            if (anchor().checkAll(CZEdgeLeft | CZEdgeRight))
+            if (anchor().hasAll(CZEdgeLeft | CZEdgeRight))
                 requestAvailableWidth();
             else
                 layout().setWidthAuto();
         });
 
-        marginAnim.setOnUpdateCallback([this](AKAnimation *a){
+        marginAnim.setOnUpdateCallback([this](CZAnimation *a){
             const Float64 phase { a->value() * M_PI * 2.f };
             setMargin(SkIRect::MakeLTRB(
                 SkScalarCos(phase) * 100 - 100,
@@ -184,7 +183,7 @@ public:
 
     void pickAnotherScreen() noexcept
     {
-        for (MScreen *s : app()->screens())
+        for (MScreen *s : MApp::Get()->screens())
         {
             if (s != screen())
             {
@@ -220,7 +219,7 @@ public:
 
     AKButton changeLayerBtn { "Change Layer: Overlay", this };
 
-    AKAnimation marginAnim;
+    CZAnimation marginAnim;
     AKButton animateMargin { "Animate Top-Left Margin", this };
     AKButton exclusiveZoneBtn { "Vary Exclusive Zone: 0", this };
     AKButton toggleScope { "Scope: A", this };
@@ -233,16 +232,15 @@ public:
 int main()
 {
     setenv("KAY_DEBUG", "4", 0);
-    MApplication app;
-    app.setAppId("org.Cuarzo.marco-layer-shell");
+    auto app { MApp::GetOrMake() };
+    app->setAppId("org.Cuarzo.marco-layer-shell");
 
-    if (app.screens().empty())
+    if (app->screens().empty())
     {
-        AKLog::fatal("No screens available!");
+        AKLog(CZFatal, CZLN, "No screens available!");
         exit(1);
     }
 
-
     Window window;
-    return app.exec();
+    return app->run();
 }

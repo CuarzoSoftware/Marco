@@ -3,7 +3,7 @@
 #include <CZ/Marco/Private/MLayerSurfacePrivate.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/MLog.h>
-#include <CZ/Events/CZInputEvent.h>
+#include <CZ/Core/Events/CZInputEvent.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
 
 using namespace CZ;

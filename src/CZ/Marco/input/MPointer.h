@@ -6,10 +6,10 @@
 #include <CZ/Core/CZWeak.h>
 #include <CZ/Core/CZCursorShape.h>
 #include <CZ/AK/Input/AKPointer.h>
-#include <CZ/Events/CZPointerEnterEvent.h>
-#include <CZ/Events/CZPointerMoveEvent.h>
-#include <CZ/Events/CZPointerLeaveEvent.h>
-#include <CZ/Events/CZPointerButtonEvent.h>
+#include <CZ/Core/Events/CZPointerEnterEvent.h>
+#include <CZ/Core/Events/CZPointerMoveEvent.h>
+#include <CZ/Core/Events/CZPointerLeaveEvent.h>
+#include <CZ/Core/Events/CZPointerButtonEvent.h>
 #include <wayland-client-protocol.h>
 #include <wayland-cursor.h>
 #include <unordered_set>

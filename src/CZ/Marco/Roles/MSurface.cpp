@@ -2,7 +2,7 @@
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/Roles/MSubsurface.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
-#include <CZ/Utils/CZRegionUtils.h>
+#include <CZ/Core/Utils/CZRegionUtils.h>
 #include <CZ/Core/CZSafeEventQueue.h>
 #include <CZ/Ream/RSurface.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>

@@ -18,6 +18,9 @@
 #include <CZ/Ream/RCore.h>
 #include <CZ/Ream/RDevice.h>
 #include <CZ/Ream/RImage.h>
+#include <CZ/AK/AKIconFont.h>
+#include <CZ/AK/Nodes/AKFontIcon.h>
+#include <CZ/AK/Nodes/AKNinePatch.h>
 #include <XDGKit/XDGKit.h>
 #include <iostream>
 
@@ -87,17 +90,61 @@ public:
     bool resizing { false };
 };
 
+std::string utf8_from_hex_string(const std::string& hex_str) {
+    // Convert hex string to integer codepoint
+    uint32_t cp;
+    std::stringstream ss;
+    ss << std::hex << hex_str;
+    ss >> cp;
+
+    // Encode to UTF-8
+    std::string utf8;
+    if (cp <= 0x7F) {
+        utf8 += static_cast<char>(cp);
+    } else if (cp <= 0x7FF) {
+        utf8 += static_cast<char>(0xC0 | ((cp >> 6) & 0x1F));
+        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
+    } else if (cp <= 0xFFFF) {
+        utf8 += static_cast<char>(0xE0 | ((cp >> 12) & 0x0F));
+        utf8 += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
+    } else {
+        utf8 += static_cast<char>(0xF0 | ((cp >> 18) & 0x07));
+        utf8 += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+        utf8 += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
+    }
+    return utf8;
+}
+
 class RightContainer : public AKSolidColor
 {
 public:
 
     RightContainer(AKNode *parent = nullptr) :
-        AKSolidColor(0xFF111111, parent)
+        AKSolidColor(0xFFFFFFFF, parent)
     {
         layout().setMinWidth(250);
         layout().setMinHeight(250);
         layout().setFlex(1.f);
         enableChildrenClipping(false);
+
+        SkIRect c;
+        auto i { theme()->roundContainerNinePatch(25, 2, c) };
+        nine.setCenter(c);
+        nine.setImage(i);
+        nine.enableReplaceImageColor(true);
+        nine.setColor(SK_ColorRED);
+        nine.layout().setWidth(200);
+        nine.layout().setHeight(200);
+        nine.setRegionVisibility(AKNinePatch::C, false);
+
+        CZAnimation::OneShot(5000, [this](CZAnimation *a){
+            nine.layout().setWidth(200 + 1000 * a->value());
+        });
+
+        if (theme()->iconFont)
+            cat.setImage(theme()->iconFont->getIconByUTF8("🚀", 128));
 
         leftShadow.setCursor(CZCursorShape::ResizeColumn);
         leftShadow.enableDiminishOpacityOnInactive(true);
@@ -177,7 +224,9 @@ public:
     }
 
     AKScroll body { this };
-
+    AKNinePatch nine { {}, {} , &body };
+    AKFontIcon icon1 { "close", 24, &body };
+    AKFontIcon icon2 { "home", 24, &body };
     AKEdgeShadow leftShadow { CZEdgeLeft, this };
     AKImageFrame cat { nullptr, &body };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
@@ -198,7 +247,7 @@ public:
 
     AKSolidColor topbar { 0xAAFFFFFF, this };
     AKBackgroundBlurEffect inAppBlur { /*&topbar*/ };
-    AKText helloWorld { "🚀 Hello World!", &topbar };
+    AKText helloWorld { "🚀 Hello World!" , &topbar };
     AKEdgeShadow shadow { CZEdgeBottom, &topbar };
 };
 

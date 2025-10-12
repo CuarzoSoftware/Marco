@@ -3,8 +3,8 @@
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/MApp.h>
 
-#include <CZ/Events/CZWindowStateEvent.h>
-#include <CZ/Events/CZCloseEvent.h>
+#include <CZ/Core/Events/CZWindowStateEvent.h>
+#include <CZ/Core/Events/CZCloseEvent.h>
 
 using namespace CZ;
 

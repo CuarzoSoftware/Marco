@@ -5,7 +5,7 @@
 #include <CZ/Marco/Roles/MToplevel.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/AK/Events/AKRenderEvent.h>
-#include <CZ/Events/CZLayoutEvent.h>
+#include <CZ/Core/Events/CZLayoutEvent.h>
 #include <CZ/Ream/RImage.h>
 #include <CZ/Ream/RPainter.h>
 #include <CZ/Ream/RPass.h>

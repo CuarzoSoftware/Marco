@@ -6,9 +6,9 @@
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/MTheme.h>
 
-#include <CZ/Events/CZLayoutEvent.h>
-#include <CZ/Events/CZWindowStateEvent.h>
-#include <CZ/Events/CZPointerButtonEvent.h>
+#include <CZ/Core/Events/CZLayoutEvent.h>
+#include <CZ/Core/Events/CZWindowStateEvent.h>
+#include <CZ/Core/Events/CZPointerButtonEvent.h>
 #include <CZ/AK/AKLog.h>
 
 #include <CZ/Ream/RSurface.h>
