@@ -90,33 +90,6 @@ public:
     bool resizing { false };
 };
 
-std::string utf8_from_hex_string(const std::string& hex_str) {
-    // Convert hex string to integer codepoint
-    uint32_t cp;
-    std::stringstream ss;
-    ss << std::hex << hex_str;
-    ss >> cp;
-
-    // Encode to UTF-8
-    std::string utf8;
-    if (cp <= 0x7F) {
-        utf8 += static_cast<char>(cp);
-    } else if (cp <= 0x7FF) {
-        utf8 += static_cast<char>(0xC0 | ((cp >> 6) & 0x1F));
-        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
-    } else if (cp <= 0xFFFF) {
-        utf8 += static_cast<char>(0xE0 | ((cp >> 12) & 0x0F));
-        utf8 += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
-    } else {
-        utf8 += static_cast<char>(0xF0 | ((cp >> 18) & 0x07));
-        utf8 += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
-        utf8 += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
-        utf8 += static_cast<char>(0x80 | (cp & 0x3F));
-    }
-    return utf8;
-}
-
 class RightContainer : public AKSolidColor
 {
 public:
@@ -129,23 +102,6 @@ public:
         layout().setFlex(1.f);
         enableChildrenClipping(false);
 
-        SkIRect c;
-        auto i { theme()->roundContainerNinePatch(25, 2, c) };
-        nine.setCenter(c);
-        nine.setImage(i);
-        nine.enableReplaceImageColor(true);
-        nine.setColor(SK_ColorRED);
-        nine.layout().setWidth(200);
-        nine.layout().setHeight(200);
-        nine.setRegionVisibility(AKNinePatch::C, false);
-
-        CZAnimation::OneShot(5000, [this](CZAnimation *a){
-            nine.layout().setWidth(200 + 1000 * a->value());
-        });
-
-        if (theme()->iconFont)
-            cat.setImage(theme()->iconFont->getIconByUTF8("🚀", 128));
-
         leftShadow.setCursor(CZCursorShape::ResizeColumn);
         leftShadow.enableDiminishOpacityOnInactive(true);
         shadow.enableDiminishOpacityOnInactive(true);
@@ -154,16 +110,15 @@ public:
         topbar.layout().setPosition(YGEdgeTop, 0);
         topbar.layout().setAlignItems(YGAlignCenter);
         topbar.layout().setJustifyContent(YGJustifyCenter);
-        topbar.layout().setHeight(72);
+        topbar.layout().setHeight(52);
         topbar.layout().setWidthPercent(100);
         topbar.userCaps.add(UCWindowMove);
         auto textStyle = helloWorld.textStyle();
         textStyle.setFontStyle(
             SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant));
         textStyle.setFontSize(14);
-        //textStyle.setColor(0xb3000000);
         SkPaint p;
-        p.setColor(SK_ColorWHITE);
+        p.setColor(0xb3000000);
         textStyle.setForegroundColor(p);
         helloWorld.setTextStyle(textStyle);
         helloWorld.enableDiminishOpacityOnInactive(true);
@@ -176,17 +131,20 @@ public:
         body.slot()->layout().setAlignItems(YGAlignCenter);
         body.slot()->layout().setJustifyContent(YGJustifyCenter);
         */
-        cat.layout().setMargin(YGEdgeAll, 12.f);
-        cat.layout().setMinWidth(120);
-        cat.layout().setMinHeight(120);
-        cat.layout().setFlex(1.f);
-        cat.setSizeMode(AKImageFrame::SizeMode::Contain);
+        auto *device { RCore::Get()->mainDevice() };
+        auto fmt { device->textureFormats().formats().find(DRM_FORMAT_ARGB8888) };
+        kay.setImage(RImage::LoadFile(AKAssetsDir() / "logo.png", *fmt));
+        kay.layout().setMargin(YGEdgeAll, 12.f);
+        kay.layout().setMinWidth(120);
+        kay.layout().setMinHeight(120);
+        kay.layout().setFlex(1.f);
+        kay.layout().setWidthPercent(100);
+        kay.setSizeMode(AKImageFrame::SizeMode::Contain);
         newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
         exitButton.setBackgroundColor(AKTheme::SystemRed);
         disabledButton.setEnabled(false);
         hiddenButton.layout().setPositionType(YGPositionTypeAbsolute);
         hiddenButton.layout().setPosition(YGEdgeLeft, 1500.f);
-        cat.layout().setWidthPercent(100);
 
         const std::vector<std::string> iconNames {
             "firefox",
@@ -200,8 +158,6 @@ public:
             "gedit"
         };
 
-        auto *device { RCore::Get()->mainDevice() };
-        auto fmt { device->textureFormats().formats().find(DRM_FORMAT_ARGB8888) };
         RImageConstraints cons {};
         cons.caps[device] = RImageCap_Src;
 
@@ -224,11 +180,8 @@ public:
     }
 
     AKScroll body { this };
-    AKNinePatch nine { {}, {} , &body };
-    AKFontIcon icon1 { "close", 24, &body };
-    AKFontIcon icon2 { "home", 24, &body };
     AKEdgeShadow leftShadow { CZEdgeLeft, this };
-    AKImageFrame cat { nullptr, &body };
+    AKImageFrame kay { nullptr, &body };
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton builtinDecorationsButton { "Toggle built-in decorations", &body };
     AKButton decorationsButton { "Toggle decoration mode", &body };
