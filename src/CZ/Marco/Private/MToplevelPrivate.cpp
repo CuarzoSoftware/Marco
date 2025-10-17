@@ -1,8 +1,8 @@
-#include "CZCore.h"
 #include <CZ/AK/AKLog.h>
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/MApp.h>
 
+#include <CZ/Core/CZCore.h>
 #include <CZ/Core/Events/CZWindowStateEvent.h>
 #include <CZ/Core/Events/CZCloseEvent.h>
 

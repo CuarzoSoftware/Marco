@@ -1,7 +1,8 @@
 executable(
-    'marco-popup',
+    'cz-marco-toplevel',
     sources : ['main.cpp'],
     dependencies : [
-        kay_dep
+        cz_marco_dep,
+        cz_xdgkit_dep
     ],
     install : true)

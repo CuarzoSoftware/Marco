@@ -1,7 +1,7 @@
 executable(
-    'marco-toplevel-custom-csd',
+    'cz-marco-popup',
     sources : ['main.cpp'],
     dependencies : [
-        kay_dep
+        cz_marco_dep
     ],
     install : true)

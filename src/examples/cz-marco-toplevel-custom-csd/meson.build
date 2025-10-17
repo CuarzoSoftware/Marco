@@ -1,7 +1,7 @@
 executable(
-    'marco-subsurfaces',
+    'cz-marco-toplevel-custom-csd',
     sources : ['main.cpp'],
     dependencies : [
-        marco_dep
+        cz_marco_dep
     ],
     install : true)

@@ -1,5 +1,5 @@
 project(
-    'Marco',
+    'cz-marco',
     'c','cpp',
     version : '0.1.0',
     meson_version: '>= 0.62.0',
@@ -8,19 +8,20 @@ project(
         'buildtype=release',
         'cpp_std=c++20'])
 
+NAME='Marco'
 VERSION_MAJOR = meson.project_version().split('.')[0]
 VERSION_MINOR = meson.project_version().split('.')[1]
 VERSION_PATCH = meson.project_version().split('.')[2]
 VERSION_BUILD = run_command('cat', './BUILD', check : false).stdout()
-HEADERS_INSTALL_PATH = join_paths(get_option('prefix'), get_option('includedir'), 'CZ/', meson.project_name())
-CONF_FILE_NAME = 'CZ' + meson.project_name() + 'Version.h'
+HEADERS_INSTALL_PATH = join_paths(get_option('prefix'), get_option('includedir'), 'CZ/', NAME)
+CONF_FILE_NAME = 'CZ' + NAME + 'Version.h'
 
 conf = configuration_data()
 conf.set('VERSION_MAJOR', VERSION_MAJOR)
 conf.set('VERSION_MINOR', VERSION_MINOR)
 conf.set('VERSION_PATCH', VERSION_PATCH)
 conf_file = configure_file(
-    input : 'src/CZ/' + meson.project_name() + '/' + CONF_FILE_NAME +'.in',
+    input : 'src/CZ/' + NAME + '/' + CONF_FILE_NAME +'.in',
     output : CONF_FILE_NAME,
     configuration : conf)
 
@@ -35,8 +36,8 @@ pkg                 = import('pkgconfig')
 cz_core_dep         = dependency('cz-core')
 cz_skia_dep         = dependency('cz-skia')
 cz_ream_dep         = dependency('cz-ream')
-cz_kay_dep          = dependency('cz-kay')
-
+cz_kay_dep          = dependency('cz-kay', fallback:['cz-kay', 'cz_kay_dep'])
+cz_xdgkit_dep       = dependency('cz-xdgkit', fallback:['cz-xdgkit', 'cz_xdgkit_dep'])
 wayland_client_dep  = dependency('wayland-client')
 wayland_cursor_dep  = dependency('wayland-cursor')
 xkbcommon_dep       = dependency('xkbcommon')
@@ -80,7 +81,7 @@ endforeach
 
 # -------------- LIBRARY --------------
 
-marco = library(
+cz_marco = library(
     'cz-marco',
     sources : run_command('find', 'src/CZ', '-type', 'f', '-name', '*[.cpp,.c,.h]', check : false).stdout().strip().split('\n'),
     include_directories : ['src'],
@@ -88,13 +89,13 @@ marco = library(
     soversion: VERSION_MAJOR,
     install : true)
 
-marco_dep = declare_dependency(
+cz_marco_dep = declare_dependency(
     dependencies: deps,
     include_directories : ['src', 'src/CZ/Marco'],
-    link_with : marco)
+    link_with : cz_marco)
 
 pkg.generate(
-    marco,
+    cz_marco,
     name: 'cz-marco',
     description: 'C++ library for building Wayland applications.',
     version: meson.project_version(),
@@ -105,8 +106,8 @@ pkg.generate(
 # -------------- EXAMPLES --------------
 
 if get_option('build_examples')
-    subdir('src/examples/marco-toplevel')
-#    subdir('src/examples/marco-toplevel-custom-csd')
-    subdir('src/examples/marco-subsurfaces')
-    subdir('src/examples/marco-layer-shell')
+    subdir('src/examples/cz-marco-toplevel')
+#    subdir('src/examples/cz-marco-toplevel-custom-csd')
+    subdir('src/examples/cz-marco-subsurfaces')
+    subdir('src/examples/cz-marco-layer-shell')
 endif

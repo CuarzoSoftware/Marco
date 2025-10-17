@@ -1,8 +1,7 @@
 executable(
-    'marco-toplevel',
+    'cz-marco-subsurfaces',
     sources : ['main.cpp'],
     dependencies : [
-        marco_dep,
-        dependency('XDGKit')
+        cz_marco_dep
     ],
     install : true)

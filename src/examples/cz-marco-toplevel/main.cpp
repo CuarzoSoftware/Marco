@@ -21,11 +21,11 @@
 #include <CZ/AK/AKIconFont.h>
 #include <CZ/AK/Nodes/AKFontIcon.h>
 #include <CZ/AK/Nodes/AKNinePatch.h>
-#include <XDGKit/XDGKit.h>
+#include <CZ/XDG/XDGKit.h>
 #include <iostream>
 
 using namespace CZ;
-using namespace XDG;
+using namespace CZ;
 
 static std::shared_ptr<XDGKit> xdg;
 

@@ -1,7 +1,7 @@
 executable(
-    'marco-layer-shell',
+    'cz-marco-layer-shell',
     sources : ['main.cpp'],
     dependencies : [
-        marco_dep,
+        cz_marco_dep,
     ],
     install : true)
