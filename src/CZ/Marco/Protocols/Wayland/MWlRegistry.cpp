@@ -9,6 +9,7 @@
 #include <CZ/Marco/Protocols/LvrSvgPath/lvr-svg-path-client.h>
 #include <CZ/Marco/Protocols/WlrLayerShell/wlr-layer-shell-unstable-v1-client.h>
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
+#include <CZ/Marco/Protocols/WlrForeignToplevel/MWlrForeignToplevelManager.h>
 #include <CZ/Marco/MApp.h>
 
 using namespace CZ;
@@ -75,6 +76,12 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     else if (!wl.cursorShapeManager && strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0)
     {
         wl.cursorShapeManager.set(wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, version), name);
+    }
+    else if (!wl.foreignToplevelManager && strcmp(interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0)
+    {
+        wl.foreignToplevelManager.set(wl_registry_bind(registry, name, &zwlr_foreign_toplevel_manager_v1_interface, version), name);
+        zwlr_foreign_toplevel_manager_v1_add_listener(wl.foreignToplevelManager, &MWlrForeignToplevelManager::Listener, nullptr);
+        MWlrForeignToplevelManager::bound();
     }
 }
 

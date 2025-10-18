@@ -4,6 +4,7 @@
 #include <CZ/Marco/MProxy.h>
 #include <CZ/Marco/MScreen.h>
 #include <CZ/Marco/input/MPointer.h>
+#include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 #include <CZ/AK/AKApp.h>
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 
@@ -24,11 +25,17 @@ public:
         MProxy<wl_keyboard> keyboard;
         MProxy<wp_viewporter> viewporter;
         MProxy<zwlr_layer_shell_v1> layerShell;
+        MProxy<zwlr_foreign_toplevel_manager_v1> foreignToplevelManager;
         MProxy<lvr_background_blur_manager> backgroundBlurManager;
         MProxy<lvr_svg_path_manager> svgPathManager;
         MProxy<lvr_invisible_region_manager> invisibleRegionManager;
         MProxy<wp_cursor_shape_manager_v1> cursorShapeManager;
         MProxy<wp_cursor_shape_device_v1> cursorShapePointer;
+    };
+
+    struct Extensions
+    {
+        MForeignToplevelManager foreignToplevelManager;
     };
 
     enum MaskingCapabilities : UInt32
@@ -62,6 +69,7 @@ public:
     }
 
     Wayland wl {};
+    Extensions ext {};
 
     CZSignal<MScreen&> onScreenPlugged;
     CZSignal<MScreen&> onScreenUnplugged;

@@ -63,6 +63,7 @@ header_dirs = [
   ['./src/CZ/Marco/Private', 'CZ/Marco/Private'],
   ['./src/CZ/Marco/Roles', 'CZ/Marco/Roles'],
   ['./src/CZ/Marco/Nodes', 'CZ/Marco/Nodes'],
+  ['./src/CZ/Marco/Extensions', 'CZ/Marco/Extensions'],
   ['./src/CZ/Marco/Protocols/LvrBackgroundBlur', 'CZ/Marco/Protocols/LvrBackgroundBlur'],
   ['./src/CZ/Marco/Protocols/LvrInvisibleRegion', 'CZ/Marco/Protocols/LvrInvisibleRegion'],
   ['./src/CZ/Marco/Protocols/LvrSvgPath', 'CZ/Marco/Protocols/LvrSvgPath'],
@@ -72,6 +73,7 @@ header_dirs = [
   ['./src/CZ/Marco/Protocols/XdgDecoration', 'CZ/Marco/Protocols/XdgDecoration'],
   ['./src/CZ/Marco/Protocols/CursorShape', 'CZ/Marco/Protocols/CursorShape'],
   ['./src/CZ/Marco/Protocols/Tablet', 'CZ/Marco/Protocols/Tablet'],
+  ['./src/CZ/Marco/Protocols/WlrForeignToplevel', 'CZ/Marco/Protocols/WlrForeignToplevel'],
 ]
 
 foreach header_dir : header_dirs

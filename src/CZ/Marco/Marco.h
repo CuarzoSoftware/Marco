@@ -23,6 +23,10 @@ namespace CZ
     class MPointer;
     class MKeyboard;
 
+    /* Extensions */
+    class MForeignToplevelManager;
+    class MForeignToplevel;
+
     template <class T> class MProxy;
 
     MPointer &pointer() noexcept;
@@ -41,6 +45,7 @@ struct wl_pointer;
 struct wl_keyboard;
 struct wp_viewporter;
 struct zwlr_layer_shell_v1;
+struct zwlr_foreign_toplevel_manager_v1;
 struct lvr_background_blur_manager;
 struct lvr_svg_path_manager;
 struct lvr_invisible_region_manager;
