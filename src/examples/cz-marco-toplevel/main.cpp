@@ -134,7 +134,7 @@ public:
         auto *device { RCore::Get()->mainDevice() };
         auto fmt { device->textureFormats().formats().find(DRM_FORMAT_ARGB8888) };
         kay.setImage(RImage::LoadFile(AKAssetsDir() / "logo.png", *fmt));
-        kay.layout().setMargin(YGEdgeAll, 12.f);
+        kay.layout().setMargin(YGEdgeBottom, 12.f);
         kay.layout().setMinWidth(120);
         kay.layout().setMinHeight(120);
         kay.layout().setFlex(1.f);
@@ -182,6 +182,10 @@ public:
     AKScroll body { this };
     AKEdgeShadow leftShadow { CZEdgeLeft, this };
     AKImageFrame kay { nullptr, &body };
+    AKButton changeTransform { "Change Transform: Normal", &body };
+    AKButton changeAlignment { "Change Alignment: Center", &body };
+    AKButton changeSizeMode { "Change Size Mode: Contain", &body };
+
     AKButton cursorButton { "🖱️ Cursor: Default", &body };
     AKButton builtinDecorationsButton { "Toggle built-in decorations", &body };
     AKButton decorationsButton { "Toggle decoration mode", &body };
@@ -216,6 +220,61 @@ public:
         layout().setHeight(600);
         setColor(MApp::Get()->wl.backgroundBlurManager ? 0x00FFFFFF : 0xffF0F0F0);
         setTitle("Hello world!");
+
+        rightContainer.changeTransform.onClick.subscribe(this, [this](auto){
+
+            CZTransform t { rightContainer.kay.transform() };
+
+            if (t == CZTransform::Flipped270)
+                t = CZTransform::Normal;
+            else
+                t = static_cast<CZTransform>((int)t + 1);
+
+            rightContainer.changeTransform.setText(std::format("Change Transform: {}", CZ::TransformString(t)));
+            rightContainer.kay.setTransform(t);
+        });
+
+        rightContainer.changeAlignment.onClick.subscribe(this, [this](auto){
+
+            static int i { 0 };
+            static constexpr CZAlignment aligs[]
+            {
+                CZAlignCenter,
+                CZAlignLeft,
+                CZAlignTop,
+                CZAlignRight,
+                CZAlignBottom,
+                CZAlignTopLeft,
+                CZAlignTopRight,
+                CZAlignBottomRight,
+                CZAlignBottomLeft
+            };
+
+            if (i == 8) i = 0;
+            else i ++;
+
+            rightContainer.changeAlignment.setText(std::format("Change Alignment {}", CZ::AlignmentString(aligs[i])));
+            rightContainer.kay.setAlignment(aligs[i]);
+        });
+
+        rightContainer.changeSizeMode.onClick.subscribe(this, [this](auto){
+
+            if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Contain)
+            {
+                rightContainer.changeSizeMode.setText("Change Size Mode: Cover");
+                rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Cover);
+            }
+            else if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Cover)
+            {
+                rightContainer.changeSizeMode.setText("Change Size Mode: Fill");
+                rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Fill);
+            }
+            else if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Fill)
+            {
+                rightContainer.changeSizeMode.setText("Change Size Mode: Contain");
+                rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Contain);
+            }
+        });
 
         rightContainer.cursorButton.onClick.subscribe(this, [this](const auto &){
             if (cursor == 34)
@@ -279,6 +338,7 @@ public:
         onDecorationModeChanged.subscribe(this, [this](){
             rightContainer.topbar.setVisible(decorationMode() == ClientSide);
         });
+
     }
 
     void windowStateEvent(const CZWindowStateEvent &e) override
