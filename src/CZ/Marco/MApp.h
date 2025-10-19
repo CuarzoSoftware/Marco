@@ -3,10 +3,9 @@
 
 #include <CZ/Marco/MProxy.h>
 #include <CZ/Marco/MScreen.h>
-#include <CZ/Marco/input/MPointer.h>
-#include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 #include <CZ/AK/AKApp.h>
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
+#include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 
 class CZ::MApp : public AKObject
 {

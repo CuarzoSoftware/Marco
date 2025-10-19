@@ -59,21 +59,21 @@ deps = [
 # -------------- SOURCES --------------
 
 header_dirs = [
-  ['./src/CZ/Marco', 'CZ/Marco'],
-  ['./src/CZ/Marco/Private', 'CZ/Marco/Private'],
-  ['./src/CZ/Marco/Roles', 'CZ/Marco/Roles'],
-  ['./src/CZ/Marco/Nodes', 'CZ/Marco/Nodes'],
-  ['./src/CZ/Marco/Extensions', 'CZ/Marco/Extensions'],
-  ['./src/CZ/Marco/Protocols/LvrBackgroundBlur', 'CZ/Marco/Protocols/LvrBackgroundBlur'],
-  ['./src/CZ/Marco/Protocols/LvrInvisibleRegion', 'CZ/Marco/Protocols/LvrInvisibleRegion'],
-  ['./src/CZ/Marco/Protocols/LvrSvgPath', 'CZ/Marco/Protocols/LvrSvgPath'],
-  ['./src/CZ/Marco/Protocols/Wayland', 'CZ/Marco/Protocols/Wayland'],
-  ['./src/CZ/Marco/Protocols/WlrLayerShell', 'CZ/Marco/Protocols/WlrLayerShell'],
-  ['./src/CZ/Marco/Protocols/XdgShell', 'CZ/Marco/Protocols/XdgShell'],
-  ['./src/CZ/Marco/Protocols/XdgDecoration', 'CZ/Marco/Protocols/XdgDecoration'],
-  ['./src/CZ/Marco/Protocols/CursorShape', 'CZ/Marco/Protocols/CursorShape'],
-  ['./src/CZ/Marco/Protocols/Tablet', 'CZ/Marco/Protocols/Tablet'],
-  ['./src/CZ/Marco/Protocols/WlrForeignToplevel', 'CZ/Marco/Protocols/WlrForeignToplevel'],
+  ['./src/CZ/Marco', ''],
+  ['./src/CZ/Marco/Private', 'Private'],
+  ['./src/CZ/Marco/Roles', 'Roles'],
+  ['./src/CZ/Marco/Nodes', 'Nodes'],
+  ['./src/CZ/Marco/Extensions', 'Extensions'],
+  ['./src/CZ/Marco/Protocols/LvrBackgroundBlur', 'Protocols/LvrBackgroundBlur'],
+  ['./src/CZ/Marco/Protocols/LvrInvisibleRegion', 'Protocols/LvrInvisibleRegion'],
+  ['./src/CZ/Marco/Protocols/LvrSvgPath', 'Protocols/LvrSvgPath'],
+  ['./src/CZ/Marco/Protocols/Wayland', 'Protocols/Wayland'],
+  ['./src/CZ/Marco/Protocols/WlrLayerShell', 'Protocols/WlrLayerShell'],
+  ['./src/CZ/Marco/Protocols/XdgShell', 'Protocols/XdgShell'],
+  ['./src/CZ/Marco/Protocols/XdgDecoration', 'Protocols/XdgDecoration'],
+  ['./src/CZ/Marco/Protocols/CursorShape', 'Protocols/CursorShape'],
+  ['./src/CZ/Marco/Protocols/Tablet', 'Protocols/Tablet'],
+  ['./src/CZ/Marco/Protocols/WlrForeignToplevel', 'Protocols/WlrForeignToplevel'],
 ]
 
 foreach header_dir : header_dirs
