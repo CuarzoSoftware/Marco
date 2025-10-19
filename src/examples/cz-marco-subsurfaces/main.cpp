@@ -142,7 +142,7 @@ int main()
     setenv("CZ_CUARZO_LOG_LEVEL", "3", 1);
     setenv("CZ_REAM_GAPI", "GL", 1);
 
-    auto app { MApp::GetOrMake() };
+    auto app { MApp::Make() };
     app->setAppId("org.Cuarzo.marco-subsurfaces");
 
     Window window;

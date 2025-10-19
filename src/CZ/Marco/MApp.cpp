@@ -26,14 +26,12 @@ using namespace CZ;
 
 std::weak_ptr<MApp> m_app;
 
-MApp::MApp() noexcept {}
-
-std::shared_ptr<MApp> MApp::GetOrMake() noexcept
+std::shared_ptr<MApp> MApp::Make(const MOptions &options) noexcept
 {
     if (auto app = m_app.lock())
         return app;
 
-    auto app { std::shared_ptr<MApp>(new MApp()) };
+    auto app { std::shared_ptr<MApp>(new MApp(options)) };
     m_app = app;
 
     if (!app->init())

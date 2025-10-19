@@ -16,6 +16,7 @@ using namespace CZ;
 
 void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const char *interface, UInt32 version)
 {
+    auto app { MApp::Get() };
     auto &wl { *static_cast<MApp::Wayland*>(data) };
 
     if (!wl.shm && strcmp(interface, wl_shm_interface.name) == 0)
@@ -77,7 +78,7 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     {
         wl.cursorShapeManager.set(wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, version), name);
     }
-    else if (!wl.foreignToplevelManager && strcmp(interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0)
+    else if (app->m_options.extensions.has(MForeignToplevelManagerExt) && !wl.foreignToplevelManager && strcmp(interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0)
     {
         wl.foreignToplevelManager.set(wl_registry_bind(registry, name, &zwlr_foreign_toplevel_manager_v1_interface, version), name);
         zwlr_foreign_toplevel_manager_v1_add_listener(wl.foreignToplevelManager, &MWlrForeignToplevelManager::Listener, nullptr);

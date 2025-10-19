@@ -231,8 +231,7 @@ public:
 
 int main()
 {
-    setenv("KAY_DEBUG", "4", 0);
-    auto app { MApp::GetOrMake() };
+    auto app { MApp::Make() };
     app->setAppId("org.Cuarzo.marco-layer-shell");
 
     if (app->screens().empty())

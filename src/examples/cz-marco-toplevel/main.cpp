@@ -403,7 +403,7 @@ int main()
     setenv("CZ_REAM_LOG_LEVEL", "3", 1);
     setenv("CZ_REAM_GAPI", "GL", 1);
     xdg = XDGKit::Make();
-    auto app { MApp::GetOrMake() };
+    auto app { MApp::Make() };
 
     if (!app) return 1;
 

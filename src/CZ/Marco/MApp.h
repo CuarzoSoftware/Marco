@@ -7,6 +7,19 @@
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 #include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 
+namespace CZ
+{
+    enum MExtension
+    {
+        MForeignToplevelManagerExt = 1 << 0
+    };
+
+    struct MOptions
+    {
+        CZBitset<MExtension> extensions;
+    };
+};
+
 class CZ::MApp : public AKObject
 {
 public:
@@ -32,11 +45,6 @@ public:
         MProxy<wp_cursor_shape_device_v1> cursorShapePointer;
     };
 
-    struct Extensions
-    {
-        MForeignToplevelManager foreignToplevelManager;
-    };
-
     enum MaskingCapabilities : UInt32
     {
         NoMaskCap       = 0U,
@@ -44,7 +52,7 @@ public:
         SVGPathCap      = 2U
     };
 
-    static std::shared_ptr<MApp> GetOrMake() noexcept;
+    static std::shared_ptr<MApp> Make(const MOptions &options = {}) noexcept;
     static std::shared_ptr<MApp> Get() noexcept;
 
     int run() noexcept;
@@ -68,7 +76,11 @@ public:
     }
 
     Wayland wl {};
-    Extensions ext {};
+
+    struct
+    {
+        MForeignToplevelManager foreignToplevelManager;
+    } ext;
 
     CZSignal<MScreen&> onScreenPlugged;
     CZSignal<MScreen&> onScreenUnplugged;
@@ -81,7 +93,7 @@ private:
     friend class MWlOutput;
     friend class MLvrBackgroundBlurManager;
 
-    MApp() noexcept;
+    MApp(const MOptions &options) noexcept : m_options(options) {}
 
     bool init() noexcept;
     void updateSurfaces();
@@ -98,6 +110,7 @@ private:
     CZBitset<MaskingCapabilities> m_maskingcaps;
 
     std::optional<CZPointerScrollEvent> m_pendingScrollEvent;
+    MOptions m_options;
 };
 
 #endif // MAPPLICATION_H
