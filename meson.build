@@ -64,6 +64,7 @@ header_dirs = [
   ['./src/CZ/Marco/Roles', 'Roles'],
   ['./src/CZ/Marco/Nodes', 'Nodes'],
   ['./src/CZ/Marco/Extensions', 'Extensions'],
+  ['./src/CZ/Marco/Protocols/Viewporter', 'Protocols/Viewporter'],
   ['./src/CZ/Marco/Protocols/LvrBackgroundBlur', 'Protocols/LvrBackgroundBlur'],
   ['./src/CZ/Marco/Protocols/LvrInvisibleRegion', 'Protocols/LvrInvisibleRegion'],
   ['./src/CZ/Marco/Protocols/LvrSvgPath', 'Protocols/LvrSvgPath'],
@@ -103,7 +104,7 @@ pkg.generate(
     version: meson.project_version(),
     filebase: 'cz-marco',
     subdirs: 'CZ/',
-    requires: [])
+    libraries: deps)
 
 # -------------- EXAMPLES --------------
 

@@ -85,7 +85,7 @@ void MApp::update() noexcept
 
 bool MApp::init() noexcept
 {
-    m_core = CZCore::Get();
+    m_core = CZCore::GetOrMake();
 
     if (!m_core)
     {
