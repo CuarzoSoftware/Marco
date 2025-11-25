@@ -10,7 +10,7 @@
 
 using namespace CZ;
 
-MTheme::MTheme() noexcept {}
+MTheme::MTheme() noexcept : AKTheme() {}
 
 std::shared_ptr<RImage> MTheme::csdBorderRadiusMask(Int32 scale) noexcept
 {

@@ -4,7 +4,7 @@
 #include <CZ/Marco/Roles/MSubsurface.h>
 #include <CZ/AK/Nodes/AKButton.h>
 #include <CZ/AK/Nodes/AKText.h>
-#include <CZ/Core/CZAnimation.h>
+#include <CZ/Core/CZLinearAnimation.h>
 
 using namespace CZ;
 
@@ -127,7 +127,7 @@ public:
     }
 
     bool animated { false };
-    CZAnimation spinAnimation;
+    CZLinearAnimation spinAnimation;
     AKButton addButton { "Create subsurface", this };
     AKButton animateButton { "Animate subsurfaces", this };
     AKButton destroyButton { "Destoy subsurfaces", this };

@@ -9,7 +9,7 @@
 #include <CZ/AK/AKLog.h>
 #include <CZ/AK/Nodes/AKImageFrame.h>
 
-#include <CZ/Core/CZAnimation.h>
+#include <CZ/Core/CZLinearAnimation.h>
 #include <CZ/Core/Events/CZCloseEvent.h>
 #include <CZ/Core/Events/CZPointerButtonEvent.h>
 
@@ -36,7 +36,7 @@ public:
             auto tmpAnchor { anchor() };
             tmpAnchor.setFlag(CZEdgeLeft, !anchor().has(CZEdgeLeft));
             setAnchor(tmpAnchor);
-            anchorLButton.setText(std::string("Anchor L: ") + (anchor().has(CZEdgeLeft) ? "ON" : "OFF"));
+            anchorLButton.textNode().setText(std::string("Anchor L: ") + (anchor().has(CZEdgeLeft) ? "ON" : "OFF"));
 
             if (anchor().hasAll(CZEdgeLeft | CZEdgeRight))
                 requestAvailableWidth();
@@ -48,7 +48,7 @@ public:
             auto tmpAnchor { anchor() };
             tmpAnchor.setFlag(CZEdgeTop, !anchor().has(CZEdgeTop));
             setAnchor(tmpAnchor);
-            anchorTButton.setText(std::string("Anchor T: ") + (anchor().has(CZEdgeTop) ? "ON" : "OFF"));
+            anchorTButton.textNode().setText(std::string("Anchor T: ") + (anchor().has(CZEdgeTop) ? "ON" : "OFF"));
 
             if (anchor().hasAll(CZEdgeTop | CZEdgeBottom))
                 requestAvailableHeight();
@@ -60,7 +60,7 @@ public:
             auto tmpAnchor { anchor() };
             tmpAnchor.setFlag(CZEdgeBottom, !anchor().has(CZEdgeBottom));
             setAnchor(tmpAnchor);
-            anchorBButton.setText(std::string("Anchor B: ") + (anchor().has(CZEdgeBottom) ? "ON" : "OFF"));
+            anchorBButton.textNode().setText(std::string("Anchor B: ") + (anchor().has(CZEdgeBottom) ? "ON" : "OFF"));
 
             if (anchor().hasAll(CZEdgeTop | CZEdgeBottom))
                 requestAvailableHeight();
@@ -72,7 +72,7 @@ public:
             auto tmpAnchor { anchor() };
             tmpAnchor.setFlag(CZEdgeRight, !anchor().has(CZEdgeRight));
             setAnchor(tmpAnchor);
-            anchorRButton.setText(std::string("Anchor R: ") + (anchor().has(CZEdgeRight) ? "ON" : "OFF"));
+            anchorRButton.textNode().setText(std::string("Anchor R: ") + (anchor().has(CZEdgeRight) ? "ON" : "OFF"));
 
             if (anchor().hasAll(CZEdgeLeft | CZEdgeRight))
                 requestAvailableWidth();
@@ -95,13 +95,13 @@ public:
         marginAnim.setDuration(2000);
 
         animateMargin.onClick.subscribe(this, [this](const auto &){
-            if (!marginAnim.running())
+            if (!marginAnim.isRunning())
                 marginAnim.start();
         });
 
         toggleScope.onClick.subscribe(this, [this](const auto &){
             setScope(scope() == "A" ? "B" : "A");
-            toggleScope.setText("Scope: " + scope());
+            toggleScope.textNode().setText("Scope: " + scope());
             requestAvailableWidth();
             requestAvailableHeight();
         });
@@ -115,7 +115,7 @@ public:
             setExclusiveZone(exclusiveZones[exclusiveZoneI]);
             requestAvailableWidth();
             requestAvailableHeight();
-            exclusiveZoneBtn.setText(std::string("Vary Exclusive Zone: ") + std::to_string(exclusiveZones[exclusiveZoneI]));
+            exclusiveZoneBtn.textNode().setText(std::string("Vary Exclusive Zone: ") + std::to_string(exclusiveZones[exclusiveZoneI]));
         });
 
         changeScreen.onClick.subscribe(this, [this](const auto &){
@@ -128,7 +128,7 @@ public:
             else
                 setLayer((Layer)(layer() + 1));
 
-            changeLayerBtn.setText(std::string("Change Layer: ") + layerNames[layer()]);
+            changeLayerBtn.textNode().setText(std::string("Change Layer: ") + layerNames[layer()]);
         });
 
         showPopupBtn.onClick.subscribe(this, [this](const auto &e){
@@ -188,7 +188,7 @@ public:
             if (s != screen())
             {
                 setScreen(s);
-                changeScreen.setText("Screen: " + s->props().name);
+                changeScreen.textNode().setText("Screen: " + s->props().name);
                 requestAvailableWidth();
                 requestAvailableHeight();
                 break;
@@ -219,7 +219,7 @@ public:
 
     AKButton changeLayerBtn { "Change Layer: Overlay", this };
 
-    CZAnimation marginAnim;
+    CZLinearAnimation marginAnim;
     AKButton animateMargin { "Animate Top-Left Margin", this };
     AKButton exclusiveZoneBtn { "Vary Exclusive Zone: 0", this };
     AKButton toggleScope { "Scope: A", this };

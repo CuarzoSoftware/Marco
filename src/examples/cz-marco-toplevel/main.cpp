@@ -25,7 +25,6 @@
 #include <iostream>
 
 using namespace CZ;
-using namespace CZ;
 
 static std::shared_ptr<XDGKit> xdg;
 
@@ -230,7 +229,7 @@ public:
             else
                 t = static_cast<CZTransform>((int)t + 1);
 
-            rightContainer.changeTransform.setText(std::format("Change Transform: {}", CZ::TransformString(t)));
+            rightContainer.changeTransform.textNode().setText(std::format("Change Transform: {}", CZ::TransformString(t)));
             rightContainer.kay.setTransform(t);
         });
 
@@ -253,7 +252,7 @@ public:
             if (i == 8) i = 0;
             else i ++;
 
-            rightContainer.changeAlignment.setText(std::format("Change Alignment {}", CZ::AlignmentString(aligs[i])));
+            rightContainer.changeAlignment.textNode().setText(std::format("Change Alignment {}", CZ::AlignmentString(aligs[i])));
             rightContainer.kay.setAlignment(aligs[i]);
         });
 
@@ -261,17 +260,17 @@ public:
 
             if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Contain)
             {
-                rightContainer.changeSizeMode.setText("Change Size Mode: Cover");
+                rightContainer.changeSizeMode.textNode().setText("Change Size Mode: Cover");
                 rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Cover);
             }
             else if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Cover)
             {
-                rightContainer.changeSizeMode.setText("Change Size Mode: Fill");
+                rightContainer.changeSizeMode.textNode().setText("Change Size Mode: Fill");
                 rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Fill);
             }
             else if (rightContainer.kay.sizeMode() == AKImageFrame::SizeMode::Fill)
             {
-                rightContainer.changeSizeMode.setText("Change Size Mode: Contain");
+                rightContainer.changeSizeMode.textNode().setText("Change Size Mode: Contain");
                 rightContainer.kay.setSizeMode(AKImageFrame::SizeMode::Contain);
             }
         });
@@ -285,12 +284,12 @@ public:
             if (cursor == 0)
             {
                 rightContainer.cursorButton.setCursor(std::nullopt);
-                rightContainer.cursorButton.setText("Cursor: Invisible");
+                rightContainer.cursorButton.textNode().setText("Cursor: Invisible");
             }
             else
             {
                 rightContainer.cursorButton.setCursor((CZCursorShape)cursor);
-                rightContainer.cursorButton.setText("Cursor: " + CZCursorShapeString((CZCursorShape)cursor));
+                rightContainer.cursorButton.textNode().setText("Cursor: " + CZCursorShapeString((CZCursorShape)cursor));
             }
         });
 
