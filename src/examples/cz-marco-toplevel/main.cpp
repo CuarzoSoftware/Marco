@@ -139,8 +139,6 @@ public:
         kay.layout().setFlex(1.f);
         kay.layout().setWidthPercent(100);
         kay.setSizeMode(AKImageFrame::SizeMode::Contain);
-        newWindowButton.setBackgroundColor(AKTheme::SystemBlue);
-        exitButton.setBackgroundColor(AKTheme::SystemRed);
         disabledButton.setEnabled(false);
         hiddenButton.layout().setPositionType(YGPositionTypeAbsolute);
         hiddenButton.layout().setPosition(YGEdgeLeft, 1500.f);
@@ -185,16 +183,28 @@ public:
     AKButton changeAlignment { "Change Alignment: Center", &body };
     AKButton changeSizeMode { "Change Size Mode: Contain", &body };
 
-    AKButton cursorButton { "🖱️ Cursor: Default", &body };
-    AKButton builtinDecorationsButton { "Toggle built-in decorations", &body };
+    AKButton cursorButton { "Cursor: Default", "ads_click", &body };
+    AKButton builtinDecorationsButton { "Toggle built-in decorations", "star", &body };
     AKButton decorationsButton { "Toggle decoration mode", &body };
-    AKButton newWindowButton { "➕  New Child Window", &body };
-    AKButton mapButton { "Unmap for 1 sec", &body };
-    AKButton maximizeButton { "🖥️ Toggle Maximized", &body };
-    AKButton fullscreenButton { "🖥️ Toggle Fullscreen", &body };
-    AKButton minimizeButton { "🖥️ Minimize", &body };
-    AKButton disabledButton { "🚫 Disabled Button", &body };
-    AKButton exitButton { "╰┈➤🚪 Exit", &body };
+    AKButton newWindowButton { "New Child Window", "add_circle", &body };
+    AKButton mapButton { "Unmap for 1 sec", "visibility_off", &body };
+    AKButton maximizeButton { "Toggle Maximized", "open_in_full", &body };
+    AKButton fullscreenButton { "Toggle Fullscreen", "fullscreen", &body };
+    AKButton minimizeButton { "Minimize", "minimize", &body };
+    AKButton disabledButton { "Disabled Button", "block", &body };
+    AKButton exitButton { "Exit", "exit_to_app", &body };
+
+    AKButton elevated { "Elevated Variant", AKButton::Type::Default, AKButton::Variant::Elevated, &body };
+    AKButton filled { "Filled Variant", AKButton::Type::Default, AKButton::Variant::Filled, &body };
+    AKButton tonal { "Tonal Variant", AKButton::Type::Default, AKButton::Variant::Tonal, &body };
+    AKButton outlined { "Outlined Variant", AKButton::Type::Default, AKButton::Variant::Outlined, &body };
+    AKButton text { "Text Variant", AKButton::Type::Default, AKButton::Variant::Text, &body };
+
+    AKButton elevatedT { "Elevated Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Elevated, &body };
+    AKButton filledT { "Filled Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Filled, &body };
+    AKButton tonalT { "Tonal Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Tonal, &body };
+    AKButton outlinedT { "Outlined Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Outlined, &body };
+    AKButton textT { "Text Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Text, &body };
 
     AKButton hiddenButton { "Hidden", &body };
     AKTextField textField { &body };
