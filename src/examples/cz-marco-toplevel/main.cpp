@@ -143,6 +143,7 @@ public:
         hiddenButton.layout().setPositionType(YGPositionTypeAbsolute);
         hiddenButton.layout().setPosition(YGEdgeLeft, 1500.f);
 
+        /*
         const std::vector<std::string> iconNames {
             "firefox",
             "vscode",
@@ -173,7 +174,7 @@ public:
                 icon->layout().setWidthPercent(100);
                 icon->layout().setHeight(256);
             }
-        }
+        }*/
     }
 
     AKScroll body { this };
