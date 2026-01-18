@@ -3,6 +3,8 @@
 #include <CZ/Marco/Protocols/Wayland/MWlSeat.h>
 #include <CZ/Marco/Protocols/Viewporter/viewporter-client.h>
 #include <CZ/Marco/Protocols/XdgShell/MXdgWmBase.h>
+#include <CZ/Marco/Protocols/LvrPrivateHandle/lvr-private-handle-client.h>
+#include <CZ/Marco/Protocols/LvrPrivateHandle/MLvrPrivateHandleManager.h>
 #include <CZ/Marco/Protocols/XdgDecoration/xdg-decoration-unstable-v1-client.h>
 #include <CZ/Marco/Protocols/LvrBackgroundBlur/MLvrBackgroundManager.h>
 #include <CZ/Marco/Protocols/LvrInvisibleRegion/lvr-invisible-region-client.h>
@@ -22,6 +24,11 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     if (!wl.shm && strcmp(interface, wl_shm_interface.name) == 0)
     {
         wl.shm.set(wl_registry_bind(registry, name, &wl_shm_interface, version), name);
+    }
+    else if (!wl.privateHandleManager && strcmp(interface, lvr_private_handle_manager_interface.name) == 0)
+    {
+        wl.privateHandleManager.set(wl_registry_bind(registry, name, &lvr_private_handle_manager_interface, version));
+        lvr_private_handle_manager_add_listener(wl.privateHandleManager, &MLvrPrivateHandleManager::Listener, NULL);
     }
     else if (!wl.compositor && strcmp(interface, wl_compositor_interface.name) == 0)
     {

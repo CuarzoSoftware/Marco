@@ -49,6 +49,7 @@ struct zwlr_foreign_toplevel_manager_v1;
 struct lvr_background_blur_manager;
 struct lvr_svg_path_manager;
 struct lvr_invisible_region_manager;
+struct lvr_private_handle_manager;
 struct wp_cursor_shape_manager_v1;
 struct wp_cursor_shape_device_v1;
 

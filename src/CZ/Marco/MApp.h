@@ -41,6 +41,7 @@ public:
         MProxy<lvr_background_blur_manager> backgroundBlurManager;
         MProxy<lvr_svg_path_manager> svgPathManager;
         MProxy<lvr_invisible_region_manager> invisibleRegionManager;
+        MProxy<lvr_private_handle_manager> privateHandleManager;
         MProxy<wp_cursor_shape_manager_v1> cursorShapeManager;
         MProxy<wp_cursor_shape_device_v1> cursorShapePointer;
     };
@@ -75,6 +76,9 @@ public:
         onAppIdChanged.notify();
     }
 
+    const std::string &privateHandle() const noexcept { return m_privateHandle; }
+
+
     Wayland wl {};
 
     struct
@@ -85,6 +89,7 @@ public:
     CZSignal<MScreen&> onScreenPlugged;
     CZSignal<MScreen&> onScreenUnplugged;
     CZSignal<> onAppIdChanged;
+    CZSignal<> onPrivateHandleChanged;
 private:
     friend class MSurface;
     friend class MScreen;
@@ -92,6 +97,7 @@ private:
     friend class MWlPointer;
     friend class MWlOutput;
     friend class MLvrBackgroundBlurManager;
+    friend class MLvrPrivateHandleManager;
 
     MApp(const MOptions &options) noexcept : m_options(options) {}
 
@@ -104,7 +110,7 @@ private:
     std::shared_ptr<CZEventSource> m_source;
 
     bool m_running { false };
-    std::string m_appId;
+    std::string m_appId, m_privateHandle;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;
     CZBitset<MaskingCapabilities> m_maskingcaps;
