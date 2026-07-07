@@ -121,7 +121,7 @@ bool MApp::init() noexcept
 
     CZ::setTheme(new MTheme());
 
-    m_source = CZEventSource::Make(wl_display_get_fd(wl.display), POLLIN, CZOwn::Borrow, [this](auto, auto) {
+    m_source = CZEventSource::Make(wl_display_get_fd(wl.display), POLLIN, CZOwn::Borrow, [this](auto, auto, auto) {
         wl_display_dispatch(wl.display);
         updateSurfaces();
     });
