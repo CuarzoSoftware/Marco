@@ -407,11 +407,11 @@ public:
 
 int main()
 {
-    setenv("CZ_CORE_LOG_LEVEL", "6", 1);
-    setenv("CZ_KAY_LOG_LEVEL", "6", 1);
-    setenv("CZ_MARCO_LOG_LEVEL", "6", 1);
-    setenv("CZ_REAM_LOG_LEVEL", "3", 1);
-    setenv("CZ_REAM_GAPI", "GL", 1);
+    setenv("CZ_CORE_LOG_LEVEL", "6", 0);
+    setenv("CZ_KAY_LOG_LEVEL", "6", 0);
+    setenv("CZ_MARCO_LOG_LEVEL", "6", 0);
+    setenv("CZ_REAM_LOG_LEVEL", "3", 0);
+    setenv("CZ_REAM_GAPI", "GL", 0);
     xdg = XDGKit::Make();
     auto app { MApp::Make() };
 
