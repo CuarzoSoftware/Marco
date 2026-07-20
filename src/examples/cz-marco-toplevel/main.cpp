@@ -22,6 +22,7 @@
 #include <CZ/AK/Nodes/AKFontIcon.h>
 #include <CZ/AK/Nodes/AKNinePatch.h>
 #include <CZ/XDG/XDGKit.h>
+#include <CZ/skia/core/SkColor.h>
 #include <iostream>
 
 using namespace CZ;
@@ -96,6 +97,7 @@ public:
     RightContainer(AKNode *parent = nullptr) :
         AKSolidColor(0xFFFFFFFF, parent)
     {
+        exitButton.setBackgroundColor(AKTheme::SystemRed);
         layout().setMinWidth(250);
         layout().setMinHeight(250);
         layout().setFlex(1.f);
@@ -194,18 +196,6 @@ public:
     AKButton minimizeButton { "Minimize", "minimize", &body };
     AKButton disabledButton { "Disabled Button", "block", &body };
     AKButton exitButton { "Exit", "exit_to_app", &body };
-
-    AKButton elevated { "Elevated Variant", AKButton::Type::Default, AKButton::Variant::Elevated, &body };
-    AKButton filled { "Filled Variant", AKButton::Type::Default, AKButton::Variant::Filled, &body };
-    AKButton tonal { "Tonal Variant", AKButton::Type::Default, AKButton::Variant::Tonal, &body };
-    AKButton outlined { "Outlined Variant", AKButton::Type::Default, AKButton::Variant::Outlined, &body };
-    AKButton text { "Text Variant", AKButton::Type::Default, AKButton::Variant::Text, &body };
-
-    AKButton elevatedT { "Elevated Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Elevated, &body };
-    AKButton filledT { "Filled Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Filled, &body };
-    AKButton tonalT { "Tonal Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Tonal, &body };
-    AKButton outlinedT { "Outlined Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Outlined, &body };
-    AKButton textT { "Text Variant Toggle", AKButton::Type::Toggle, AKButton::Variant::Text, &body };
 
     AKButton hiddenButton { "Hidden", &body };
     AKTextField textField { &body };
@@ -412,6 +402,7 @@ int main()
     setenv("CZ_MARCO_LOG_LEVEL", "6", 0);
     setenv("CZ_REAM_LOG_LEVEL", "3", 0);
     setenv("CZ_REAM_GAPI", "GL", 0);
+
     xdg = XDGKit::Make();
     auto app { MApp::Make() };
 
