@@ -83,14 +83,12 @@ public:
     const SkIRect &assignedRect() const noexcept;
 
     CZSignal<> onAssignedRectChanged;
-    CZSignal<> onDecorationMarginsChanged;
     CZSignal<const CZCloseEvent&> onClose;
 
     class Imp;
     Imp *imp() const noexcept;
 protected:
     virtual void closeEvent(const CZCloseEvent &event);
-    virtual void decorationMarginsChanged();
     virtual void assignedRectChanged();
     bool event(const CZEvent &e) noexcept override;
     void onUpdate() noexcept override;

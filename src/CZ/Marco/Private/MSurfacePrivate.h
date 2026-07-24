@@ -5,6 +5,8 @@
 #include <CZ/Marco/Protocols/LvrInvisibleRegion/lvr-invisible-region-client.h>
 #include <CZ/Marco/Roles/MSurface.h>
 #include <CZ/Marco/Nodes/MRootSurfaceNode.h>
+#include <CZ/Marco/Nodes/MDecorations.h>
+#include <memory>
 
 class CZ::MSurface::Imp
 {
@@ -29,7 +31,7 @@ public:
         PendingConfigureAck       = 1 << 6,
         PendingChildren           = 1 << 7,
         PendingParent             = 1 << 8,
-        BuiltinDecorations        = 1 << 9,
+        DecorationsEnabled        = 1 << 9,
         HasBufferAttached         = 1 << 10,
         Last                      = 1 << 11,
     };
@@ -48,12 +50,15 @@ public:
     CZBitset<TmpFlags> tmpFlags;
 
     // Persistent
-    CZBitset<Flags> flags { BuiltinDecorations };
+    CZBitset<Flags> flags { DecorationsEnabled };
 
     // Kay
     std::shared_ptr<AKScene> scene;
     std::shared_ptr<AKTarget> target;
     MRootSurfaceNode root;
+
+    // Decorations (shadow, rounded corners, ...). nullptr = none.
+    std::unique_ptr<MDecorations> decorations;
 
     // Current wl_surface scale factor
     Int32 scale { 1 };

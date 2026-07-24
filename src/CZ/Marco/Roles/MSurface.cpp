@@ -154,6 +154,47 @@ AKNode *MSurface::rootNode() const noexcept
     return &imp()->root;
 }
 
+void MSurface::setDecorations(std::unique_ptr<MDecorations> decorations) noexcept
+{
+    if (imp()->decorations == decorations) return;
+
+    if (imp()->decorations) // Unbind
+        imp()->decorations->setSurface(nullptr);
+
+    imp()->decorations = std::move(decorations);
+
+    if (imp()->decorations) // Bind
+        imp()->decorations->setSurface(this);
+
+    syncDecorationsMargins();
+    update(true);
+}
+
+MDecorations *MSurface::decorations() const noexcept
+{
+    return imp()->decorations.get();
+}
+
+bool MSurface::decorationsEnabled() const noexcept
+{
+    return imp()->flags.has(Imp::DecorationsEnabled);
+}
+
+void MSurface::enableDecorations(bool enabled) noexcept
+{
+    if (decorationsEnabled() == enabled)
+        return;
+
+    imp()->flags.setFlag(Imp::DecorationsEnabled, enabled);
+    syncDecorationsMargins();
+    update(true);
+}
+
+bool MSurface::decorationsActive() const noexcept
+{
+    return imp()->decorations && decorationsEnabled();
+}
+
 wl_surface *MSurface::wlSurface() const noexcept
 {
     return imp()->wlSurface;
@@ -274,6 +315,10 @@ void MSurface::AttachInputRegion(MSurface &window) noexcept
 
 void MSurface::AttachOpaqueRegion(MSurface &window, SkRegion &outOpaque) noexcept
 {
+    // Decorations (e.g. rounded corners) carve their non-opaque areas out of the opaque region.
+    if (window.decorationsActive())
+        window.decorations()->subtractOpaque(outOpaque);
+
     wl_region *wlOpaqueRegion = wl_compositor_create_region(MApp::Get()->wl.compositor);
     SkRegion::Iterator opaqueIt { outOpaque };
     while (!opaqueIt.done())
@@ -308,6 +353,26 @@ void MSurface::PresentImage(MSurface &window, const RSwapchainImage &ssImage, Sk
     CZRegionUtils::Scale(outDamage, window.scale());
     window.MSurface::imp()->createCallback();
     window.MSurface::imp()->swapchain->present(ssImage, &outDamage);
+}
+
+void MSurface::syncDecorationsMargins() noexcept
+{
+    SkIRect m { 0, 0, 0, 0 };
+
+    if (decorationsActive())
+    {
+        imp()->decorations->setVisible(true);
+        m = imp()->decorations->margins();
+    }
+    else if (imp()->decorations)
+        imp()->decorations->setVisible(false);
+
+    layout().setPosition(YGEdgeLeft, 0.f);
+    layout().setPosition(YGEdgeTop, 0.f);
+    layout().setMargin(YGEdgeLeft, m.fLeft);
+    layout().setMargin(YGEdgeTop, m.fTop);
+    layout().setMargin(YGEdgeRight, m.fRight);
+    layout().setMargin(YGEdgeBottom, m.fBottom);
 }
 
 MSurface::Imp *MSurface::imp() const noexcept

@@ -42,5 +42,4 @@ public:
     void setParent(MSurface *surface) noexcept;
 };
 
-
 #endif // MPOPUPPRIVATE_H

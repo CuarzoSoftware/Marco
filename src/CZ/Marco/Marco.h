@@ -14,8 +14,11 @@ namespace CZ
     class MLayerSurface;
     class MSubsurface;
 
+    class MMenu;
+
     class MTheme;
-    class MCSDShadow;
+    class MDecorations;
+    class MShadowDecorations;
     class MRootSurfaceNode;
     class MVibrancyView;
 

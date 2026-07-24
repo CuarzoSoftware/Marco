@@ -5,8 +5,6 @@
 #include <CZ/Marco/Roles/MToplevel.h>
 #include <CZ/Marco/Protocols/XdgShell/xdg-shell-client.h>
 #include <CZ/Marco/Protocols/XdgDecoration/xdg-decoration-unstable-v1-client.h>
-#include <CZ/Marco/Nodes/MCSDShadow.h>
-#include <CZ/AK/Nodes/AKImage.h>
 
 class CZ::MToplevel::Imp
 {
@@ -32,21 +30,12 @@ public:
     SkISize pendingSuggestedBounds { 0, 0 };
     DecorationMode pendingDecorationMode { ClientSide };
 
-    // Built-in decorations
-    AKImage borderRadius[4]; // Border radius masks
-    SkIRect shadowMargins { 48, 30, 48, 66 }; // L, T, R, B shadow margins
-    MCSDShadow shadow; // Shadow node
-
-    // User decorations
-    SkIRect userDecorationMargins { 0, 0, 0, 0 }; // L, T, R, B
-
     CZWeak<MToplevel> parentToplevel;
     std::unordered_set<MToplevel*> childToplevels;
     std::unordered_set<MPopup*> childPopups;
 
     void applyPendingParent() noexcept;
     void applyPendingChildren() noexcept;
-    void setShadowMargins(const SkIRect &margins) noexcept;
 
     // Wayland
     xdg_surface *xdgSurface { nullptr };

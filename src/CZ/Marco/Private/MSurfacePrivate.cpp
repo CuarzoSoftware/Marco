@@ -158,6 +158,15 @@ void MSurface::Imp::createSurface() noexcept
     {
         backgroundBlur = lvr_background_blur_manager_get_background_blur(app->wl.backgroundBlurManager, wlSurface);
         lvr_background_blur_add_listener(backgroundBlur, &backgroundBlurListener, &obj);
+
+        // The compositor enables background blur by default on this object. Suppress it with an
+        // empty region so it never shows unless a role opts in (e.g. MToplevel sets a real region
+        // when vibrancy is enabled). Without this, roles that never manage the blur (popups,
+        // subsurfaces, layer surfaces) would have their whole surface blurred — including the
+        // transparent CSD shadow margins, which then read as an opaque backdrop behind the shadow.
+        wl_region *empty { wl_compositor_create_region(app->wl.compositor) };
+        lvr_background_blur_set_region(backgroundBlur, empty);
+        wl_region_destroy(empty);
     }
 }
 

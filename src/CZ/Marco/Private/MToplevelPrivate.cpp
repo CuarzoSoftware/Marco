@@ -1,6 +1,7 @@
 #include <CZ/AK/AKLog.h>
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/MTheme.h>
 
 #include <CZ/Core/CZCore.h>
 #include <CZ/Core/Events/CZWindowStateEvent.h>
@@ -8,7 +9,7 @@
 
 using namespace CZ;
 
-MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj), shadow(&obj)
+MToplevel::Imp::Imp(MToplevel &obj) noexcept : obj(obj)
 {
     obj.MSurface::imp()->flags.add(MSurface::Imp::PendingNullCommit);
     xdgSurfaceListener.configure = xdg_surface_configure;
@@ -37,25 +38,6 @@ void MToplevel::Imp::applyPendingChildren() noexcept
 
     for (const auto &child : childToplevels)
         xdg_toplevel_set_parent(child->imp()->xdgToplevel, xdgToplevel);
-}
-
-void MToplevel::Imp::setShadowMargins(const SkIRect &margins) noexcept
-{
-    if (margins == shadowMargins)
-        return;
-
-    // This is used to ensure the cursor position keeps relative to the central node
-    // otherwise stuff like clicking a button won't work properly
-
-    /* TODO
-    if (MApp::Get()->pointer().focus() == &obj)
-    {
-        const SkIPoint offset { margins.topLeft() - shadowMargins.topLeft() };
-        akPointer().setPos(akPointer().pos() + SkPoint::Make(offset.x(), offset.y()));
-    }*/
-
-    shadowMargins = margins;
-    obj.update(true);
 }
 
 void MToplevel::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/, UInt32 serial)

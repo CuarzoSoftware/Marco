@@ -2,9 +2,11 @@
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/Roles/MToplevel.h>
 #include <CZ/Marco/Roles/MSubsurface.h>
+#include <CZ/Marco/Nodes/MShadowDecorations.h>
 #include <CZ/AK/Nodes/AKButton.h>
 #include <CZ/AK/Nodes/AKText.h>
 #include <CZ/Core/CZLinearAnimation.h>
+#include <memory>
 
 using namespace CZ;
 
@@ -79,6 +81,11 @@ public:
             new SubWindow(this, 120, subSurfaces().size());
         });
 
+        addDecoratedButton.onClick.subscribe(this, [this](const auto &){
+            auto *w = new SubWindow(this, 120, subSurfaces().size());
+            w->setDecorations(std::make_unique<MShadowDecorations>());
+        });
+
         animateButton.onClick.subscribe(this, [this](const auto &){
             animated = !animated;
 
@@ -129,6 +136,7 @@ public:
     bool animated { false };
     CZLinearAnimation spinAnimation;
     AKButton addButton { "Create subsurface", this };
+    AKButton addDecoratedButton { "Create decorated subsurface", this };
     AKButton animateButton { "Animate subsurfaces", this };
     AKButton destroyButton { "Destoy subsurfaces", this };
     AKButton exitButton { "Exit", this };

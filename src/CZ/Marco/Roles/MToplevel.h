@@ -12,22 +12,13 @@
  *
  * ## Decorations
  *
- * By default, toplevels use ClientSide decorations with builtinDecorationsEnabled().
- * These built-in decorations add rounded corners and shadows. To disable them, use enableBuiltinDecorations().
+ * By default, toplevels install MShadowDecorations (rounded corners + shadow) via
+ * MSurface::setDecorations(). Remove them with `setDecorations(nullptr)` or replace them with a
+ * custom MDecorations subclass. Decorations are automatically disabled (but not removed) while the
+ * window is fullscreen or using ServerSide decorations.
  *
- * When built-in decorations are disabled, you can define custom decorations using setDecorationMargins().
- * This informs both the internal scene and compositor about which parts of the window serve as decorations.
- * The final surface size will be the specified size of the central node plus the custom decoration margins.
- * Custom decorations can be created by adding nodes to the root() node, either behind or on top of the central node.
- *
- * Alternatively, you can request ServerSide decorations with setDecorationMode().
- * This is an asynchronous operation and may not be supported by the compositor.
- * To handle decoration mode changes, override decorationModeChanged() or subscribe to the onDecorationModeChanged signal.
- *
- * When using ServerSide decorations:
- * - Custom decoration margins are ignored.
- * - Built-in decorations are hidden.
- * - You should hide your custom decoration nodes.
+ * Request ServerSide decorations with setDecorationMode(). This is asynchronous and may not be
+ * supported by the compositor. Handle changes via decorationModeChanged() / onDecorationModeChanged.
  */
 class CZ::MToplevel : public MSurface
 {
@@ -306,62 +297,6 @@ public:
     void setDecorationMode(DecorationMode mode) noexcept;
 
     /**
-     * @brief Checks if built-in client-side decorations are enabled.
-     *
-     * This function returns whether the built-in client-side decorations,
-     * such as rounded corners and shadows, are currently enabled for the window.
-     *
-     * @note Enabled by default.
-     *
-     * @return `true` if built-in decorations are enabled, `false` otherwise.
-     * @see enableBuiltinDecorations()
-     */
-    bool builtinDecorationsEnabled() const noexcept;
-
-    /**
-     * @brief Enables or disables built-in client-side decorations.
-     *
-     * This function allows you to toggle the use of the built-in client-side
-     * decorations, such as rounded corners and shadows, for the window.
-     *
-     * @param enabled If `true`, built-in decorations are enabled. If `false`,
-     *        built-in decorations are disabled.
-     * @see builtinDecorationsEnabled()
-     */
-    void enableBuiltinDecorations(bool enabled) noexcept;
-
-    /**
-     * @brief Retrieves the built-in client decoration margins.
-     *
-     * This is primarily informational and has no direct functional use.
-     *
-     * Used when the decorationMode() is ClientSide and built-in decorations
-     * are enabled.
-     */
-    const SkIRect &builtinDecorationMargins() const noexcept;
-
-    /**
-     * @brief Retrieves the custom client decoration margins.
-     *
-     * Used when the decorationMode() is ClientSide and built-in decorations
-     * are disabled.
-     *
-     * @see setDecorationMargins()
-     */
-    const SkIRect &decorationMargins() const noexcept;
-
-    /**
-     * @brief Configures custom decoration margins for the window.
-     *
-     * This function sets custom margins for the window decorations. It is applicable
-     * when decorationMode() is set to ClientSide and built-in decorations are disabled.
-     *
-     * @param margins Positive values for the margins of each edge (L, T, R, B).
-     *                If a negative value is provided for any edge, it will be overridden with 0.
-     */
-    void setDecorationMargins(const SkIRect &margins) noexcept;
-
-    /**
      * @brief Sets the parent toplevel window for the current window.
      *
      * Child toplevels are tipically used to display modals, the compositor will always
@@ -461,13 +396,6 @@ public:
      */
     CZSignal<> onDecorationModeChanged;
 
-    /**
-     * @brief Signal emitted when the decorationMargins() change.
-     *
-     * @see setDecorationMargins() and decorationMarginsChanged()
-     */
-    CZSignal<> onDecorationMarginsChanged;
-
     class Imp;
     Imp *imp() const noexcept;
 
@@ -490,11 +418,6 @@ protected:
      * By default, it triggers the `onDecorationModeChanged` signal.
      */
     virtual void decorationModeChanged();
-
-    /**
-     * @brief Handles changes of decorationMargins()
-     */
-    virtual void decorationMarginsChanged();
 
     /**
      * @brief Notifies the window that the compositor has suggested a new size.
@@ -535,6 +458,8 @@ protected:
 private:
     std::unique_ptr<Imp> m_imp;
     void render() noexcept;
+    // Enables decorations only while ClientSide and not fullscreen; called on those state changes.
+    void applyDecorationsState() noexcept;
 };
 
 #endif // MTOPLEVEL_H

@@ -61,6 +61,7 @@ void MPopup::Imp::xdg_popup_done(void *data, xdg_popup */*xdgPopup*/)
     }
 }
 
+
 void MPopup::Imp::xdg_popup_repositioned(void */*data*/, xdg_popup */*xdgPopup*/, UInt32 /*token*/) {}
 
 xdg_positioner *MPopup::Imp::createPositioner() noexcept

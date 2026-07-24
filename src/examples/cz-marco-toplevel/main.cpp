@@ -2,6 +2,8 @@
 #include <CZ/Marco/MScreen.h>
 #include <CZ/Marco/Roles/MToplevel.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
+#include <CZ/Marco/Nodes/MShadowDecorations.h>
+#include <memory>
 #include <CZ/AK/Nodes/AKContainer.h>
 #include <CZ/AK/Nodes/AKText.h>
 #include <CZ/AK/Nodes/AKButton.h>
@@ -305,7 +307,10 @@ public:
         });
 
         rightContainer.builtinDecorationsButton.onClick.subscribe(this, [this](const auto &){
-            enableBuiltinDecorations(!builtinDecorationsEnabled());
+            if (decorations())
+                setDecorations(nullptr);
+            else
+                setDecorations(std::make_unique<MShadowDecorations>());
         });
 
         rightContainer.decorationsButton.onClick.subscribe(this, [this](const auto &) {

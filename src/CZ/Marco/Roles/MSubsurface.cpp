@@ -235,6 +235,17 @@ void MSubsurface::onUpdate() noexcept
 
     if (!ref || !mapped()) return;
 
+    // A subsurface is always composited together with its parent at the parent's scale. Inherit it
+    // directly instead of waiting for preferred_buffer_scale, so the first frame is already at the
+    // correct scale. Otherwise the surface starts at scale 1 and later jumps to the parent's scale,
+    // which both looks wrong and, on the transition frame, can commit a buffer momentarily smaller
+    // than source * buffer_scale (wp_viewport out_of_buffer -> the compositor kills the client).
+    if (MSurface::imp()->scale != parent()->scale())
+    {
+        MSurface::imp()->scale = parent()->scale();
+        MSurface::imp()->tmpFlags.add(MSurface::Imp::ScaleChanged);
+    }
+
     if (imp()->posChanged)
     {
         imp()->posChanged = false;
@@ -291,7 +302,7 @@ void MSubsurface::render() noexcept
 
         wp_viewport_set_source(wlViewport(),
                                wl_fixed_from_int(0),
-                               wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
+                               wl_fixed_from_int(0),
                                wl_fixed_from_int(newSize.width()),
                                wl_fixed_from_int(newSize.height()));
     }

@@ -114,4 +114,5 @@ if get_option('build_examples')
 #    subdir('src/examples/cz-marco-toplevel-custom-csd')
     subdir('src/examples/cz-marco-subsurfaces')
     subdir('src/examples/cz-marco-layer-shell')
+    subdir('src/examples/cz-marco-popup')
 endif

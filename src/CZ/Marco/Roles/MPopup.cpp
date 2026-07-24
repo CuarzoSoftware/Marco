@@ -187,11 +187,6 @@ void MPopup::closeEvent(const CZCloseEvent &event)
     onClose.notify(event);
 }
 
-void MPopup::decorationMarginsChanged()
-{
-    onDecorationMarginsChanged.notify();
-}
-
 void MPopup::assignedRectChanged()
 {
     onAssignedRectChanged.notify();
@@ -338,3 +333,4 @@ void MPopup::render() noexcept
     PresentImage(*this, *ssImage, outDamage);
     MSurface::imp()->flags.add(MSurface::Imp::HasBufferAttached);
 }
+

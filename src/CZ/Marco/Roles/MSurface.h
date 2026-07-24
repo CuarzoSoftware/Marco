@@ -11,6 +11,7 @@
 #include <CZ/Marco/Marco.h>
 #include <CZ/Ream/RSwapchain.h>
 #include <wayland-client.h>
+#include <memory>
 #include <set>
 
 /**
@@ -78,6 +79,20 @@ public:
     std::shared_ptr<AKTarget> target() const noexcept;
     AKNode *rootNode() const noexcept;
 
+    /**
+     * @brief Installs the surface decorations (shadow, rounded corners, ...), or removes them.
+     *
+     * Ownership is taken. Pass `nullptr` for no decorations. Decorations are only drawn while
+     * a decorations object is set and decorationsEnabled() is true.
+     */
+    void setDecorations(std::unique_ptr<MDecorations> decorations) noexcept;
+
+    /** @brief The current decorations, or `nullptr` if none is set. */
+    MDecorations *decorations() const noexcept;
+
+    /** @brief Whether decorations are currently enabled (independent of whether one is set). */
+    bool decorationsEnabled() const noexcept;
+
     wl_surface *wlSurface() const noexcept;
     wl_callback *wlCallback() const noexcept;
     wp_viewport *wlViewport() const noexcept;
@@ -95,10 +110,16 @@ public:
     Imp *imp() const noexcept;
 protected:
     friend class MApp;
-    friend class MCSDShadow;
+    friend class MDecorations;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
     bool event(const CZEvent &event) noexcept override;
+
+    /** @brief Enables/disables decorations without removing them (roles toggle this, e.g. fullscreen). */
+    void enableDecorations(bool enabled) noexcept;
+
+    /** @brief True when a decorations object is set and decorations are enabled. */
+    bool decorationsActive() const noexcept;
 
     static void PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, SkRegion *outDamage, SkRegion *outOpaque, SkRegion *outInvisible, bool forceFullDamage) noexcept;
     static void AttachInputRegion(MSurface &window) noexcept;
@@ -107,6 +128,8 @@ protected:
     static void PresentImage(MSurface &window, const RSwapchainImage &ssImage, SkRegion &outDamage) noexcept;
 
 private:
+    void syncDecorationsMargins() noexcept;
+
     std::unique_ptr<Imp> m_imp;
     using AKNode::setParent;
     using AKNode::parent;

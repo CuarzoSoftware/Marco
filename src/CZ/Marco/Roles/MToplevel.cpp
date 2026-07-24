@@ -1,7 +1,8 @@
-#include "CZ/Marco/MLog.h"
+#include <CZ/Marco/MLog.h>
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
+#include <CZ/Marco/Nodes/MShadowDecorations.h>
 #include <CZ/Marco/Roles/MPopup.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/MTheme.h>
@@ -59,47 +60,9 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
         }
     });
 
-    /* CSD */
-
-    for (int i = 0; i < 4; i++)
-    {
-        imp()->borderRadius[i].setParent(rootNode());
-        imp()->borderRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
-        imp()->borderRadius[i].layout().setWidth(app->theme()->CSDBorderRadius);
-        imp()->borderRadius[i].layout().setHeight(app->theme()->CSDBorderRadius);
-        imp()->borderRadius[i].enableCustomBlendFunc(true);
-        imp()->borderRadius[i].enableAutoDamage(false);
-        imp()->borderRadius[i].setCustomBlendMode(RBlendMode::DstIn);
-
-        /*
-        imp()->borderRadius[i].opaqueRegion.setEmpty();
-        imp()->borderRadius[i].reactiveRegion.setRect(
-            SkIRect::MakeWH(app()->theme()->CSDBorderRadius, app()->theme()->CSDBorderRadius));*/
-    }
-
-    // TODO: update only when activated changes
-
-    // TL
-    imp()->borderRadius[0].setSrcTransform(CZTransform::Normal);
-    imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, 0);
-    imp()->borderRadius[0].layout().setPosition(YGEdgeTop, 0);
-
-    // TR
-    imp()->borderRadius[1].setSrcTransform(CZTransform::Rotated90);
-    imp()->borderRadius[1].layout().setPosition(YGEdgeRight, 0);
-    imp()->borderRadius[1].layout().setPosition(YGEdgeTop, 0);
-
-    // BR
-    imp()->borderRadius[2].setSrcTransform(CZTransform::Rotated180);
-    imp()->borderRadius[2].layout().setPosition(YGEdgeRight, 0);
-    imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, 0);
-
-    // BL
-    imp()->borderRadius[3].setSrcTransform(CZTransform::Rotated270);
-    imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, 0);
-    imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, 0);
-
-    imp()->shadow.setParent(rootNode());
+    /* Default decorations: shadow + rounded corners. */
+    setDecorations(std::make_unique<MShadowDecorations>());
+    applyDecorationsState();
 }
 
 MToplevel::~MToplevel() noexcept
@@ -251,36 +214,6 @@ const std::string &MToplevel::title() const noexcept
     return imp()->title;
 }
 
-const SkIRect &MToplevel::builtinDecorationMargins() const noexcept
-{
-    return imp()->shadowMargins;
-}
-
-const SkIRect &MToplevel::decorationMargins() const noexcept
-{
-    return imp()->userDecorationMargins;
-}
-
-void MToplevel::setDecorationMargins(const SkIRect &margins) noexcept
-{
-    SkIRect m { margins };
-
-    if (m.fLeft < 0) m.fLeft = 0;
-    if (m.fTop < 0) m.fTop = 0;
-    if (m.fRight < 0) m.fRight = 0;
-    if (m.fBottom < 0) m.fBottom = 0;
-
-    if (imp()->userDecorationMargins == margins)
-        return;
-
-    imp()->userDecorationMargins = margins;
-
-    if (decorationMode() == ClientSide && !builtinDecorationsEnabled())
-        update();
-
-    decorationMarginsChanged();
-}
-
 CZBitset<MToplevel::WMCapabilities> MToplevel::wmCapabilities() const noexcept
 {
     return imp()->currentWMCaps;
@@ -349,20 +282,10 @@ void MToplevel::setDecorationMode(DecorationMode mode) noexcept
     }
 }
 
-bool MToplevel::builtinDecorationsEnabled() const noexcept
+void MToplevel::applyDecorationsState() noexcept
 {
-    return MSurface::imp()->flags.has(MSurface::Imp::BuiltinDecorations);
-}
-
-void MToplevel::enableBuiltinDecorations(bool enabled) noexcept
-{
-    if (builtinDecorationsEnabled() == enabled)
-        return;
-
-    MSurface::imp()->flags.setFlag(MSurface::Imp::BuiltinDecorations, enabled);
-
-    if (decorationMode() == ClientSide)
-        update(true);
+    // Decorations are only shown with ClientSide decorations on a non-fullscreen window.
+    enableDecorations(decorationMode() == ClientSide && !states().has(CZWinFullscreen));
 }
 
 bool MToplevel::setParentToplevel(MToplevel *parent) noexcept
@@ -425,17 +348,14 @@ void MToplevel::wmCapabilitiesChanged()
 
 void MToplevel::decorationModeChanged()
 {
+    applyDecorationsState();
     onDecorationModeChanged.notify();
-}
-
-void MToplevel::decorationMarginsChanged()
-{
-
 }
 
 void MToplevel::windowStateEvent(const CZWindowStateEvent &event)
 {
     MSurface::windowStateEvent(event);
+    applyDecorationsState();
     onStatesChanged.notify(event);
     event.accept();
 }
@@ -524,59 +444,6 @@ void MToplevel::onUpdate() noexcept
 
     if (tmpFlags.has(STF::ScaleChanged))
         flags.add(SF::ForceUpdate);
-
-    if (states().has(CZWinFullscreen) || decorationMode() == ServerSide || !builtinDecorationsEnabled())
-    {
-        if (decorationMode() == ServerSide || builtinDecorationsEnabled())
-            imp()->setShadowMargins({ 0, 0, 0, 0 });
-        else
-            imp()->setShadowMargins(imp()->userDecorationMargins);
-
-        imp()->shadow.setVisible(false);
-        for (int i = 0; i < 4; i++)
-            imp()->borderRadius[i].setVisible(false);
-    }
-    else
-    {
-        imp()->shadow.setVisible(true);
-        for (int i = 0; i < 4; i++)
-            imp()->borderRadius[i].setVisible(true);
-
-        if (activated())
-        {
-            imp()->setShadowMargins({
-                app->theme()->CSDShadowActiveRadius,
-                app->theme()->CSDShadowActiveRadius - app->theme()->CSDShadowActiveOffsetY,
-                app->theme()->CSDShadowActiveRadius,
-                app->theme()->CSDShadowActiveRadius + app->theme()->CSDShadowActiveOffsetY,
-            });
-        }
-        else
-        {
-            imp()->setShadowMargins({
-                app->theme()->CSDShadowInactiveRadius,
-                app->theme()->CSDShadowInactiveRadius - app->theme()->CSDShadowInactiveOffsetY,
-                app->theme()->CSDShadowInactiveRadius,
-                app->theme()->CSDShadowInactiveRadius + app->theme()->CSDShadowInactiveOffsetY,
-            });
-        }
-
-        imp()->borderRadius[0].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
-        imp()->borderRadius[0].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
-        imp()->borderRadius[1].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
-        imp()->borderRadius[1].layout().setPosition(YGEdgeTop, imp()->shadowMargins.fTop);
-        imp()->borderRadius[2].layout().setPosition(YGEdgeRight, imp()->shadowMargins.fRight);
-        imp()->borderRadius[2].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
-        imp()->borderRadius[3].layout().setPosition(YGEdgeLeft, imp()->shadowMargins.fLeft);
-        imp()->borderRadius[3].layout().setPosition(YGEdgeBottom, imp()->shadowMargins.fBottom);
-    }
-
-    layout().setPosition(YGEdgeLeft, 0.f);
-    layout().setPosition(YGEdgeTop, 0.f);
-    layout().setMargin(YGEdgeLeft, imp()->shadowMargins.fLeft);
-    layout().setMargin(YGEdgeTop, imp()->shadowMargins.fTop);
-    layout().setMargin(YGEdgeRight, imp()->shadowMargins.fRight);
-    layout().setMargin(YGEdgeBottom, imp()->shadowMargins.fBottom);
 
     render();
 }
@@ -672,8 +539,8 @@ void MToplevel::render() noexcept
 
         xdg_surface_set_window_geometry(
             imp()->xdgSurface,
-            imp()->shadowMargins.fLeft,
-            imp()->shadowMargins.fTop,
+            layout().calculatedMargin(YGEdgeLeft),
+            layout().calculatedMargin(YGEdgeTop),
             layout().calculatedWidth(),
             layout().calculatedHeight());
     }
@@ -691,11 +558,6 @@ void MToplevel::render() noexcept
     SkRegion outDamage, outOpaque, outInvisible;
     auto ssImage { MSurface::imp()->swapchain->acquire() };
     PrepareTarget(*this, ssImage.value(), &outDamage, &outOpaque, &outInvisible, fullDamage);
-
-    /* CSD */
-    if (decorationMode() == ClientSide && builtinDecorationsEnabled())
-        for (int i = 0; i < 4; i++)
-            imp()->borderRadius[i].setImage(app->theme()->csdBorderRadiusMask(scale()));
 
     scene().render(target());
 
@@ -716,9 +578,9 @@ void MToplevel::render() noexcept
             lvr_background_blur_set_region(MSurface::imp()->backgroundBlur, region);
             wl_region_destroy(region);
 
-            int r = !builtinDecorationsEnabled() || states().has(CZWinFullscreen) ? 0 : MTheme::CSDBorderRadius;
-            int x = imp()->shadowMargins.fLeft;
-            int y = imp()->shadowMargins.fTop;
+            int r = decorationsActive() ? MTheme::CSDBorderRadius : 0;
+            int x = layout().calculatedMargin(YGEdgeLeft);
+            int y = layout().calculatedMargin(YGEdgeTop);
             int w = layout().calculatedWidth();
             int h = layout().calculatedHeight();
             lvr_background_blur_set_round_rect_mask(MSurface::imp()->backgroundBlur,
@@ -732,11 +594,6 @@ void MToplevel::render() noexcept
             wl_region_destroy(empty);
         }
     }
-
-    if (true || opacity() == 1.f)
-        if (decorationMode() == ClientSide && builtinDecorationsEnabled())
-            for (int i = 0; i < 4; i++)
-                target()->outOpaque->op(imp()->borderRadius[i].worldRect(), SkRegion::Op::kDifference_Op);
 
     AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
