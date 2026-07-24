@@ -460,6 +460,8 @@ private:
     void render() noexcept;
     // Enables decorations only while ClientSide and not fullscreen; called on those state changes.
     void applyDecorationsState() noexcept;
+    // Updates the default shadow's radius/offset from the activation state (active vs inactive).
+    void updateShadowParams() noexcept;
 };
 
 #endif // MTOPLEVEL_H

@@ -40,62 +40,63 @@ std::shared_ptr<RImage> MTheme::csdBorderRadiusMask(Int32 scale) noexcept
     return result;
 }
 
-std::shared_ptr<RImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winSize, CZ::CZBitset<ShadowClamp> &sides) noexcept
+std::shared_ptr<RImage> MTheme::csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, CZ::CZBitset<ShadowClamp> &sides) noexcept
 {
-    if (winSize.isEmpty())
+    if (innerSize.isEmpty() || radius <= 0)
     {
         sides.set(0);
         return std::shared_ptr<RImage>();
     }
 
-    const Int32 shadowRadius { CSDShadowActiveRadius };
-    const Int32 shadowOffsetY { CSDShadowActiveOffsetY };
-    const SkIRect shadowMargins {
-        shadowRadius,
-        shadowRadius - shadowOffsetY,
-        shadowRadius,
-        shadowRadius + shadowOffsetY
-    };
+    // Margins the shadow reserves around the content. A positive offset shifts the shadow towards
+    // that edge, leaving less room on the opposite one. L + R and T + B always sum to 2 * radius.
+    const Int32 L { std::max(0, radius - offsetX) };
+    const Int32 T { std::max(0, radius - offsetY) };
+    const Int32 R { std::max(0, radius + offsetX) };
+    const Int32 B { std::max(0, radius + offsetY) };
 
-    SkISize windowSize { winSize };
+    // Smallest content that still yields a correct 9-slice. The stretched middle samples a 1px
+    // strip of the *straight* edge, which is only fully developed past the rounded corner (radius
+    // BR) plus the blur transition (~radius). If the clamp were smaller the sampled strip would sit
+    // in the corner falloff and the stretched shadow would look lighter than the real one.
+    const Int32 minSide { 2 * (radius + CSDBorderRadius) + 1 };
+    const SkISize minClamp { minSide, minSide };
 
-    // TODO:
-    const SkISize minClampSize { shadowMargins.left() * 2 + 2, shadowMargins.bottom() * 2 };
+    SkISize content { innerSize };
 
-    if (windowSize.width() < minClampSize.width() || windowSize.height() < minClampSize.height())
-        sides.set(0);
+    if (content.width() < minClamp.width() || content.height() < minClamp.height())
+        sides.set(0); // too small to clamp: render the shadow at its real size
     else
     {
         sides.set(ShadowClampX | ShadowClampY);
 
-        auto it = m_csdShadowActive.find(scale);
+        const auto key { std::make_tuple(scale, radius, offsetX, offsetY) };
+        auto it = m_csdShadow.find(key);
 
-        if (it != m_csdShadowActive.end())
+        if (it != m_csdShadow.end())
             return it->second;
 
-        windowSize = { minClampSize.width() + 1,  minClampSize.height() + 1 };
+        content = minClamp; // minimal representative image; the renderer stretches the middle
     }
 
-    const SkISize surfaceSize(
-        windowSize.width() * 0.5f + shadowMargins.left(),
-        windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
+    const SkISize surfaceSize(content.width() + L + R, content.height() + T + B);
     auto surface = RSurface::Make(surfaceSize, scale, true);
     auto pass { surface->beginPass(RPassCap_SkCanvas) };
     SkCanvas *c { pass->getCanvas() };
 
     c->clear(SK_ColorTRANSPARENT);
 
+    SkRect rrect = SkRect::MakeXYWH(L, T, content.width(), content.height());
+
     /* Shadow */
     SkPaint paint;
     paint.setAntiAlias(true);
     paint.setBlendMode(SkBlendMode::kSrc);
-    paint.setImageFilter(SkImageFilters::DropShadowOnly(0, shadowOffsetY, Float32(shadowRadius)/3.f, Float32(shadowRadius)/3.f, 0x69000000, nullptr));
-    SkRect rrect = SkRect::MakeXYWH(shadowMargins.left(), shadowMargins.top(), windowSize.width(), windowSize.height());
+    paint.setImageFilter(SkImageFilters::DropShadowOnly(offsetX, offsetY, Float32(radius)/3.f, Float32(radius)/3.f, 0x69000000, nullptr));
     c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
 
     /* Black border */
     paint.setImageFilter(nullptr);
-    paint.setAntiAlias(true);
     paint.setStrokeWidth(1.f);
     paint.setColor(0x33000000);
     paint.setStroke(true);
@@ -107,7 +108,7 @@ std::shared_ptr<RImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winS
     paint.setBlendMode(SkBlendMode::kClear);
     c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
 
-    /* White border */
+    /* White top border */
     paint.setStrokeWidth(0.25f);
     paint.setColor(0xFFFFFFFF);
     paint.setStroke(true);
@@ -125,106 +126,10 @@ std::shared_ptr<RImage> MTheme::csdShadowActive(Int32 scale, const SkISize &winS
     c->restore();
     pass.reset();
 
-    if (sides.get() == 0)
-        return surface->image();
-    else
-    {
-        std::shared_ptr<RImage> result { surface->image() };
-        m_csdShadowActive[scale] = result;
-        return result;
-    }
-}
+    std::shared_ptr<RImage> result { surface->image() };
 
-std::shared_ptr<RImage> MTheme::csdShadowInactive(Int32 scale, const SkISize &winSize, CZ::CZBitset<ShadowClamp> &sides) noexcept
-{
-    if (winSize.isEmpty())
-    {
-        sides.set(0);
-        return std::shared_ptr<RImage>();
-    }
+    if (sides.get() != 0)
+        m_csdShadow[std::make_tuple(scale, radius, offsetX, offsetY)] = result;
 
-    const Int32 shadowRadius { CSDShadowInactiveRadius };
-    const Int32 shadowOffsetY { CSDShadowInactiveOffsetY };
-    const SkIRect shadowMargins {
-        shadowRadius,
-        shadowRadius - shadowOffsetY,
-        shadowRadius,
-        shadowRadius + shadowOffsetY
-    };
-
-    SkISize windowSize { winSize };
-
-    // TODO:
-    const SkISize minClampSize { shadowMargins.left() * 2 + 2, shadowMargins.bottom() * 2 };
-
-    if (windowSize.width() < minClampSize.width() || windowSize.height() < minClampSize.height())
-        sides.set(0);
-    else
-    {
-        sides.set(ShadowClampX | ShadowClampY);
-
-        auto it = m_csdShadowInactive.find(scale);
-
-        if (it != m_csdShadowInactive.end())
-            return it->second;
-
-        windowSize = { minClampSize.width() + 1,  minClampSize.height() + 1 };
-    }
-
-    const SkISize surfaceSize(
-        windowSize.width() * 0.5f + shadowMargins.left(),
-        windowSize.height() + shadowMargins.top() + shadowMargins.bottom());
-    auto surface = RSurface::Make(surfaceSize, scale, true);
-    auto pass { surface->beginPass(RPassCap_SkCanvas) };
-    SkCanvas *c { pass->getCanvas() };
-    c->clear(SK_ColorTRANSPARENT);
-
-    /* Shadow */
-    SkPaint paint;
-    paint.setAntiAlias(true);
-    paint.setBlendMode(SkBlendMode::kSrc);
-    paint.setImageFilter(SkImageFilters::DropShadowOnly(0, shadowOffsetY, Float32(shadowRadius)/3.f, Float32(shadowRadius)/3.f, 0x33000000, nullptr));
-    SkRect rrect = SkRect::MakeXYWH(shadowMargins.left(), shadowMargins.top(), windowSize.width(), windowSize.height());
-    c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
-
-    /* Black border */
-    paint.setImageFilter(nullptr);
-    paint.setAntiAlias(true);
-    paint.setStrokeWidth(1.f);
-    paint.setColor(0x22000000);
-    paint.setStroke(true);
-    paint.setBlendMode(SkBlendMode::kSrcOver);
-    c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
-
-    /* Clear center */
-    paint.setStroke(false);
-    paint.setBlendMode(SkBlendMode::kClear);
-    c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
-
-    /* White border */
-    paint.setStrokeWidth(0.25f);
-    paint.setColor(0xFFFFFFFF);
-    paint.setStroke(true);
-    paint.setBlendMode(SkBlendMode::kSrcOver);
-
-    SkPoint gPoints[2] { SkPoint(0, rrect.fTop), SkPoint(0, rrect.fTop + CSDBorderRadius * 0.5f)};
-    SkColor gColors[2] { 0xFAFFFFFF, 0x00FFFFFF };
-    SkScalar gPos[2] { 0.f, 1.f };
-    paint.setShader(SkGradientShader::MakeLinear(gPoints, gColors, gPos, 2, SkTileMode::kClamp));
-
-    c->save();
-    c->clipRect(SkRect(rrect.fLeft, rrect.fTop - 1, rrect.fRight, rrect.fTop + CSDBorderRadius));
-    rrect.inset(0.5f, 0.5f);
-    c->drawRoundRect(rrect, CSDBorderRadius, CSDBorderRadius, paint);
-    c->restore();
-    pass.reset();
-
-    if (sides.get() == 0)
-        return surface->image();
-    else
-    {
-        std::shared_ptr<RImage> result { surface->image() };
-        m_csdShadowInactive[scale] = result;
-        return result;
-    }
+    return result;
 }

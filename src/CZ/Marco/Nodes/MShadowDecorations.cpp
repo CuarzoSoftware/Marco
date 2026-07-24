@@ -1,8 +1,5 @@
-#include "CZ/Marco/MLog.h"
-#include <CZ/Core/Events/CZWindowStateEvent.h>
-#include <CZ/AK/AKLog.h>
-#include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Nodes/MShadowDecorations.h>
+#include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Roles/MSurface.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/AK/Events/AKRenderEvent.h>
@@ -48,6 +45,26 @@ MShadowDecorations::MShadowDecorations() noexcept :
     invisibleRegion.setRect(AK_IRECT_INF);
 }
 
+void MShadowDecorations::setRadius(Int32 radius) noexcept
+{
+    radius = std::max(0, radius);
+
+    if (m_radius == radius)
+        return;
+
+    m_radius = radius;
+    updateMargins();
+}
+
+void MShadowDecorations::setOffset(const SkIPoint &offset) noexcept
+{
+    if (m_offset == offset)
+        return;
+
+    m_offset = offset;
+    updateMargins();
+}
+
 void MShadowDecorations::subtractOpaque(SkRegion &opaque) const noexcept
 {
     for (int i = 0; i < 4; i++)
@@ -68,38 +85,16 @@ void MShadowDecorations::onBind() noexcept
     updateMargins();
 }
 
-void MShadowDecorations::windowStateEvent(const CZWindowStateEvent &event)
-{
-    MDecorations::windowStateEvent(event);
-
-    if (event.changes.has(CZWindowState::CZWinActivated))
-        updateMargins();
-}
-
 void MShadowDecorations::updateMargins() noexcept
 {
-    auto app { MApp::Get() };
-
-    // Latch the activation state the margins are computed from, so the shadow slicing uses the
-    // exact same state (see m_active) instead of a live activated() read that can disagree.
-    m_active = activated();
-
-    bool changed;
-
-    if (m_active)
-        changed = setMargins(SkIRect {
-                   app->theme()->CSDShadowActiveRadius,
-                   app->theme()->CSDShadowActiveRadius - app->theme()->CSDShadowActiveOffsetY,
-                   app->theme()->CSDShadowActiveRadius,
-                   app->theme()->CSDShadowActiveRadius + app->theme()->CSDShadowActiveOffsetY });
-    else
-        changed = setMargins(SkIRect {
-                   app->theme()->CSDShadowInactiveRadius,
-                   app->theme()->CSDShadowInactiveRadius - app->theme()->CSDShadowInactiveOffsetY,
-                   app->theme()->CSDShadowInactiveRadius,
-                   app->theme()->CSDShadowInactiveRadius + app->theme()->CSDShadowInactiveOffsetY });
-
-    if (!changed) return;
+    // Margins are derived purely from the radius and offset (no activation check). A positive
+    // offset shifts the shadow towards that edge, leaving less room on the opposite side.
+    setMargins(SkIRect {
+        m_radius - m_offset.x(),  // L
+        m_radius - m_offset.y(),  // T
+        m_radius + m_offset.x(),  // R
+        m_radius + m_offset.y()   // B
+    });
 
     const SkIRect m { margins() };
 
@@ -112,7 +107,9 @@ void MShadowDecorations::updateMargins() noexcept
     m_cornerRadius[3].layout().setPosition(YGEdgeLeft, m.fLeft);
     m_cornerRadius[3].layout().setPosition(YGEdgeBottom, m.fBottom);
 
-    updateInvisibleRegion();
+    // An offset-only change keeps the total margins (and thus the surface size) unchanged, so no
+    // layout event would fire; rebuild the shadow image here so the new offset takes effect.
+    m_shadow.rebuild();
 }
 
 void MShadowDecorations::updateInvisibleRegion() noexcept
@@ -157,32 +154,34 @@ MShadowDecorations::ShadowNode::ShadowNode(MShadowDecorations *deco) noexcept :
     invisibleRegion.setRect(AK_IRECT_INF);
 }
 
-void MShadowDecorations::ShadowNode::layoutEvent(const CZLayoutEvent &e)
+void MShadowDecorations::ShadowNode::rebuild() noexcept
 {
-    if (!e.changes.has(CZLayoutChangeSize | CZLayoutChangeScale))
-        return;
-
     auto app { MApp::Get() };
-
-    if (e.changes.has(CHLayoutScale))
-    {
-        for (int i = 0; i < 4; i++)
-            m_deco->m_cornerRadius[i].setImage(app->theme()->csdBorderRadiusMask(scale()));
-    }
-
     const SkIRect m { m_deco->margins() };
 
     const SkISize inner {
         Int32(layout().calculatedWidth()  - m.fLeft - m.fRight),
         Int32(layout().calculatedHeight() - m.fTop  - m.fBottom) };
 
-    m_image = m_deco->m_active
-        ? app->theme()->csdShadowActive(scale(), inner, m_clampSides)
-        : app->theme()->csdShadowInactive(scale(), inner, m_clampSides);
+    m_image = app->theme()->csdShadow(scale(), inner, m_deco->m_radius, m_deco->m_offset.x(), m_deco->m_offset.y(), m_clampSides);
 
     m_deco->updateInvisibleRegion();
-
     addDamage(AK_IRECT_INF);
+}
+
+void MShadowDecorations::ShadowNode::layoutEvent(const CZLayoutEvent &e)
+{
+    if (!e.changes.has(CZLayoutChangeSize | CZLayoutChangeScale))
+        return;
+
+    if (e.changes.has(CHLayoutScale))
+    {
+        auto app { MApp::Get() };
+        for (int i = 0; i < 4; i++)
+            m_deco->m_cornerRadius[i].setImage(app->theme()->csdBorderRadiusMask(scale()));
+    }
+
+    rebuild();
 }
 
 void MShadowDecorations::ShadowNode::renderEvent(const AKRenderEvent &e)
@@ -190,119 +189,78 @@ void MShadowDecorations::ShadowNode::renderEvent(const AKRenderEvent &e)
     if (!m_deco->surface() || !m_image || e.damage.isEmpty())
         return;
 
-    SkIRect rect = e.rect;
-    rect.fRight++;
-
     const SkIRect m { m_deco->margins() };
-    SkIRect centerV = SkIRect(
-        m.fLeft,
-        m.fTop,
-        rect.width() - m.fRight,
-        rect.height() - m.fBottom);
+    const Int32 BR { MTheme::CSDBorderRadius };
 
-    SkIRect centerH = centerV;
-    centerV.inset(MTheme::CSDBorderRadius, 1);
-    centerH.inset(1, MTheme::CSDBorderRadius);
+    const Int32 w { e.rect.width() };
+    const Int32 h { e.rect.height() };
 
-    SkRegion maskedDamage = e.damage;
+    // Exclude the opaque content centre (minus the rounded corners) from what we paint.
+    SkIRect centerV { SkIRect::MakeLTRB(m.fLeft, m.fTop, w - m.fRight, h - m.fBottom) };
+    SkIRect centerH { centerV };
+    centerV.inset(BR, 1);
+    centerH.inset(1, BR);
+
+    SkRegion maskedDamage { e.damage };
     maskedDamage.op(centerV, SkRegion::Op::kDifference_Op);
     maskedDamage.op(centerH, SkRegion::Op::kDifference_Op);
 
     if (maskedDamage.isEmpty())
         return;
 
-    const Int32 halfWidth { rect.width()/2 };
-
     auto *p { e.pass->getPainter() };
 
     RDrawImageInfo info {};
-
     info.image = m_image;
     info.srcScale = scale();
+    info.srcTransform = CZTransform::Normal;
 
-    /* No clamp */
+    auto blit = [&](const SkIRect &dst, const SkIRect &src)
+    {
+        if (dst.isEmpty() || src.isEmpty())
+            return;
+        info.dst = dst;
+        info.src = SkRect::Make(src);
+        p->drawImage(info, &maskedDamage);
+    };
+
     if (m_clampSides.get() == 0)
     {
-        /* Left side */
-        info.dst.setWH(halfWidth, rect.height());
-        info.src.setWH(halfWidth, rect.height()),
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
-
-        /* Right mirrored side */
-        info.dst.offsetTo(halfWidth, info.dst.y());
-        info.srcTransform = CZTransform::Flipped;
-        p->drawImage(info, &maskedDamage);
+        // Not clamped: the image is the shadow at its real size; blit it 1:1 over the node.
+        blit(SkIRect::MakeWH(w, h), SkIRect::MakeWH(w, h));
+        return;
     }
-    else
+
+    // Clamped: 9-slice the minimal image. Corner extents cover the shadow margin, the rounded
+    // corner (BR) and the blur transition (~radius) so the stretched 1px middle strip is sampled
+    // from the fully-developed straight edge (matching MTheme::csdShadow's minClamp).
+    const Int32 rad { m_deco->m_radius };
+    const Int32 cLW { m.fLeft   + BR + rad };
+    const Int32 cRW { m.fRight  + BR + rad };
+    const Int32 cTH { m.fTop    + BR + rad };
+    const Int32 cBH { m.fBottom + BR + rad };
+
+    const Int32 imgW { cLW + 1 + cRW }; // == minimal image logical width
+    const Int32 imgH { cTH + 1 + cBH };
+
+    const Int32 midW { w - cLW - cRW }; // stretched horizontally
+    const Int32 midH { h - cTH - cBH }; // stretched vertically
+
+    /* Corners */
+    blit(SkIRect::MakeXYWH(0,       0,       cLW, cTH), SkIRect::MakeXYWH(0,          0,          cLW, cTH)); // TL
+    blit(SkIRect::MakeXYWH(w - cRW, 0,       cRW, cTH), SkIRect::MakeXYWH(imgW - cRW, 0,          cRW, cTH)); // TR
+    blit(SkIRect::MakeXYWH(0,       h - cBH, cLW, cBH), SkIRect::MakeXYWH(0,          imgH - cBH, cLW, cBH)); // BL
+    blit(SkIRect::MakeXYWH(w - cRW, h - cBH, cRW, cBH), SkIRect::MakeXYWH(imgW - cRW, imgH - cBH, cRW, cBH)); // BR
+
+    /* Edges */
+    if (midW > 0)
     {
-        const Int32 B { (m_deco->m_active ? MTheme::CSDShadowActiveOffsetY : MTheme::CSDShadowInactiveOffsetY) + 1  };
-        const Int32 T { (m_deco->m_active ?
-            (MTheme::CSDShadowActiveRadius - MTheme::CSDShadowActiveOffsetY) :
-            (MTheme::CSDShadowInactiveRadius - MTheme::CSDShadowInactiveOffsetY)) + (2 * MTheme::CSDBorderRadius) + 1 };
-        const Int32 L { m.fLeft + 2 };
-
-        /* TOP LEFT */
-        info.dst.setWH(m.fLeft + L, m.fTop  + T);
-        info.src.setWH(info.dst.width(), info.dst.height()),
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
-
-        /* TOP RIGHT */
-        info.dst.offsetTo(rect.width() - m.fLeft - L, 0);
-        info.srcTransform = CZTransform::Flipped;
-        p->drawImage(info, &maskedDamage);
-
-        /* TOP */
-        info.dst = SkIRect::MakeXYWH(
-            m.fLeft + L,
-            0,
-            rect.width() - 2 * ( m.fLeft + L),
-            info.dst.height());
-        info.src.setXYWH(info.dst.x(), 0, 1, info.dst.height()),
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
-
-        /* LEFT */
-        info.dst = SkIRect::MakeXYWH(
-            0,
-            m.fTop + T,
-            m.fLeft + L,
-            rect.height() - m.fTop - m.fBottom - T - B);
-        info.src.setXYWH(0, info.dst.y(), info.dst.width(), 0.5);
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
-
-        /* RIGHT */
-        info.dst.offsetTo(rect.width() - m.fLeft - L, info.dst.top());
-        info.srcTransform = CZTransform::Flipped;
-        p->drawImage(info, &maskedDamage);
-
-        /* BOTTOM LEFT */
-        const Int32 bottom { m_image->size().height()/scale() - m.bottom() - B };
-        info.dst = SkIRect::MakeXYWH(
-            0,
-            rect.height() - m.fBottom - B,
-            info.dst.width(),
-            m.fBottom + B);
-        info.src.setXYWH(0, bottom, info.dst.width(), info.dst.height());
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
-
-        /* BOTTOM RIGHT */
-        info.dst.offsetTo(rect.width() - m.fLeft - L, info.dst.top());
-        info.src.setXYWH(0, bottom, info.dst.width(), info.dst.height());
-        info.srcTransform = CZTransform::Flipped;
-        p->drawImage(info, &maskedDamage);
-
-        /* BOTTOM */
-        info.dst = SkIRect::MakeXYWH(
-            m.fLeft + L,
-            info.dst.top(),
-            rect.width() - (m.fLeft  + L) * 2,
-            info.dst.height());
-        info.src.setXYWH(info.dst.x(), bottom, info.dst.width(), info.dst.height());
-        info.srcTransform = CZTransform::Normal;
-        p->drawImage(info, &maskedDamage);
+        blit(SkIRect::MakeXYWH(cLW, 0,       midW, cTH), SkIRect::MakeXYWH(cLW, 0,          1, cTH)); // Top
+        blit(SkIRect::MakeXYWH(cLW, h - cBH, midW, cBH), SkIRect::MakeXYWH(cLW, imgH - cBH, 1, cBH)); // Bottom
+    }
+    if (midH > 0)
+    {
+        blit(SkIRect::MakeXYWH(0,       cTH, cLW, midH), SkIRect::MakeXYWH(0,          cTH, cLW, 1)); // Left
+        blit(SkIRect::MakeXYWH(w - cRW, cTH, cRW, midH), SkIRect::MakeXYWH(imgW - cRW, cTH, cRW, 1)); // Right
     }
 }

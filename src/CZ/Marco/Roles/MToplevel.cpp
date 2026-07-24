@@ -61,8 +61,11 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
     });
 
     /* Default decorations: shadow + rounded corners. */
-    setDecorations(std::make_unique<MShadowDecorations>());
+    auto shadow { std::make_unique<MShadowDecorations>() };
+    imp()->shadow.reset(shadow.get());
+    setDecorations(std::move(shadow));
     applyDecorationsState();
+    updateShadowParams();
 }
 
 MToplevel::~MToplevel() noexcept
@@ -288,6 +291,25 @@ void MToplevel::applyDecorationsState() noexcept
     enableDecorations(decorationMode() == ClientSide && !states().has(CZWinFullscreen));
 }
 
+void MToplevel::updateShadowParams() noexcept
+{
+    if (!imp()->shadow)
+        return;
+
+    // The shadow itself is activation-agnostic; the toplevel drives its look: a larger, softer
+    // shadow while focused and a smaller one while unfocused.
+    if (activated())
+    {
+        imp()->shadow->setRadius(MTheme::CSDShadowActiveRadius);
+        imp()->shadow->setOffset({ 0, MTheme::CSDShadowActiveOffsetY });
+    }
+    else
+    {
+        imp()->shadow->setRadius(MTheme::CSDShadowInactiveRadius);
+        imp()->shadow->setOffset({ 0, MTheme::CSDShadowInactiveOffsetY });
+    }
+}
+
 bool MToplevel::setParentToplevel(MToplevel *parent) noexcept
 {
     if (parent == parentToplevel())
@@ -356,6 +378,10 @@ void MToplevel::windowStateEvent(const CZWindowStateEvent &event)
 {
     MSurface::windowStateEvent(event);
     applyDecorationsState();
+
+    if (event.changes.has(CZWinActivated))
+        updateShadowParams();
+
     onStatesChanged.notify(event);
     event.accept();
 }

@@ -3,6 +3,7 @@
 
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Roles/MToplevel.h>
+#include <CZ/Marco/Nodes/MShadowDecorations.h>
 #include <CZ/Marco/Protocols/XdgShell/xdg-shell-client.h>
 #include <CZ/Marco/Protocols/XdgDecoration/xdg-decoration-unstable-v1-client.h>
 
@@ -31,6 +32,8 @@ public:
     DecorationMode pendingDecorationMode { ClientSide };
 
     CZWeak<MToplevel> parentToplevel;
+    // The default shadow decorations installed by MToplevel; nulls itself if the app replaces them.
+    CZWeak<MShadowDecorations> shadow;
     std::unordered_set<MToplevel*> childToplevels;
     std::unordered_set<MPopup*> childPopups;
 
