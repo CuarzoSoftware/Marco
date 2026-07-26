@@ -186,8 +186,11 @@ void MSurface::setDecorations(std::unique_ptr<MDecorations> decorations) noexcep
         imp()->decorations->setSurface(this);
 
     syncDecorationsMargins();
+    decorationsChanged();
     update(true);
 }
+
+void MSurface::decorationsChanged() noexcept {}
 
 MDecorations *MSurface::decorations() const noexcept
 {

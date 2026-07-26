@@ -462,6 +462,8 @@ private:
     void applyDecorationsState() noexcept;
     // Updates the default shadow's radius/offset from the activation state (active vs inactive).
     void updateShadowParams() noexcept;
+    // Re-applies the decoration state (incl. border radius) when decorations are added/removed.
+    void decorationsChanged() noexcept override;
 };
 
 #endif // MTOPLEVEL_H

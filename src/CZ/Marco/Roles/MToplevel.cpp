@@ -295,6 +295,12 @@ void MToplevel::applyDecorationsState() noexcept
     setBorderRadius(CZRRect(SkIRect::MakeEmpty(), r, r, r, r));
 }
 
+void MToplevel::decorationsChanged() noexcept
+{
+    // Adding/removing decorations changes decorationsActive(), so re-derive the border radius.
+    applyDecorationsState();
+}
+
 void MToplevel::updateShadowParams() noexcept
 {
     if (!imp()->shadow)

@@ -143,6 +143,14 @@ protected:
     /** @brief Enables/disables decorations without removing them (roles toggle this, e.g. fullscreen). */
     void enableDecorations(bool enabled) noexcept;
 
+    /**
+     * @brief Called after the decorations object is set/replaced/removed via setDecorations().
+     *
+     * Roles override this to re-derive state that depends on whether decorations are present
+     * (e.g. MToplevel re-applies the border radius). Not called by enableDecorations().
+     */
+    virtual void decorationsChanged() noexcept;
+
     /** @brief True when a decorations object is set and decorations are enabled. */
     bool decorationsActive() const noexcept;
 
