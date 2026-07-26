@@ -4,6 +4,7 @@
 #include <CZ/Marco/Marco.h>
 #include <CZ/AK/AKTheme.h>
 #include <CZ/Core/CZBitset.h>
+#include <CZ/Core/CZRRect.h>
 #include <map>
 #include <tuple>
 
@@ -29,7 +30,7 @@ public:
     constexpr static Int32 CSDShadowActiveOffsetY { 18 };
     constexpr static Int32 CSDShadowInactiveRadius { 27 };
     constexpr static Int32 CSDShadowInactiveOffsetY { 8 };
-    virtual std::shared_ptr<RImage> csdBorderRadiusMask(Int32 scale) noexcept;
+    virtual std::shared_ptr<RImage> csdBorderRadiusMask(Int32 scale, Int32 radius) noexcept;
 
     /**
      * @brief Generates (and caches) a drop-shadow frame for a rounded-rect window.
@@ -39,10 +40,11 @@ public:
      * minimal clampable image is returned and @p sides reports which axes may be 9-slice stretched;
      * otherwise the shadow is rendered at full size and @p sides is cleared.
      */
-    virtual std::shared_ptr<RImage> csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, CZBitset<ShadowClamp> &sides) noexcept;
+    virtual std::shared_ptr<RImage> csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, const CZRRect &corners, CZBitset<ShadowClamp> &sides) noexcept;
 protected:
-    std::unordered_map<Int32,std::shared_ptr<RImage>> m_csdBorderRadiusMask;
-    std::map<std::tuple<Int32,Int32,Int32,Int32>,std::shared_ptr<RImage>> m_csdShadow; // key: (scale, radius, offsetX, offsetY)
+    std::map<std::tuple<Int32,Int32>,std::shared_ptr<RImage>> m_csdBorderRadiusMask; // key: (scale, radius)
+    // key: (scale, blurRadius, offsetX, offsetY, radTL, radTR, radBR, radBL)
+    std::map<std::tuple<Int32,Int32,Int32,Int32,Int32,Int32,Int32,Int32>,std::shared_ptr<RImage>> m_csdShadow;
 };
 
 #endif // MTHEME_H

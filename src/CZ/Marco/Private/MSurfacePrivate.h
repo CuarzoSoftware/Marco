@@ -6,6 +6,8 @@
 #include <CZ/Marco/Roles/MSurface.h>
 #include <CZ/Marco/Nodes/MRootSurfaceNode.h>
 #include <CZ/Marco/Nodes/MDecorations.h>
+#include <CZ/AK/Nodes/AKImage.h>
+#include <CZ/Core/CZRRect.h>
 #include <memory>
 
 class CZ::MSurface::Imp
@@ -57,8 +59,14 @@ public:
     std::shared_ptr<AKTarget> target;
     MRootSurfaceNode root;
 
-    // Decorations (shadow, rounded corners, ...). nullptr = none.
+    // Decorations (shadow, ...). nullptr = none.
     std::unique_ptr<MDecorations> decorations;
+
+    // Rounded content corners. The rect tracks the content area; radii are user-set. The 4 masks
+    // (DstIn) live under root, rendered after the central node and before the decorations, so they
+    // round the content without carving the shadow. Order in root: [central node][masks][decorations].
+    CZRRect borderRadius {};
+    AKImage cornerRadius[4]; // TL, TR, BR, BL
 
     // Current wl_surface scale factor
     Int32 scale { 1 };

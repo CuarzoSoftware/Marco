@@ -84,6 +84,9 @@ public:
         addDecoratedButton.onClick.subscribe(this, [this](const auto &){
             auto *w = new SubWindow(this, 120, subSurfaces().size());
             w->setDecorations(std::make_unique<MShadowDecorations>());
+            w->setBorderRadius(CZRRect(SkIRect::MakeEmpty(),
+                MTheme::CSDBorderRadius, MTheme::CSDBorderRadius,
+                MTheme::CSDBorderRadius, MTheme::CSDBorderRadius));
         });
 
         animateButton.onClick.subscribe(this, [this](const auto &){

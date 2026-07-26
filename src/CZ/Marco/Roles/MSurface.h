@@ -5,6 +5,7 @@
 #include <CZ/Marco/Protocols/Viewporter/viewporter-client.h>
 #include <CZ/AK/AKVibrancy.h>
 #include <CZ/Core/CZSignal.h>
+#include <CZ/Core/CZRRect.h>
 #include <CZ/AK/Nodes/AKContainer.h>
 #include <CZ/AK/Nodes/AKSolidColor.h>
 #include <CZ/AK/AKScene.h>
@@ -56,6 +57,13 @@ public:
         LayerSurface
     };
 
+    // Continues the change ids of the base classes so they never overlap.
+    enum Changes
+    {
+        BorderRadius = AKSolidColor::CHLast,
+        CHLast
+    };
+
     ~MSurface();
 
     Role role() noexcept;
@@ -80,6 +88,22 @@ public:
     AKNode *rootNode() const noexcept;
 
     /**
+     * @brief Rounded-corner radius applied to the content (central node).
+     *
+     * MSurface renders the rounded corners (via DstIn masks over the content) and keeps the
+     * returned rect equal to the content area; consumers such as the drop shadow and the
+     * background-blur mask read this to match the corners. Only the four corner radii are
+     * user-settable — see setBorderRadius().
+     */
+    const CZRRect &borderRadius() const noexcept;
+
+    /**
+     * @brief Sets the four corner radii. The rect component of @p borderRadius is ignored (MSurface
+     * owns it). A radius of 0 hides that corner's mask. Emits onBorderRadiusChanged.
+     */
+    void setBorderRadius(const CZRRect &borderRadius) noexcept;
+
+    /**
      * @brief Installs the surface decorations (shadow, rounded corners, ...), or removes them.
      *
      * Ownership is taken. Pass `nullptr` for no decorations. Decorations are only drawn while
@@ -102,6 +126,7 @@ public:
     virtual void vibrancyEvent(const AKVibrancyEvent &event);
 
     CZSignal<const AKVibrancyEvent &> onVibrancyChanged;
+    CZSignal<> onBorderRadiusChanged;
     CZSignal<> onMappedChanged;
     CZSignal<MScreen&> onEnteredScreen;
     CZSignal<MScreen&> onLeftScreen;
@@ -129,6 +154,8 @@ protected:
 
 private:
     void syncDecorationsMargins() noexcept;
+    // Positions/sizes/shows the 4 corner masks at the content corners and refreshes their images.
+    void updateBorderRadiusMasks() noexcept;
 
     std::unique_ptr<Imp> m_imp;
     using AKNode::setParent;

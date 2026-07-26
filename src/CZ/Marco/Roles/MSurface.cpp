@@ -1,5 +1,6 @@
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/MTheme.h>
 #include <CZ/Marco/Roles/MSubsurface.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
 #include <CZ/Core/Utils/CZRegionUtils.h>
@@ -25,6 +26,24 @@ MSurface::MSurface(Role role) noexcept : CZ::AKSolidColor(SK_ColorWHITE)
     app->m_surfaces.push_back(this);
     setParent(rootNode());
     enableChildrenClipping(true);
+
+    // Rounded-corner masks: children of root rendered right after the central node (content) and
+    // before any decorations, so their DstIn rounds the content without carving the shadow. They
+    // are positioned/sized per corner in updateBorderRadiusMasks() and hidden until a radius is set.
+    for (int i = 0; i < 4; i++)
+    {
+        imp()->cornerRadius[i].setParent(rootNode());
+        imp()->cornerRadius[i].layout().setPositionType(YGPositionTypeAbsolute);
+        imp()->cornerRadius[i].enableCustomBlendFunc(true);
+        imp()->cornerRadius[i].enableAutoDamage(false);
+        imp()->cornerRadius[i].setCustomBlendMode(RBlendMode::DstIn);
+        imp()->cornerRadius[i].setVisible(false);
+    }
+    imp()->cornerRadius[0].setSrcTransform(CZTransform::Normal);     // TL
+    imp()->cornerRadius[1].setSrcTransform(CZTransform::Rotated90);  // TR
+    imp()->cornerRadius[2].setSrcTransform(CZTransform::Rotated180); // BR
+    imp()->cornerRadius[3].setSrcTransform(CZTransform::Rotated270); // BL
+
     imp()->target = scene().makeTarget();
     scene().setRoot(rootNode());
 
@@ -195,6 +214,31 @@ bool MSurface::decorationsActive() const noexcept
     return imp()->decorations && decorationsEnabled();
 }
 
+const CZRRect &MSurface::borderRadius() const noexcept
+{
+    return imp()->borderRadius;
+}
+
+void MSurface::setBorderRadius(const CZRRect &borderRadius) noexcept
+{
+    CZRRect &br { imp()->borderRadius };
+
+    if (br.fRadTL == borderRadius.fRadTL && br.fRadTR == borderRadius.fRadTR &&
+        br.fRadBR == borderRadius.fRadBR && br.fRadBL == borderRadius.fRadBL)
+        return;
+
+    // Only the corner radii are user-settable; MSurface owns the rect (see updateBorderRadiusMasks).
+    br.fRadTL = borderRadius.fRadTL;
+    br.fRadTR = borderRadius.fRadTR;
+    br.fRadBR = borderRadius.fRadBR;
+    br.fRadBL = borderRadius.fRadBL;
+
+    addChange(BorderRadius);
+    updateBorderRadiusMasks();
+    onBorderRadiusChanged.notify();
+    update(true);
+}
+
 wl_surface *MSurface::wlSurface() const noexcept
 {
     return imp()->wlSurface;
@@ -258,6 +302,10 @@ void MSurface::onUpdate() noexcept
             imp()->tmpFlags.add(Imp::ScaleChanged);
         }
     }
+
+    // Corner masks are raster images baked at the surface scale; refresh them when it changes.
+    if (imp()->tmpFlags.has(Imp::ScaleChanged))
+        updateBorderRadiusMasks();
 }
 
 bool MSurface::event(const CZEvent &event) noexcept
@@ -315,7 +363,12 @@ void MSurface::AttachInputRegion(MSurface &window) noexcept
 
 void MSurface::AttachOpaqueRegion(MSurface &window, SkRegion &outOpaque) noexcept
 {
-    // Decorations (e.g. rounded corners) carve their non-opaque areas out of the opaque region.
+    // Rounded corners aren't opaque: carve each visible corner mask out of the opaque region.
+    for (int i = 0; i < 4; i++)
+        if (window.imp()->cornerRadius[i].visible())
+            outOpaque.op(window.imp()->cornerRadius[i].worldRect(), SkRegion::Op::kDifference_Op);
+
+    // Decorations may carve additional non-opaque areas.
     if (window.decorationsActive())
         window.decorations()->subtractOpaque(outOpaque);
 
@@ -373,6 +426,54 @@ void MSurface::syncDecorationsMargins() noexcept
     layout().setMargin(YGEdgeTop, m.fTop);
     layout().setMargin(YGEdgeRight, m.fRight);
     layout().setMargin(YGEdgeBottom, m.fBottom);
+
+    // The content corners moved with the margins; re-anchor the rounded-corner masks.
+    updateBorderRadiusMasks();
+}
+
+void MSurface::updateBorderRadiusMasks() noexcept
+{
+    // Decoration margins inset the central node within root; the masks sit at its corners.
+    SkIRect m { 0, 0, 0, 0 };
+    if (decorationsActive())
+        m = imp()->decorations->margins();
+
+    auto app { MApp::Get() };
+    const CZRRect &br { imp()->borderRadius };
+    const Int32 radii[4] { br.fRadTL, br.fRadTR, br.fRadBR, br.fRadBL };
+
+    for (int i = 0; i < 4; i++)
+    {
+        auto &node { imp()->cornerRadius[i] };
+        const Int32 r { std::max(0, radii[i]) };
+
+        if (r == 0)
+        {
+            node.setVisible(false);
+            continue;
+        }
+
+        node.setVisible(true);
+        node.setImage(app->theme()->csdBorderRadiusMask(scale(), r));
+        node.layout().setWidth(r);
+        node.layout().setHeight(r);
+    }
+
+    // Edge-anchored so the corners follow the content when the surface resizes.
+    imp()->cornerRadius[0].layout().setPosition(YGEdgeLeft,   m.fLeft);   // TL
+    imp()->cornerRadius[0].layout().setPosition(YGEdgeTop,    m.fTop);
+    imp()->cornerRadius[1].layout().setPosition(YGEdgeRight,  m.fRight);  // TR
+    imp()->cornerRadius[1].layout().setPosition(YGEdgeTop,    m.fTop);
+    imp()->cornerRadius[2].layout().setPosition(YGEdgeRight,  m.fRight);  // BR
+    imp()->cornerRadius[2].layout().setPosition(YGEdgeBottom, m.fBottom);
+    imp()->cornerRadius[3].layout().setPosition(YGEdgeLeft,   m.fLeft);   // BL
+    imp()->cornerRadius[3].layout().setPosition(YGEdgeBottom, m.fBottom);
+
+    // Keep the stored rect equal to the content area (radii are authoritative; rect is best-effort).
+    imp()->borderRadius.fLeft   = m.fLeft;
+    imp()->borderRadius.fTop    = m.fTop;
+    imp()->borderRadius.fRight  = m.fLeft + Int32(layout().calculatedWidth());
+    imp()->borderRadius.fBottom = m.fTop  + Int32(layout().calculatedHeight());
 }
 
 MSurface::Imp *MSurface::imp() const noexcept

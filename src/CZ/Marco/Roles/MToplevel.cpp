@@ -289,6 +289,10 @@ void MToplevel::applyDecorationsState() noexcept
 {
     // Decorations are only shown with ClientSide decorations on a non-fullscreen window.
     enableDecorations(decorationMode() == ClientSide && !states().has(CZWinFullscreen));
+
+    // Round the content corners while decorated; square them off otherwise (fullscreen/server-side).
+    const Int32 r { decorationsActive() ? MTheme::CSDBorderRadius : 0 };
+    setBorderRadius(CZRRect(SkIRect::MakeEmpty(), r, r, r, r));
 }
 
 void MToplevel::updateShadowParams() noexcept
@@ -604,14 +608,14 @@ void MToplevel::render() noexcept
             lvr_background_blur_set_region(MSurface::imp()->backgroundBlur, region);
             wl_region_destroy(region);
 
-            int r = decorationsActive() ? MTheme::CSDBorderRadius : 0;
+            const CZRRect &br { borderRadius() };
             int x = layout().calculatedMargin(YGEdgeLeft);
             int y = layout().calculatedMargin(YGEdgeTop);
             int w = layout().calculatedWidth();
             int h = layout().calculatedHeight();
             lvr_background_blur_set_round_rect_mask(MSurface::imp()->backgroundBlur,
                                                 x, y, w, h,
-                                                r, r, r, r);
+                                                br.fRadTL, br.fRadTR, br.fRadBR, br.fRadBL);
         }
         else
         {
