@@ -100,6 +100,9 @@ public:
         AKSolidColor(0xFFFFFFFF, parent)
     {
         exitButton.setBackgroundColor(AKTheme::SystemRed);
+
+        toggleButton.setToggleable(true);
+        toggleButton.setBackgroundColor(AKTheme::SystemGreen);
         layout().setMinWidth(250);
         layout().setMinHeight(250);
         layout().setFlex(1.f);
@@ -197,6 +200,7 @@ public:
     AKButton fullscreenButton { "Toggle Fullscreen", "fullscreen", &body };
     AKButton minimizeButton { "Minimize", "minimize", &body };
     AKButton disabledButton { "Disabled Button", "block", &body };
+    AKButton toggleButton { "Toggle: Off", "toggle_on", &body };
     AKButton exitButton { "Exit", "exit_to_app", &body };
 
     AKButton hiddenButton { "Hidden", &body };
@@ -331,6 +335,10 @@ public:
 
         rightContainer.exitButton.onClick.subscribe(&rightContainer.exitButton, [](const auto &){
             exit(0);
+        });
+
+        rightContainer.toggleButton.onToggled.subscribe(this, [this](bool on){
+            rightContainer.toggleButton.textNode().setText(on ? "Toggle: On" : "Toggle: Off");
         });
 
         rightContainer.mapButton.onClick.subscribe(this, [this](const auto &){
