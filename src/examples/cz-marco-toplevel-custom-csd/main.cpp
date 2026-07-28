@@ -32,20 +32,20 @@ public:
             enableChildrenClipping(builtinDecorationsEnabled());
 
             if (builtinDecorationsEnabled())
-                decorationsAnimation.stop();
+                decorationsAnimation.pause();
             else
                 decorationsAnimation.start();
         });
 
         decorationsAnimation.setDuration(5000);
-        decorationsAnimation.setOnUpdateCallback([this](AKAnimation *anim){
+        decorationsAnimation.onUpdate.subscribe(&decorationsAnimation, [this](AKAnimation *anim){
             const SkScalar color { SkScalarSin(M_PI * anim->value()) };
 
             for (auto &deco : customDecorationNodes)
                 deco->setColorWithAlpha({ 1.f - color, color, SkScalarPow(color, 4.f), 0.72f });
         });
 
-        decorationsAnimation.setOnFinishCallback([this](AKAnimation *anim){
+        decorationsAnimation.onFinish.subscribe(&decorationsAnimation, [this](AKAnimation *anim){
             if (!builtinDecorationsEnabled())
                 anim->start();
         });

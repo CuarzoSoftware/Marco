@@ -217,24 +217,17 @@ bool MSurface::decorationsActive() const noexcept
     return imp()->decorations && decorationsEnabled();
 }
 
-const CZRRect &MSurface::borderRadius() const noexcept
+const CZBorderRadius &MSurface::borderRadius() const noexcept
 {
     return imp()->borderRadius;
 }
 
-void MSurface::setBorderRadius(const CZRRect &borderRadius) noexcept
+void MSurface::setBorderRadius(const CZBorderRadius &borderRadius) noexcept
 {
-    CZRRect &br { imp()->borderRadius };
-
-    if (br.fRadTL == borderRadius.fRadTL && br.fRadTR == borderRadius.fRadTR &&
-        br.fRadBR == borderRadius.fRadBR && br.fRadBL == borderRadius.fRadBL)
+    if (imp()->borderRadius == borderRadius)
         return;
 
-    // Only the corner radii are user-settable; MSurface owns the rect (see updateBorderRadiusMasks).
-    br.fRadTL = borderRadius.fRadTL;
-    br.fRadTR = borderRadius.fRadTR;
-    br.fRadBR = borderRadius.fRadBR;
-    br.fRadBL = borderRadius.fRadBL;
+    imp()->borderRadius = borderRadius;
 
     addChange(BorderRadius);
     updateBorderRadiusMasks();
@@ -442,8 +435,8 @@ void MSurface::updateBorderRadiusMasks() noexcept
         m = imp()->decorations->margins();
 
     auto app { MApp::Get() };
-    const CZRRect &br { imp()->borderRadius };
-    const Int32 radii[4] { br.fRadTL, br.fRadTR, br.fRadBR, br.fRadBL };
+    const CZBorderRadius &br { imp()->borderRadius };
+    const Int32 radii[4] { br.fTL, br.fTR, br.fBR, br.fBL };
 
     for (int i = 0; i < 4; i++)
     {
@@ -471,12 +464,6 @@ void MSurface::updateBorderRadiusMasks() noexcept
     imp()->cornerRadius[2].layout().setPosition(YGEdgeBottom, m.fBottom);
     imp()->cornerRadius[3].layout().setPosition(YGEdgeLeft,   m.fLeft);   // BL
     imp()->cornerRadius[3].layout().setPosition(YGEdgeBottom, m.fBottom);
-
-    // Keep the stored rect equal to the content area (radii are authoritative; rect is best-effort).
-    imp()->borderRadius.fLeft   = m.fLeft;
-    imp()->borderRadius.fTop    = m.fTop;
-    imp()->borderRadius.fRight  = m.fLeft + Int32(layout().calculatedWidth());
-    imp()->borderRadius.fBottom = m.fTop  + Int32(layout().calculatedHeight());
 }
 
 MSurface::Imp *MSurface::imp() const noexcept

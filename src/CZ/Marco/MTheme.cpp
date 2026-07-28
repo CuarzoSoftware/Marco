@@ -47,7 +47,7 @@ std::shared_ptr<RImage> MTheme::csdBorderRadiusMask(Int32 scale, Int32 radius) n
     return result;
 }
 
-std::shared_ptr<RImage> MTheme::csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, const CZRRect &corners, CZ::CZBitset<ShadowClamp> &sides) noexcept
+std::shared_ptr<RImage> MTheme::csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, const CZBorderRadius &corners, CZ::CZBitset<ShadowClamp> &sides) noexcept
 {
     if (innerSize.isEmpty() || radius <= 0)
     {
@@ -55,10 +55,10 @@ std::shared_ptr<RImage> MTheme::csdShadow(Int32 scale, const SkISize &innerSize,
         return std::shared_ptr<RImage>();
     }
 
-    const Int32 rTL { std::max(0, corners.fRadTL) };
-    const Int32 rTR { std::max(0, corners.fRadTR) };
-    const Int32 rBR { std::max(0, corners.fRadBR) };
-    const Int32 rBL { std::max(0, corners.fRadBL) };
+    const Int32 rTL { std::max(0, corners.fTL) };
+    const Int32 rTR { std::max(0, corners.fTR) };
+    const Int32 rBR { std::max(0, corners.fBR) };
+    const Int32 rBL { std::max(0, corners.fBL) };
 
     // Per-side corner extent: a side's 9-slice column/row must fit both of its corners.
     const Int32 maxL { std::max(rTL, rBL) };

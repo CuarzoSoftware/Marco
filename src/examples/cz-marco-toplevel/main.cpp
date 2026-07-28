@@ -7,6 +7,7 @@
 #include <CZ/AK/Nodes/AKContainer.h>
 #include <CZ/AK/Nodes/AKText.h>
 #include <CZ/AK/Nodes/AKButton.h>
+#include <CZ/AK/Nodes/AKButtonGroup.h>
 #include <CZ/AK/Nodes/AKSolidColor.h>
 #include <CZ/AK/Nodes/AKImageFrame.h>
 #include <CZ/AK/Nodes/AKTextField.h>
@@ -103,6 +104,20 @@ public:
 
         toggleButton.setToggleable(true);
         toggleButton.setBackgroundColor(AKTheme::SystemGreen);
+
+        // The group turns its buttons into a single-selection set; start with "Day" selected.
+        viewGroup.setToggleMode(AKButtonGroup::ToggleMode::Single);
+        viewDay.setToggled(true);
+
+        // Icon-only: hide the labels (setVisible(false) => display:none, so no leftover layout gap).
+        viewDay.textNode().setVisible(false);
+        viewWeek.textNode().setVisible(false);
+        viewMonth.textNode().setVisible(false);
+
+        // Park it on the right of the (centered-title) top bar, vertically centered in its 52px.
+        viewGroup.layout().setPositionType(YGPositionTypeAbsolute);
+        viewGroup.layout().setPosition(YGEdgeRight, 16.f);
+        viewGroup.layout().setPosition(YGEdgeTop, 10.f);
         layout().setMinWidth(250);
         layout().setMinHeight(250);
         layout().setFlex(1.f);
@@ -209,6 +224,14 @@ public:
     AKTextField textField3 { &body };
 
     AKSolidColor topbar { 0xAAFFFFFF, this };
+
+    // Single-selection, icon-only button group living in the top bar. Declared after topbar so it
+    // exists when its buttons are parented to it.
+    AKButtonGroup viewGroup { &topbar };
+    AKButton viewDay   { "Day",   "today",              &viewGroup };
+    AKButton viewWeek  { "Week",  "calendar_view_week", &viewGroup };
+    AKButton viewMonth { "Month", "calendar_month",     &viewGroup };
+
     AKBackgroundBlurEffect inAppBlur { /*&topbar*/ };
     AKText helloWorld { "🚀 Hello World!" , &topbar };
     AKEdgeShadow shadow { CZEdgeBottom, &topbar };

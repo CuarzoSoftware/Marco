@@ -7,7 +7,7 @@
 #include <CZ/Marco/Nodes/MRootSurfaceNode.h>
 #include <CZ/Marco/Nodes/MDecorations.h>
 #include <CZ/AK/Nodes/AKImage.h>
-#include <CZ/Core/CZRRect.h>
+#include <CZ/Core/CZBorderRadius.h>
 #include <memory>
 
 class CZ::MSurface::Imp
@@ -65,7 +65,7 @@ public:
     // Rounded content corners. The rect tracks the content area; radii are user-set. The 4 masks
     // (DstIn) live under root, rendered after the central node and before the decorations, so they
     // round the content without carving the shadow. Order in root: [central node][masks][decorations].
-    CZRRect borderRadius {};
+    CZBorderRadius borderRadius {};
     AKImage cornerRadius[4]; // TL, TR, BR, BL
 
     // Current wl_surface scale factor

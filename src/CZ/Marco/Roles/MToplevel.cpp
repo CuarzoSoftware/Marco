@@ -292,7 +292,7 @@ void MToplevel::applyDecorationsState() noexcept
 
     // Round the content corners while decorated; square them off otherwise (fullscreen/server-side).
     const Int32 r { decorationsActive() ? MTheme::CSDBorderRadius : 0 };
-    setBorderRadius(CZRRect(SkIRect::MakeEmpty(), r, r, r, r));
+    setBorderRadius(CZBorderRadius(r));
 }
 
 void MToplevel::decorationsChanged() noexcept
@@ -614,14 +614,14 @@ void MToplevel::render() noexcept
             lvr_background_blur_set_region(MSurface::imp()->backgroundBlur, region);
             wl_region_destroy(region);
 
-            const CZRRect &br { borderRadius() };
+            const CZBorderRadius &br { borderRadius() };
             int x = layout().calculatedMargin(YGEdgeLeft);
             int y = layout().calculatedMargin(YGEdgeTop);
             int w = layout().calculatedWidth();
             int h = layout().calculatedHeight();
             lvr_background_blur_set_round_rect_mask(MSurface::imp()->backgroundBlur,
                                                 x, y, w, h,
-                                                br.fRadTL, br.fRadTR, br.fRadBR, br.fRadBL);
+                                                br.fTL, br.fTR, br.fBR, br.fBL);
         }
         else
         {

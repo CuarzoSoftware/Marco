@@ -4,7 +4,7 @@
 #include <CZ/Marco/Marco.h>
 #include <CZ/AK/AKTheme.h>
 #include <CZ/Core/CZBitset.h>
-#include <CZ/Core/CZRRect.h>
+#include <CZ/Core/CZBorderRadius.h>
 #include <map>
 #include <tuple>
 
@@ -40,7 +40,7 @@ public:
      * minimal clampable image is returned and @p sides reports which axes may be 9-slice stretched;
      * otherwise the shadow is rendered at full size and @p sides is cleared.
      */
-    virtual std::shared_ptr<RImage> csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, const CZRRect &corners, CZBitset<ShadowClamp> &sides) noexcept;
+    virtual std::shared_ptr<RImage> csdShadow(Int32 scale, const SkISize &innerSize, Int32 radius, Int32 offsetX, Int32 offsetY, const CZBorderRadius &corners, CZBitset<ShadowClamp> &sides) noexcept;
 protected:
     std::map<std::tuple<Int32,Int32>,std::shared_ptr<RImage>> m_csdBorderRadiusMask; // key: (scale, radius)
     // key: (scale, blurRadius, offsetX, offsetY, radTL, radTR, radBR, radBL)

@@ -84,7 +84,7 @@ public:
         addDecoratedButton.onClick.subscribe(this, [this](const auto &){
             auto *w = new SubWindow(this, 120, subSurfaces().size());
             w->setDecorations(std::make_unique<MShadowDecorations>());
-            w->setBorderRadius(CZRRect(SkIRect::MakeEmpty(),
+            w->setBorderRadius(CZBorderRadius(
                 MTheme::CSDBorderRadius, MTheme::CSDBorderRadius,
                 MTheme::CSDBorderRadius, MTheme::CSDBorderRadius));
         });
@@ -95,7 +95,7 @@ public:
             if (animated)
                 spinAnimation.start();
             else
-                spinAnimation.stop();
+                spinAnimation.pause();
         });
 
         destroyButton.onClick.subscribe(this, [this](const auto &){
@@ -106,7 +106,7 @@ public:
         exitButton.onClick.subscribe(this, [](const auto &){exit(0);});
 
         spinAnimation.setDuration(10000);
-        spinAnimation.setOnUpdateCallback([this](CZAnimation *a){
+        spinAnimation.onUpdate.subscribe(&spinAnimation, [this](CZAnimation *a){
 
             const SkScalar phase =  2.f * M_PI * a->value();
             const SkScalar subN = subSurfaces().size();
@@ -128,7 +128,7 @@ public:
 
         });
 
-        spinAnimation.setOnFinishCallback([this](CZAnimation *a) {
+        spinAnimation.onFinish.subscribe(&spinAnimation, [this](CZAnimation *a) {
             if (animated)
                 a->start();
         });

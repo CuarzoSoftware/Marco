@@ -119,7 +119,7 @@ public:
             });
             menu->setDecorations(std::make_unique<MShadowDecorations>());
             // Per-corner radii: rounder at the top, subtler at the bottom.
-            menu->setBorderRadius(CZRRect(SkIRect::MakeEmpty(), 16, 16, 6, 6));
+            menu->setBorderRadius(CZBorderRadius(16, 16, 6, 6));
             menu->setMapped(true);
         });
 

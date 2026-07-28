@@ -80,7 +80,7 @@ public:
                 layout().setWidthAuto();
         });
 
-        marginAnim.setOnUpdateCallback([this](CZAnimation *a){
+        marginAnim.onUpdate.subscribe(&marginAnim, [this](CZAnimation *a){
             const Float64 phase { a->value() * M_PI * 2.f };
             setMargin(SkIRect::MakeLTRB(
                 SkScalarCos(phase) * 100 - 100,
@@ -88,7 +88,7 @@ public:
                 0, 0));
         });
 
-        marginAnim.setOnFinishCallback([this](auto *){
+        marginAnim.onFinish.subscribe(&marginAnim, [this](auto *){
             setMargin({0, 0, 0, 0});
         });
 

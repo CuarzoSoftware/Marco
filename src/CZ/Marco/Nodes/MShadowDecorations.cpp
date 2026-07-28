@@ -73,11 +73,11 @@ void MShadowDecorations::updateInvisibleRegion() noexcept
     const Int32 w { Int32(m_shadow.layout().calculatedWidth()) };
     const Int32 h { Int32(m_shadow.layout().calculatedHeight()) };
 
-    const CZRRect &br { surface()->borderRadius() };
-    const Int32 rTL { std::max(0, br.fRadTL) };
-    const Int32 rTR { std::max(0, br.fRadTR) };
-    const Int32 rBR { std::max(0, br.fRadBR) };
-    const Int32 rBL { std::max(0, br.fRadBL) };
+    const CZBorderRadius &br { surface()->borderRadius() };
+    const Int32 rTL { std::max(0, br.fTL) };
+    const Int32 rTR { std::max(0, br.fTR) };
+    const Int32 rBR { std::max(0, br.fBR) };
+    const Int32 rBL { std::max(0, br.fBL) };
 
     // The central widget is opaque and fully covers the shadow behind it, except at its rounded
     // corners. Mark that area (the central rect minus the per-corner squares) as invisible so the
@@ -148,11 +148,11 @@ void MShadowDecorations::ShadowNode::renderEvent(const AKRenderEvent &e)
     const SkIRect m { m_deco->margins() };
     const Int32 rad { m_deco->m_radius };
 
-    const CZRRect &br { m_deco->surface()->borderRadius() };
-    const Int32 rTL { std::max(0, br.fRadTL) };
-    const Int32 rTR { std::max(0, br.fRadTR) };
-    const Int32 rBR { std::max(0, br.fRadBR) };
-    const Int32 rBL { std::max(0, br.fRadBL) };
+    const CZBorderRadius &br { m_deco->surface()->borderRadius() };
+    const Int32 rTL { std::max(0, br.fTL) };
+    const Int32 rTR { std::max(0, br.fTR) };
+    const Int32 rBR { std::max(0, br.fBR) };
+    const Int32 rBL { std::max(0, br.fBL) };
 
     // Per-side corner extent (a side's 9-slice column/row must fit both of its corners).
     const Int32 maxL { std::max(rTL, rBL) };

@@ -5,7 +5,7 @@
 #include <CZ/Marco/Protocols/Viewporter/viewporter-client.h>
 #include <CZ/AK/AKVibrancy.h>
 #include <CZ/Core/CZSignal.h>
-#include <CZ/Core/CZRRect.h>
+#include <CZ/Core/CZBorderRadius.h>
 #include <CZ/AK/Nodes/AKContainer.h>
 #include <CZ/AK/Nodes/AKSolidColor.h>
 #include <CZ/AK/AKScene.h>
@@ -88,20 +88,18 @@ public:
     AKNode *rootNode() const noexcept;
 
     /**
-     * @brief Rounded-corner radius applied to the content (central node).
+     * @brief Rounded-corner radii applied to the content (central node).
      *
-     * MSurface renders the rounded corners (via DstIn masks over the content) and keeps the
-     * returned rect equal to the content area; consumers such as the drop shadow and the
-     * background-blur mask read this to match the corners. Only the four corner radii are
-     * user-settable — see setBorderRadius().
+     * MSurface renders the rounded corners (via DstIn masks over the content); consumers such as the
+     * drop shadow and the background-blur mask read this to match the corners.
      */
-    const CZRRect &borderRadius() const noexcept;
+    const CZBorderRadius &borderRadius() const noexcept;
 
     /**
-     * @brief Sets the four corner radii. The rect component of @p borderRadius is ignored (MSurface
-     * owns it). A radius of 0 hides that corner's mask. Emits onBorderRadiusChanged.
+     * @brief Sets the four corner radii. A radius of 0 hides that corner's mask. Emits
+     * onBorderRadiusChanged.
      */
-    void setBorderRadius(const CZRRect &borderRadius) noexcept;
+    void setBorderRadius(const CZBorderRadius &borderRadius) noexcept;
 
     /**
      * @brief Installs the surface decorations (shadow, rounded corners, ...), or removes them.
