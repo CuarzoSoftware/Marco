@@ -25,6 +25,7 @@
 #include <CZ/AK/Nodes/AKFontIcon.h>
 #include <CZ/AK/Nodes/AKNinePatch.h>
 #include <CZ/XDG/XDGKit.h>
+#include <CZ/Core/Events/CZColorSchemeEvent.h>
 #include <CZ/skia/core/SkColor.h>
 #include <iostream>
 
@@ -98,26 +99,25 @@ class RightContainer : public AKSolidColor
 public:
 
     RightContainer(AKNode *parent = nullptr) :
-        AKSolidColor(0xFFFFFFFF, parent)
+        AKSolidColor(AKTheme::SystemBackground, parent)
     {
         exitButton.setBackgroundColor(AKTheme::SystemRed);
 
         toggleButton.setToggleable(true);
         toggleButton.setBackgroundColor(AKTheme::SystemGreen);
 
-        // The group turns its buttons into a single-selection set; start with "Day" selected.
-        viewGroup.setToggleMode(AKButtonGroup::ToggleMode::Single);
-        viewDay.setToggled(true);
+        // Single-selection scheme switcher; start on Light (the app's default scheme).
+        schemeGroup.setToggleMode(AKButtonGroup::ToggleMode::Single);
+        lightButton.setToggled(true);
 
         // Icon-only: hide the labels (setVisible(false) => display:none, so no leftover layout gap).
-        viewDay.textNode().setVisible(false);
-        viewWeek.textNode().setVisible(false);
-        viewMonth.textNode().setVisible(false);
+        lightButton.textNode().setVisible(false);
+        darkButton.textNode().setVisible(false);
 
         // Park it on the right of the (centered-title) top bar, vertically centered in its 52px.
-        viewGroup.layout().setPositionType(YGPositionTypeAbsolute);
-        viewGroup.layout().setPosition(YGEdgeRight, 16.f);
-        viewGroup.layout().setPosition(YGEdgeTop, 10.f);
+        schemeGroup.layout().setPositionType(YGPositionTypeAbsolute);
+        schemeGroup.layout().setPosition(YGEdgeRight, 16.f);
+        schemeGroup.layout().setPosition(YGEdgeTop, 10.f);
         layout().setMinWidth(250);
         layout().setMinHeight(250);
         layout().setFlex(1.f);
@@ -134,14 +134,10 @@ public:
         topbar.layout().setHeight(52);
         topbar.layout().setWidthPercent(100);
         topbar.userCaps.add(UCWindowMove);
-        auto textStyle = helloWorld.textStyle();
-        textStyle.setFontStyle(
+        helloWorld.setFontStyle(
             SkFontStyle(SkFontStyle::kExtraBold_Weight, SkFontStyle::kNormal_Width, SkFontStyle::kUpright_Slant));
-        textStyle.setFontSize(14);
-        SkPaint p;
-        p.setColor(0xb3000000);
-        textStyle.setForegroundColor(p);
-        helloWorld.setTextStyle(textStyle);
+        helloWorld.setFontSize(14);
+        helloWorld.setTextColor(AKTheme::Label); // adaptive: follows the light/dark scheme switch
         helloWorld.enableDiminishOpacityOnInactive(true);
         body.slot()->layout().setGap(YGGutterAll, 16.f);
         body.slot()->layout().setPadding(YGEdgeAll, 32.f);
@@ -223,14 +219,13 @@ public:
     AKTextField textField2 { &body };
     AKTextField textField3 { &body };
 
-    AKSolidColor topbar { 0xAAFFFFFF, this };
+    AKSolidColor topbar { 0x00000000, this };
 
-    // Single-selection, icon-only button group living in the top bar. Declared after topbar so it
+    // Single-selection, icon-only color-scheme switcher in the top bar. Declared after topbar so it
     // exists when its buttons are parented to it.
-    AKButtonGroup viewGroup { &topbar };
-    AKButton viewDay   { "Day",   "today",              &viewGroup };
-    AKButton viewWeek  { "Week",  "calendar_view_week", &viewGroup };
-    AKButton viewMonth { "Month", "calendar_month",     &viewGroup };
+    AKButtonGroup schemeGroup { &topbar };
+    AKButton lightButton { "Light", "light_mode", &schemeGroup };
+    AKButton darkButton  { "Dark",  "dark_mode",  &schemeGroup };
 
     AKBackgroundBlurEffect inAppBlur { /*&topbar*/ };
     AKText helloWorld { "🚀 Hello World!" , &topbar };
@@ -249,6 +244,7 @@ public:
         layout().setHeight(600);
         setColor(MApp::Get()->wl.backgroundBlurManager ? 0x00FFFFFF : 0xffF0F0F0);
         setTitle("Hello world!");
+        rightContainer.topbar.addBackgroundEffect(&rightContainer.inAppBlur);
 
         rightContainer.changeTransform.onClick.subscribe(this, [this](auto){
 
@@ -364,6 +360,20 @@ public:
             rightContainer.toggleButton.textNode().setText(on ? "Toggle: On" : "Toggle: Off");
         });
 
+        // Each scheme button sends a CZColorSchemeEvent to the window's scene, which propagates it to
+        // the whole node tree. setToggled(true) keeps the clicked one selected (single-select group).
+        rightContainer.lightButton.onClick.subscribe(this, [this](const auto &){
+            rightContainer.lightButton.setToggled(true);
+            CZColorSchemeEvent e { CZColorScheme::Light };
+            CZCore::Get()->sendEvent(e, scene());
+        });
+
+        rightContainer.darkButton.onClick.subscribe(this, [this](const auto &){
+            rightContainer.darkButton.setToggled(true);
+            CZColorSchemeEvent e { CZColorScheme::Dark };
+            CZCore::Get()->sendEvent(e, scene());
+        });
+
         rightContainer.mapButton.onClick.subscribe(this, [this](const auto &){
             setMapped(false);
             CZTimer::OneShot(1000, [this](CZTimer*){
@@ -384,12 +394,12 @@ public:
         if (activated())
         {
             rightContainer.topbar.addBackgroundEffect(&rightContainer.inAppBlur);
-            rightContainer.topbar.setColor(0x00000000);
+            rightContainer.topbar.setColor(CZAdaptiveColor(0x00000000));
         }
         else
         {
             rightContainer.topbar.removeBackgroundEffect(&rightContainer.inAppBlur);
-            rightContainer.topbar.setColor(0xFFe6e7e7);
+            rightContainer.topbar.setColor(CZAdaptiveColor(0xFFe6e7e7, 0xFF323232));
         }
     }
 

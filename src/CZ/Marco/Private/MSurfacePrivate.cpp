@@ -95,10 +95,39 @@ void MSurface::Imp::background_blur_state(void *data, lvr_background_blur *, UIn
     surface.imp()->pendingVibrancyState = (AKVibrancyState)state;
 }
 
+static UInt32 ToLvrColorScheme(CZColorScheme scheme) noexcept
+{
+    switch (scheme)
+    {
+    case CZColorScheme::Dark:  return LVR_BACKGROUND_BLUR_COLOR_SCHEME_DARK;
+    case CZColorScheme::Light: return LVR_BACKGROUND_BLUR_COLOR_SCHEME_LIGHT;
+    default:                   return LVR_BACKGROUND_BLUR_COLOR_SCHEME_UNKNOWN;
+    }
+}
+
+void MSurface::Imp::updateBlurColorScheme() noexcept
+{
+    if (!backgroundBlur)
+        return;
+
+    const CZColorScheme scheme { obj.colorScheme() };
+
+    if (scheme == sentBlurScheme)
+        return;
+
+    sentBlurScheme = scheme;
+    lvr_background_blur_set_color_scheme(backgroundBlur, ToLvrColorScheme(scheme));
+    obj.update(true); // double-buffered request → schedule a commit
+}
+
 void MSurface::Imp::background_blur_configure(void *data, lvr_background_blur *backgroundBlur, UInt32 serial)
 {
     MSurface &surface { *static_cast<MSurface*>(data) };
     lvr_background_blur_ack_configure(backgroundBlur, serial);
+
+    // The color scheme may be set once a configure has been acknowledged.
+    surface.imp()->updateBlurColorScheme();
+
     auto core { CZCore::Get() };
 
     if (surface.imp()->pendingVibrancyState != surface.imp()->currentVibrancyState)
@@ -158,6 +187,7 @@ void MSurface::Imp::createSurface() noexcept
     {
         backgroundBlur = lvr_background_blur_manager_get_background_blur(app->wl.backgroundBlurManager, wlSurface);
         lvr_background_blur_add_listener(backgroundBlur, &backgroundBlurListener, &obj);
+        sentBlurScheme = CZColorScheme::Unknown; // fresh object: its scheme is unknown again
 
         // The compositor enables background blur by default on this object. Suppress it with an
         // empty region so it never shows unless a role opts in (e.g. MToplevel sets a real region

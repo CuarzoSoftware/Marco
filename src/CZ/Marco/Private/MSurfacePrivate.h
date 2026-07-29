@@ -92,6 +92,11 @@ public:
     lvr_background_blur *backgroundBlur { nullptr };
     lvr_invisible_region *invisibleRegion { nullptr };
 
+    // Last color scheme sent to the compositor for the blur (protocol initial value is unknown).
+    CZColorScheme sentBlurScheme { CZColorScheme::Unknown };
+    // Informs the compositor of the surface's color scheme via the background-blur protocol.
+    void updateBlurColorScheme() noexcept;
+
     std::shared_ptr<RWLSwapchain> swapchain;
 
     std::list<MSubsurface*> subSurfaces;

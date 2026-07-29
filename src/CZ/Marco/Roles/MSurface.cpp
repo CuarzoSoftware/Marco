@@ -304,6 +304,12 @@ void MSurface::onUpdate() noexcept
         updateBorderRadiusMasks();
 }
 
+void MSurface::colorSchemeEvent(const CZColorSchemeEvent &event)
+{
+    AKSolidColor::colorSchemeEvent(event);
+    imp()->updateBlurColorScheme();                    // inform the compositor via the blur protocol
+}
+
 bool MSurface::event(const CZEvent &event) noexcept
 {
     if (event.type() == CZEvent::Type::Vibrancy)

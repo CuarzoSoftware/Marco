@@ -136,6 +136,7 @@ protected:
     friend class MDecorations;
     MSurface(Role role) noexcept;
     virtual void onUpdate() noexcept;
+    void colorSchemeEvent(const CZColorSchemeEvent &event) override;
     bool event(const CZEvent &event) noexcept override;
 
     /** @brief Enables/disables decorations without removing them (roles toggle this, e.g. fullscreen). */
