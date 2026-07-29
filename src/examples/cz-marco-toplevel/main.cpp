@@ -99,7 +99,7 @@ class RightContainer : public AKSolidColor
 public:
 
     RightContainer(AKNode *parent = nullptr) :
-        AKSolidColor(AKTheme::SystemBackground, parent)
+        AKSolidColor(AKTheme::WindowBackground, parent)
     {
         exitButton.setBackgroundColor(AKTheme::SystemRed);
 
