@@ -10,5 +10,4 @@ public:
     MMenu &obj;
 };
 
-
 #endif // MMENUPRIVATE_H

@@ -5,6 +5,7 @@
 #include <CZ/Marco/MLog.h>
 #include <CZ/Core/Events/CZInputEvent.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
+#include <CZ/Marco/Nodes/MVibrancyView.h>
 
 using namespace CZ;
 
@@ -261,63 +262,26 @@ void MPopup::onUpdate() noexcept
 
 void MPopup::render() noexcept
 {
+    auto app { MApp::Get() };
     scene().root()->layout().calculate();
 
-    if (wlCallback() && !MSurface::imp()->flags.has(MSurface::Imp::ForceUpdate))
-        return;
+    if (!ShouldUpdate(*this)) return;
 
-    bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) };
-
-    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
-
-    bool fullDamage {};
-
-    SkISize newSize {
-        SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
-        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom))
-    };
-
-    if (newSize.fWidth < 8) newSize.fWidth = 8;
-    if (newSize.fHeight < 8) newSize.fHeight = 8;
-
-    bool sizeChanged = false;
-
-    if (MSurface::imp()->viewportSize != newSize)
-    {
-        MSurface::imp()->viewportSize = newSize;
-        fullDamage = true;
-        sizeChanged = true;
-    }
-
-    SkISize eglWindowSize { newSize };
-
-    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
+    const SkISize newSize { CalculatedSize(*this) };
+    const bool sizeChanged { MSurface::imp()->resizeBuffer(newSize) };
+    const bool fullDamage { sizeChanged };
+    const bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) || sizeChanged || target()->isDirty() || target()->bakedNodesScale() != scale() || changes().testAnyOf(CHDecorationMargins)};
 
     if (sizeChanged)
-    {
-        repaint = true;
-        MApp::Get()->update();
-
-        wp_viewport_set_source(wlViewport(),
-                               wl_fixed_from_int(0),
-                               wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
-                               wl_fixed_from_int(newSize.width()),
-                               wl_fixed_from_int(newSize.height()));
-
         xdg_surface_set_window_geometry(
             imp()->xdgSurface,
             layout().calculatedMargin(YGEdgeLeft),
             layout().calculatedMargin(YGEdgeTop),
             layout().calculatedWidth(),
             layout().calculatedHeight());
-    }
-
-    repaint |= target()->isDirty() || target()->bakedNodesScale() != scale();
 
     if (!repaint)
     {
-        //imp()->applyPendingParent();
-        //imp()->applyPendingChildren();
         wl_surface_commit(wlSurface());
         return;
     }
@@ -326,11 +290,10 @@ void MPopup::render() noexcept
     auto ssImage { MSurface::imp()->swapchain->acquire() };
     PrepareTarget(*this, ssImage.value(), &outDamage, &outOpaque, &outInvisible, fullDamage);
     scene().render(target());
-
+    HandleBackgroundBlur(*this);
     AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);
     PresentImage(*this, *ssImage, outDamage);
-    MSurface::imp()->flags.add(MSurface::Imp::HasBufferAttached);
 }
 

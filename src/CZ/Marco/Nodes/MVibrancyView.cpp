@@ -1,3 +1,4 @@
+#include <CZ/Marco/MLog.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
 #include <CZ/AK/Events/AKVibrancyEvent.h>
 
@@ -9,6 +10,7 @@ bool MVibrancyView::event(const CZEvent &event) noexcept
     {
         const auto &e { static_cast<const AKVibrancyEvent&>(event) };
         m_vibrancyEnabled = (e.state == AKVibrancyState::Enabled);
+        MLog(CZFatal, "Vibrancy {}", m_vibrancyEnabled);
         applyColor();
         return true;
     }

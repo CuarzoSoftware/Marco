@@ -77,9 +77,8 @@ public:
     // Intersected screens
     std::set<MScreen*> screens;
 
+    // Surface size
     SkISize size { 0, 0 };
-    SkISize bufferSize { 0, 0 };
-    SkISize viewportSize { -1, -1 };
 
     // Vibrancy
     AKVibrancyState currentVibrancyState { AKVibrancyState::Disabled };
@@ -111,11 +110,14 @@ public:
     void setMapped(bool mapped) noexcept;
 
     /**
-     * @brief Resize the wl_egl_window
+     * @brief Sets the surface size and resizes the swapchain if needed.
      *
-     * @return true if resized, false if the size is the same.
+     * @param size The logical surface size in points.
+     * @param step Buffer allocation granularity in pixels.
+     *
+     * @return true if the surface size or swapchain size changed.
      */
-    bool resizeBuffer(const SkISize &size) noexcept;
+    bool resizeBuffer(SkISize size, Int32 step = 1) noexcept;
 
     static void wl_surface_enter(void *data, wl_surface *surface, wl_output *output);
     static void wl_surface_leave(void *data,wl_surface *surface, wl_output *output);

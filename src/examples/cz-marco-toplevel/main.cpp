@@ -242,7 +242,8 @@ public:
         layout().setFlexDirection(YGFlexDirectionRow);
         layout().setWidth(800);
         layout().setHeight(600);
-        setColor(MApp::Get()->wl.backgroundBlurManager ? 0x00FFFFFF : 0xffF0F0F0);
+        setColor(CZAdaptiveColor(0));
+        //setColor(MApp::Get()->wl.backgroundBlurManager ? 0x00FFFFFF : 0xffF0F0F0);
         setTitle("Hello world!");
         rightContainer.topbar.addBackgroundEffect(&rightContainer.inAppBlur);
 

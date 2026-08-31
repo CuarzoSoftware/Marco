@@ -3,6 +3,7 @@
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/Private/MLayerSurfacePrivate.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/MLog.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
 #include <CZ/Core/CZCore.h>
 #include <CZ/AK/Events/AKVibrancyEvent.h>
@@ -247,35 +248,63 @@ void MSurface::Imp::setMapped(bool mapped) noexcept
     obj.onMappedChanged.notify();
 }
 
-bool MSurface::Imp::resizeBuffer(const SkISize &size) noexcept
+bool MSurface::Imp::resizeBuffer(SkISize size, Int32 step) noexcept
 {
-    const SkISize bufferSize { size.width() * scale , size.height() * scale };
+    if (size.width() < 0)
+    {
+        MLog(CZWarning, CZLN, "Invalid width {}. Falling back to 0.", size.width());
+        size.fWidth = 0;
+    }
 
-    if (bufferSize == this->bufferSize)
-        return false;
+    if (size.height() < 0)
+    {
+        MLog(CZWarning, CZLN, "Invalid height {}. Falling back to 0.", size.height());
+        size.fHeight = 0;
+    }
 
+    if (step < 1)
+    {
+        MLog(CZWarning, CZLN, "Invalid step {}. Falling back to 1.", step);
+        step = 1;
+    }
+
+    const bool sizeChanged = this->size != size;
     this->size = size;
-    this->bufferSize = bufferSize;
 
     if (size.isEmpty())
     {
+        if (!swapchain)
+            return sizeChanged;
+
         swapchain.reset();
         return true;
     }
 
+    const SkISize bufferSize {
+        size.width() * scale,
+        size.height() * scale
+    };
+
+    const auto roundUp = [](Int32 value, Int32 step) -> Int32
+    {
+        return (value / step + (value % step != 0)) * step;
+    };
+
+    const SkISize allocationSize {
+        roundUp(bufferSize.width(), step),
+        roundUp(bufferSize.height(), step)
+    };
+
+    if (swapchain && swapchain->size() == allocationSize)
+        return sizeChanged;
+
     if (swapchain)
     {
-        if (swapchain->size().width() < bufferSize.width() || swapchain->size().height() < bufferSize.height())
-        {
-            swapchain->resize(bufferSize);
-            return true;
-        }
-
-        return false;
+        swapchain->resize(allocationSize);
     }
     else
     {
-        swapchain = RWLSwapchain::Make(wlSurface, bufferSize);
+        swapchain = RWLSwapchain::Make(wlSurface, allocationSize);
         assert("Failed to create EGLSurface for MSurface" && swapchain);
     }
 

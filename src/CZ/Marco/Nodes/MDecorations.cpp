@@ -38,7 +38,10 @@ bool MDecorations::setMargins(SkIRect margins) noexcept
     m_margins = margins;
 
     if (surface())
+    {
+        surface()->addChange(MSurface::CHDecorationMargins);
         surface()->syncDecorationsMargins();
+    }
 
     return true;
 }

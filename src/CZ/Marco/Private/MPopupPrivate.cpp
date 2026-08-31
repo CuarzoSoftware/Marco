@@ -85,8 +85,17 @@ xdg_positioner *MPopup::Imp::createPositioner() noexcept
 
     xdg_positioner_set_size(positioner, size.width(), size.height());
 
-    // TODO: Use the user defined rect
-    xdg_positioner_set_anchor_rect(positioner, 0, 0, parent->worldRect().width(), parent->worldRect().height());
+    // A degenerate rect (any negative component) means "anchor to the whole parent surface".
+    if (anchorRect.x() < 0 || anchorRect.y() < 0 || anchorRect.width() < 0 || anchorRect.height() < 0)
+    {
+        parent->scene().root()->layout().calculate();
+        xdg_positioner_set_anchor_rect(positioner, 0, 0,
+            SkScalarFloorToInt(parent->layout().calculatedWidth()),
+            SkScalarFloorToInt(parent->layout().calculatedHeight()));
+    }
+    else
+        xdg_positioner_set_anchor_rect(positioner, anchorRect.x(), anchorRect.y(), anchorRect.width(), anchorRect.height());
+
     xdg_positioner_set_anchor(positioner, (UInt32)anchor);
     xdg_positioner_set_gravity(positioner, (UInt32)gravity);
     xdg_positioner_set_constraint_adjustment(positioner, constraintAdjustment.get());

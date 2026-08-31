@@ -60,7 +60,8 @@ public:
     // Continues the change ids of the base classes so they never overlap.
     enum Changes
     {
-        BorderRadius = AKSolidColor::CHLast,
+        CHBorderRadius = AKSolidColor::CHLast,
+        CHDecorationMargins,
         CHLast
     };
 
@@ -71,11 +72,19 @@ public:
     /**
      * @brief The current scale factor.
      *
-     * @return
+     * Equal to the larger scale of the intersected screens or the scale suggested by the compositor.
+     *
+     * Defaults to 1.
      */
     Int32 scale() noexcept;
-    const SkISize &surfaceSize() const noexcept;
-    const SkISize &bufferSize() const noexcept;
+
+    // Surface size in logical points (equal to the layout size + margins)
+    SkISize surfaceSize() const noexcept;
+
+    // Current swapchain buffer size, (0,0) if no swapchain has been created yet
+    // Might be different than surfaceSize() * scale() when viewporter is used
+    SkISize bufferSize() const noexcept;
+
     const std::set<MScreen*> &screens() const noexcept;
     void setMapped(bool mapped) noexcept;
     bool mapped() const noexcept;
@@ -126,6 +135,7 @@ public:
     CZSignal<const AKVibrancyEvent &> onVibrancyChanged;
     CZSignal<> onBorderRadiusChanged;
     CZSignal<> onMappedChanged;
+    CZSignal<> onWillMap; // Called e.g. when an XDG Popup is configured by the server and a commit to make it visible is sent
     CZSignal<MScreen&> onEnteredScreen;
     CZSignal<MScreen&> onLeftScreen;
     CZSignal<UInt32> onCallbackDone;
@@ -153,6 +163,9 @@ protected:
     /** @brief True when a decorations object is set and decorations are enabled. */
     bool decorationsActive() const noexcept;
 
+    static bool ShouldUpdate(MSurface &window) noexcept;
+    static SkISize CalculatedSize(MSurface &window) noexcept;
+    static void HandleBackgroundBlur(MSurface &window) noexcept;
     static void PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, SkRegion *outDamage, SkRegion *outOpaque, SkRegion *outInvisible, bool forceFullDamage) noexcept;
     static void AttachInputRegion(MSurface &window) noexcept;
     static void AttachOpaqueRegion(MSurface &window, SkRegion &outOpaque) noexcept;

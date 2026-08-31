@@ -62,7 +62,9 @@ MSurface::~MSurface()
         subSurfaces().back()->setParent(nullptr);
 
     auto app { MApp::Get() };
-    app->m_surfaces[imp()->appLink] = app->m_surfaces.back();
+    const size_t i { imp()->appLink };
+    app->m_surfaces[i] = app->m_surfaces.back();
+    app->m_surfaces[i]->imp()->appLink = i;
     app->m_surfaces.pop_back();
     imp()->resizeBuffer({0, 0});
 
@@ -97,17 +99,14 @@ Int32 MSurface::scale() noexcept
     return imp()->scale;
 }
 
-const SkISize &MSurface::surfaceSize() const noexcept
+SkISize MSurface::surfaceSize() const noexcept
 {
-    if (imp()->viewportSize.width() >= 0)
-        return imp()->viewportSize;
-
     return imp()->size;
 }
 
-const SkISize &MSurface::bufferSize() const noexcept
+SkISize MSurface::bufferSize() const noexcept
 {
-    return imp()->bufferSize;
+    return imp()->swapchain ? imp()->swapchain->size() : SkISize(0, 0);
 }
 
 const std::set<MScreen *> &MSurface::screens() const noexcept
@@ -186,6 +185,7 @@ void MSurface::setDecorations(std::unique_ptr<MDecorations> decorations) noexcep
         imp()->decorations->setSurface(this);
 
     syncDecorationsMargins();
+    addChange(CHDecorationMargins);
     decorationsChanged();
     update(true);
 }
@@ -217,6 +217,27 @@ bool MSurface::decorationsActive() const noexcept
     return imp()->decorations && decorationsEnabled();
 }
 
+bool MSurface::ShouldUpdate(MSurface &window) noexcept
+{
+    if (window.wlCallback() && !window.imp()->flags.has(MSurface::Imp::ForceUpdate))
+        return false;
+
+    window.imp()->flags.remove(MSurface::Imp::ForceUpdate);
+    return true;
+}
+
+SkISize MSurface::CalculatedSize(MSurface &window) noexcept
+{
+    SkISize newSize {
+        SkScalarFloorToInt(window.layout().calculatedWidth() + window.layout().calculatedMargin(YGEdgeLeft) + window.layout().calculatedMargin(YGEdgeRight)),
+        SkScalarFloorToInt(window.layout().calculatedHeight() + window.layout().calculatedMargin(YGEdgeTop) + window.layout().calculatedMargin(YGEdgeBottom))
+    };
+
+    if (newSize.fWidth < 8) newSize.fWidth = 8;
+    if (newSize.fHeight < 8) newSize.fHeight = 8;
+    return newSize;
+}
+
 const CZBorderRadius &MSurface::borderRadius() const noexcept
 {
     return imp()->borderRadius;
@@ -229,7 +250,7 @@ void MSurface::setBorderRadius(const CZBorderRadius &borderRadius) noexcept
 
     imp()->borderRadius = borderRadius;
 
-    addChange(BorderRadius);
+    addChange(CHBorderRadius);
     updateBorderRadiusMasks();
     onBorderRadiusChanged.notify();
     update(true);
@@ -321,6 +342,44 @@ bool MSurface::event(const CZEvent &event) noexcept
     return AKSolidColor::event(event);
 }
 
+void MSurface::HandleBackgroundBlur(MSurface &window) noexcept
+{
+    auto app { MApp::Get() };
+
+    if (window.MSurface::imp()->backgroundBlur/* && app->wl.svgPathManager*/)
+    {
+        if (window.vibrancyState() == AKVibrancyState::Enabled && (SkColorGetA(window.m_color) < 255 || window.opacity() < 1.f))
+        {
+            std::vector<MVibrancyView*> vibrancyViews;
+            vibrancyViews.reserve(10);
+            FindNodesWithType(&window, &vibrancyViews);
+
+            wl_region *region = wl_compositor_create_region(app->wl.compositor);
+
+            for (MVibrancyView *view : vibrancyViews)
+                wl_region_add(region, view->worldRect().x(), view->worldRect().y(), view->worldRect().width(), view->worldRect().height());
+
+            lvr_background_blur_set_region(window.MSurface::imp()->backgroundBlur, region);
+            wl_region_destroy(region);
+
+            const CZBorderRadius &br { window.borderRadius() };
+            int x = window.layout().calculatedMargin(YGEdgeLeft);
+            int y = window.layout().calculatedMargin(YGEdgeTop);
+            int w = window.layout().calculatedWidth();
+            int h = window.layout().calculatedHeight();
+            lvr_background_blur_set_round_rect_mask(window.MSurface::imp()->backgroundBlur,
+                                                    x, y, w, h,
+                                                    br.fTL, br.fTR, br.fBR, br.fBL);
+        }
+        else
+        {
+            wl_region *empty = wl_compositor_create_region(app->wl.compositor);
+            lvr_background_blur_set_region(window.MSurface::imp()->backgroundBlur, empty);
+            wl_region_destroy(empty);
+        }
+    }
+}
+
 void MSurface::PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, SkRegion *outDamage, SkRegion *outOpaque, SkRegion *outInvisible, bool forceFullDamage) noexcept
 {
     auto surface { RSurface::WrapImage(ssImage.image) };
@@ -337,8 +396,6 @@ void MSurface::PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, S
     window.target()->age = forceFullDamage ? 0 : ssImage.age;
     window.target()->outDamage = outDamage;
     window.target()->setBakedNodesScale(window.scale());
-
-    wl_surface_set_buffer_scale(window.wlSurface(), window.scale());
 
     if (true || window.opacity() == 1.f)
         window.target()->outOpaque = outOpaque;
@@ -407,7 +464,22 @@ void MSurface::PresentImage(MSurface &window, const RSwapchainImage &ssImage, Sk
 {
     CZRegionUtils::Scale(outDamage, window.scale());
     window.MSurface::imp()->createCallback();
+    wl_surface_set_buffer_scale(window.wlSurface(), window.scale());
+
+    if (window.wlViewport())
+        wp_viewport_set_source(window.wlViewport(),
+                               wl_fixed_from_int(0),
+                               wl_fixed_from_int(0),
+                               wl_fixed_from_int(window.surfaceSize().width()),
+                               wl_fixed_from_int(window.surfaceSize().height()));
+
     window.MSurface::imp()->swapchain->present(ssImage, &outDamage);
+
+    if (!window.MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached))
+    {
+        window.onWillMap.notify();
+        window.MSurface::imp()->flags.add(MSurface::Imp::HasBufferAttached);
+    }
 }
 
 void MSurface::syncDecorationsMargins() noexcept

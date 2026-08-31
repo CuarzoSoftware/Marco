@@ -262,52 +262,17 @@ void MSubsurface::onUpdate() noexcept
 
 void MSubsurface::render() noexcept
 {
+    auto app { MApp::Get() };
     scene().root()->layout().calculate();
 
-    if (wlCallback() && !MSurface::imp()->flags.has(MSurface::Imp::ForceUpdate))
-        return;
+    if (!ShouldUpdate(*this)) return;
 
-    bool repaint { false };
-    auto app { MApp::Get() };
     parent()->update(true);
-    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
 
-    bool fullDamage {};
-
-    SkISize newSize {
-        SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
-        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom))
-    };
-
-    if (newSize.fWidth < 8) newSize.fWidth = 8;
-    if (newSize.fHeight < 8) newSize.fHeight = 8;
-
-    bool sizeChanged = false;
-
-    if (MSurface::imp()->viewportSize != newSize)
-    {
-        MSurface::imp()->viewportSize = newSize;
-        fullDamage = true;
-        sizeChanged = true;
-    }
-
-    SkISize eglWindowSize { newSize };
-
-    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
-
-    if (sizeChanged)
-    {
-        repaint = true;
-        app->update();
-
-        wp_viewport_set_source(wlViewport(),
-                               wl_fixed_from_int(0),
-                               wl_fixed_from_int(0),
-                               wl_fixed_from_int(newSize.width()),
-                               wl_fixed_from_int(newSize.height()));
-    }
-
-    repaint |= target()->isDirty() || target()->bakedNodesScale() != scale();
+    const SkISize newSize { CalculatedSize(*this) };
+    const bool sizeChanged { MSurface::imp()->resizeBuffer(newSize) };
+    const bool fullDamage { sizeChanged };
+    const bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) || sizeChanged || target()->isDirty() || target()->bakedNodesScale() != scale() || changes().testAnyOf(CHDecorationMargins)};
 
     if (!repaint)
     {
@@ -319,6 +284,7 @@ void MSubsurface::render() noexcept
     auto ssImage { MSurface::imp()->swapchain->acquire() };
     PrepareTarget(*this, ssImage.value(), &outDamage, &outOpaque, &outInvisible, fullDamage);
     scene().render(target());
+    HandleBackgroundBlur(*this);
     AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);

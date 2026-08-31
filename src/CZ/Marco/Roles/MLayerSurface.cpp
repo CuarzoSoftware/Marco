@@ -205,13 +205,9 @@ void MLayerSurface::render() noexcept
 {
     scene().root()->layout().calculate();
 
-    if (wlCallback() && !MSurface::imp()->flags.has(MSurface::Imp::ForceUpdate))
-        return;
+    if (!ShouldUpdate(*this)) return;
 
-    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
-
-    bool repaint { false };
-    bool anchorChanged = false;
+    bool anchorChanged { false };
 
     /* MARGIN CHANGE */
 
@@ -273,38 +269,10 @@ void MLayerSurface::render() noexcept
         anchorChanged = true;
     }
 
-    bool fullDamage {};
-
-    SkISize newSize {
-        SkScalarFloorToInt(layout().calculatedWidth()),
-        SkScalarFloorToInt(layout().calculatedHeight())
-    };
-
-    if (newSize.fWidth < 8) newSize.fWidth = 8;
-    if (newSize.fHeight < 8) newSize.fHeight = 8;
-
-    bool sizeChanged = false;
-
-    if (MSurface::imp()->viewportSize != newSize)
-    {
-        MSurface::imp()->viewportSize = newSize;
-        fullDamage = true;
-        sizeChanged = true;
-    }
-
-    SkISize eglWindowSize { newSize };
-
-    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
-
-    if (sizeChanged)
-    {
-        repaint = true;
-        wp_viewport_set_source(wlViewport(),
-                               wl_fixed_from_int(0),
-                               wl_fixed_from_int(eglWindowSize.height() - newSize.height()),
-                               wl_fixed_from_int(newSize.width()),
-                               wl_fixed_from_int(newSize.height()));
-    }
+    const SkISize newSize { CalculatedSize(*this) };
+    const bool sizeChanged { MSurface::imp()->resizeBuffer(newSize) };
+    const bool fullDamage { sizeChanged };
+    const bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) || sizeChanged || target()->isDirty() || target()->bakedNodesScale() != scale() || changes().testAnyOf(CHDecorationMargins)};
 
     if (sizeChanged || anchorChanged)
     {
@@ -319,8 +287,6 @@ void MLayerSurface::render() noexcept
         zwlr_layer_surface_v1_set_size(imp()->layerSurface, finalW, finalH);
     }
 
-    repaint |= target()->isDirty() || target()->bakedNodesScale() != scale();
-
     if (!repaint)
     {
         wl_surface_commit(wlSurface());
@@ -331,6 +297,7 @@ void MLayerSurface::render() noexcept
     auto ssImage { MSurface::imp()->swapchain->acquire() };
     PrepareTarget(*this, ssImage.value(), &outDamage, &outOpaque, &outInvisible, fullDamage);
     scene().render(target());
+    HandleBackgroundBlur(*this);
     AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);

@@ -519,60 +519,16 @@ void MToplevel::render() noexcept
     if (overflow)
         scene().root()->layout().calculate();
 
-    if (wlCallback() && !MSurface::imp()->flags.has(MSurface::Imp::ForceUpdate))
-        return;
+    if (!ShouldUpdate(*this)) return;
 
-    bool repaint { false };
 
-    MSurface::imp()->flags.remove(MSurface::Imp::ForceUpdate);
-
-    bool fullDamage {};
-
-    SkISize newSize {
-        SkScalarFloorToInt(layout().calculatedWidth() + layout().calculatedMargin(YGEdgeLeft) + layout().calculatedMargin(YGEdgeRight)),
-        SkScalarFloorToInt(layout().calculatedHeight() + layout().calculatedMargin(YGEdgeTop) + layout().calculatedMargin(YGEdgeBottom))
-    };
-
-    if (newSize.fWidth < 128) newSize.fWidth = 128;
-    if (newSize.fHeight < 128) newSize.fHeight = 128;
-
-    bool sizeChanged = false;
-
-    if (MSurface::imp()->viewportSize != newSize)
-    {
-        MSurface::imp()->viewportSize = newSize;
-        fullDamage = true;
-        sizeChanged = true;
-    }
-
-    SkISize eglWindowSize { newSize };
-
-    if (states().has(CZWinResizing))
-    {
-        eglWindowSize = bufferSize();
-        eglWindowSize.fWidth /= scale();
-        eglWindowSize.fHeight /= scale();
-
-        if (eglWindowSize.width() < newSize.width())
-            eglWindowSize.fWidth = newSize.width() * 1.75f;
-
-        if (eglWindowSize.height() < newSize.height())
-            eglWindowSize.fHeight = newSize.height() * 1.75f;
-    }
-
-    sizeChanged |= MSurface::imp()->resizeBuffer(eglWindowSize);
+    const SkISize newSize { CalculatedSize(*this) };
+    bool sizeChanged { MSurface::imp()->resizeBuffer(newSize, states().has(CZWinResizing) ? 512 : 1) };
+    const bool fullDamage { sizeChanged };
+    const bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) || sizeChanged || target()->isDirty() || target()->bakedNodesScale() != scale() || changes().testAnyOf(CHDecorationMargins)};
 
     if (sizeChanged)
     {
-        repaint = true;
-        app->update();
-
-        wp_viewport_set_source(wlViewport(),
-            wl_fixed_from_int(0),
-            wl_fixed_from_int(0),
-            wl_fixed_from_int(newSize.width()),
-            wl_fixed_from_int(newSize.height()));
-
         xdg_surface_set_window_geometry(
             imp()->xdgSurface,
             layout().calculatedMargin(YGEdgeLeft),
@@ -580,8 +536,6 @@ void MToplevel::render() noexcept
             layout().calculatedWidth(),
             layout().calculatedHeight());
     }
-
-    repaint |= target()->isDirty() || target()->bakedNodesScale() != scale();
 
     if (!repaint)
     {
@@ -597,40 +551,7 @@ void MToplevel::render() noexcept
 
     scene().render(target());
 
-    /* Vibrancy */
-    if (MSurface::imp()->backgroundBlur/* && app->wl.svgPathManager*/)
-    {
-        if (vibrancyState() == AKVibrancyState::Enabled && (SkColorGetA(m_color) < 255 || opacity() < 1.f))
-        {
-            std::vector<MVibrancyView*> vibrancyViews;
-            vibrancyViews.reserve(10);
-            FindNodesWithType(this, &vibrancyViews);
-
-            wl_region *region = wl_compositor_create_region(app->wl.compositor);
-
-            for (MVibrancyView *view : vibrancyViews)
-                wl_region_add(region, view->worldRect().x(), view->worldRect().y(), view->worldRect().width(), view->worldRect().height());
-
-            lvr_background_blur_set_region(MSurface::imp()->backgroundBlur, region);
-            wl_region_destroy(region);
-
-            const CZBorderRadius &br { borderRadius() };
-            int x = layout().calculatedMargin(YGEdgeLeft);
-            int y = layout().calculatedMargin(YGEdgeTop);
-            int w = layout().calculatedWidth();
-            int h = layout().calculatedHeight();
-            lvr_background_blur_set_round_rect_mask(MSurface::imp()->backgroundBlur,
-                                                x, y, w, h,
-                                                br.fTL, br.fTR, br.fBR, br.fBL);
-        }
-        else
-        {
-            wl_region *empty = wl_compositor_create_region(app->wl.compositor);
-            lvr_background_blur_set_region(MSurface::imp()->backgroundBlur, empty);
-            wl_region_destroy(empty);
-        }
-    }
-
+    HandleBackgroundBlur(*this);
     AttachInputRegion(*this);
     AttachOpaqueRegion(*this, outOpaque);
     AttachInvisibleRegion(*this, outInvisible);
