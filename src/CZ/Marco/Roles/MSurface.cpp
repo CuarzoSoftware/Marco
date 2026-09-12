@@ -3,10 +3,12 @@
 #include <CZ/Marco/MTheme.h>
 #include <CZ/Marco/Roles/MSubsurface.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
+#include <CZ/Marco/MLog.h>
 #include <CZ/Core/Utils/CZRegionUtils.h>
 #include <CZ/Core/CZSafeEventQueue.h>
 #include <CZ/Ream/RSurface.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
+#include <CZ/Ream/RImage.h>
 #include <CZ/AK/AKColors.h>
 #include <CZ/AK/Events/AKVibrancyEvent.h>
 
@@ -472,6 +474,9 @@ void MSurface::PresentImage(MSurface &window, const RSwapchainImage &ssImage, Sk
                                wl_fixed_from_int(0),
                                wl_fixed_from_int(window.surfaceSize().width()),
                                wl_fixed_from_int(window.surfaceSize().height()));
+
+    assert(ssImage.image->size().width() >= window.surfaceSize().width() * window.scale());
+    assert(ssImage.image->size().height() >= window.surfaceSize().height() * window.scale());
 
     window.MSurface::imp()->swapchain->present(ssImage, &outDamage);
 

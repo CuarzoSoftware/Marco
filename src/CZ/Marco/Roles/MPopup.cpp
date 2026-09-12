@@ -263,6 +263,8 @@ void MPopup::onUpdate() noexcept
 void MPopup::render() noexcept
 {
     auto app { MApp::Get() };
+    layout().setMinWidth(std::max(borderRadius().fTL, borderRadius().fBL) + std::max(borderRadius().fTR, borderRadius().fBR));
+    layout().setMinHeight(std::max(borderRadius().fTL, borderRadius().fTR) + std::max(borderRadius().fBL, borderRadius().fBR));
     scene().root()->layout().calculate();
 
     if (!ShouldUpdate(*this)) return;
@@ -272,13 +274,12 @@ void MPopup::render() noexcept
     const bool fullDamage { sizeChanged };
     const bool repaint { !MSurface::imp()->flags.has(MSurface::Imp::HasBufferAttached) || sizeChanged || target()->isDirty() || target()->bakedNodesScale() != scale() || changes().testAnyOf(CHDecorationMargins)};
 
-    if (sizeChanged)
-        xdg_surface_set_window_geometry(
-            imp()->xdgSurface,
-            layout().calculatedMargin(YGEdgeLeft),
-            layout().calculatedMargin(YGEdgeTop),
-            layout().calculatedWidth(),
-            layout().calculatedHeight());
+    xdg_surface_set_window_geometry(
+        imp()->xdgSurface,
+        layout().calculatedMargin(YGEdgeLeft),
+        layout().calculatedMargin(YGEdgeTop),
+        layout().calculatedWidth(),
+        layout().calculatedHeight());
 
     if (!repaint)
     {
