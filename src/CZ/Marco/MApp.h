@@ -93,11 +93,11 @@ public:
 private:
     friend class MSurface;
     friend class MScreen;
-    friend class MWlRegistry;
-    friend class MWlPointer;
-    friend class MWlOutput;
-    friend class MLvrBackgroundBlurManager;
-    friend class MLvrPrivateHandleManager;
+    friend struct MWlRegistry;
+    friend struct MWlPointer;
+    friend struct MWlOutput;
+    friend struct MLvrBackgroundBlurManager;
+    friend struct MLvrPrivateHandleManager;
 
     MApp(const MOptions &options) noexcept : m_options(options) {}
 

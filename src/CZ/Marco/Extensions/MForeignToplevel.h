@@ -62,8 +62,8 @@ public:
 
 private:
     friend class MForeignToplevelManager;
-    friend class MWlrForeignToplevelManager;
-    friend class MWlrForeignToplevelHandle;
+    friend struct MWlrForeignToplevelManager;
+    friend struct MWlrForeignToplevelHandle;
     MForeignToplevel(zwlr_foreign_toplevel_handle_v1 *handle) noexcept :
         m_handle(handle) {}
     ~MForeignToplevel() noexcept;

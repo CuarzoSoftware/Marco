@@ -14,8 +14,8 @@ public:
     CZSignal<MForeignToplevel*> onRemoved;
 private:
     friend class MApp;
-    friend class MWlrForeignToplevelManager;
-    friend class MWlrForeignToplevelHandle;
+    friend struct MWlrForeignToplevelManager;
+    friend struct MWlrForeignToplevelHandle;
     MForeignToplevelManager() noexcept = default;
     void init() noexcept;
     void unit() noexcept;

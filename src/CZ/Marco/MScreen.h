@@ -56,8 +56,8 @@ public:
     CZSignal<MScreen&, CZBitset<Changes>> onPropsChanged;
 private:
     friend class MApp;
-    friend class MWlRegistry;
-    friend class MWlOutput;
+    friend struct MWlRegistry;
+    friend struct MWlOutput;
     MScreen(void *proxy, UInt32 name) noexcept : m_proxy(proxy, name) {}
     ~MScreen() { wl_output_destroy(m_proxy); }
     Props m_current, m_pending;
