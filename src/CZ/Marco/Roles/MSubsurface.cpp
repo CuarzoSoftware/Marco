@@ -229,6 +229,7 @@ void MSubsurface::onUpdate() noexcept
             parent()->update(true);
             wl_surface_attach(wlSurface(), NULL, 0, 0);
             wl_surface_commit(wlSurface());
+            MSurface::imp()->flags.remove(MSurface::Imp::HasBufferAttached); // Rendered again when remapped
             MSurface::imp()->setMapped(false);
         }
     }

@@ -255,7 +255,8 @@ void MToplevel::Imp::unmap() noexcept
 {
     using SF = MSurface::Imp::Flags;
     obj.MSurface::imp()->flags.add(SF::PendingNullCommit);
-    obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure);
+    // The null attach below drops the content: the next map must render (and attach) again.
+    obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure | SF::HasBufferAttached);
     wl_surface_attach(obj.wlSurface(), nullptr, 0, 0);
     wl_surface_commit(obj.wlSurface());
     pendingStates.set(0);

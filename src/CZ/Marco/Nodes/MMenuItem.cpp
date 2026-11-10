@@ -39,6 +39,9 @@ void MMenuItem::pointerButtonEvent(const CZPointerButtonEvent &event)
 
     auto *view { menuView() };
 
+    if (view && view->activating())
+        return;
+
     // Dim the selection outline while the item is held.
     if (view)
         view->setOutlinePressed(event.pressed);
@@ -46,10 +49,13 @@ void MMenuItem::pointerButtonEvent(const CZPointerButtonEvent &event)
     if (event.pressed)
         return;
 
+    // Blinks, then runs onClicked and notifies onItemActivated (see MMenuView::activate()).
+    if (view)
+    {
+        view->activate(this);
+        return;
+    }
+
     if (onClicked)
         onClicked();
-
-    // The callback may have destroyed the view (e.g. by closing the menu).
-    if ((view = menuView()))
-        view->onItemActivated.notify(this);
 }

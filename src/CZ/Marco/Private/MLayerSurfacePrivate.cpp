@@ -69,7 +69,8 @@ void MLayerSurface::Imp::reset() noexcept
         wl_surface_commit(obj.wlSurface());
         using SF = MSurface::Imp::Flags;
         obj.MSurface::imp()->flags.add(SF::PendingNullCommit);
-        obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure);
+        // The null attach above dropped the content: the next map must render (and attach) again.
+        obj.MSurface::imp()->flags.remove(SF::PendingConfigureAck | SF::PendingFirstConfigure | SF::HasBufferAttached);
     }
 }
 

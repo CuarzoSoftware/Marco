@@ -29,6 +29,17 @@ public:
     void setCheckGutter(bool enabled) noexcept;
     bool checkGutter() const noexcept { return m_checkGutter; }
 
+    /**
+     * @brief Activates @p item like a click: its highlight blinks a few times (like macOS), then
+     *        its onClicked runs and onItemActivated is emitted.
+     *
+     * Hovering other items does nothing meanwhile. Safe if the menu goes away during the blink.
+     */
+    void activate(MMenuItem *item) noexcept;
+
+    /// Whether an item is blinking before being activated (see activate()).
+    bool activating() const noexcept { return m_activating; }
+
     /// Emitted after an item is activated (clicked).
     CZSignal<MMenuItem*> onItemActivated;
 
@@ -42,6 +53,7 @@ private:
     void itemsChanged() noexcept;
     CZWeak<MMenuItem> m_activeItem;
     bool m_checkGutter { false };
+    bool m_activating { false };
 };
 
 #endif // MMENUVIEW_H
