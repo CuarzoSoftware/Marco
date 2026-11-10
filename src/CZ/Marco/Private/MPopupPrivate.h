@@ -35,6 +35,14 @@ public:
     static void xdg_popup_done(void *data, xdg_popup *xdgPopup);
     static void xdg_popup_repositioned(void *data, xdg_popup *xdgPopup, UInt32 token);
 
+    // Size sent in the last positioner. When the popup's size changes while mapped it must be
+    // repositioned (xdg_popup.reposition), otherwise the compositor keeps its old top-left corner
+    // and e.g. a popup above its anchor grows downwards over it.
+    SkISize positionerSize { 0, 0 };
+    UInt32 repositionToken { 0 };
+    bool pendingReposition { false };
+
+    SkISize calculatePositionerSize() noexcept;
     xdg_positioner *createPositioner() noexcept;
     void create() noexcept;
     void destroy() noexcept;

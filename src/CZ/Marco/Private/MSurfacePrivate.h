@@ -10,6 +10,8 @@
 #include <CZ/Core/CZBorderRadius.h>
 #include <memory>
 #include <optional>
+#include <string>
+#include <CZ/skia/core/SkPath.h>
 
 class CZ::MSurface::Imp
 {
@@ -71,6 +73,11 @@ public:
 
     // Custom Wayland input region (surface-local), see MSurface::setCustomInputRegion().
     std::optional<SkRegion> customInputRegion;
+
+    // Blur mask path (central-node-local), see MSurface::setBlurMaskPath(), and the SVG commands
+    // last sent for it (surface-local), to only resend it when it changes.
+    std::optional<SkPath> blurMaskPath;
+    std::string sentBlurMaskSVG;
 
     // Current wl_surface scale factor
     Int32 scale { 1 };

@@ -9,6 +9,7 @@
 #include <CZ/AK/Nodes/AKContainer.h>
 #include <CZ/AK/Nodes/AKSolidColor.h>
 #include <CZ/AK/AKScene.h>
+#include <CZ/skia/core/SkPath.h>
 #include <CZ/Marco/Marco.h>
 #include <CZ/Ream/RSwapchain.h>
 #include <wayland-client.h>
@@ -135,6 +136,19 @@ public:
 
     /** @brief The custom input region, or `nullptr` if the default one is used. */
     const SkRegion *customInputRegion() const noexcept;
+
+    /**
+     * @brief Masks the background blur with a path, in central-node-local logical coordinates.
+     *
+     * By default the blur is masked by the central node's rounded rect (see borderRadius()). With a
+     * path set, the mask is sent as an SVG path when the compositor supports it
+     * (MApp::SVGPathCap), falling back to the rounded rect otherwise. Pass `nullptr` to restore
+     * the default.
+     */
+    void setBlurMaskPath(const SkPath *path) noexcept;
+
+    /** @brief The blur mask path, or `nullptr` if the default rounded rect is used. */
+    const SkPath *blurMaskPath() const noexcept;
 
     wl_surface *wlSurface() const noexcept;
     wl_callback *wlCallback() const noexcept;

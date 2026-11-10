@@ -15,12 +15,17 @@ namespace CZ
     class MSubsurface;
 
     class MMenu;
+    class MTooltip;
 
     class MTheme;
     class MDecorations;
     class MShadowDecorations;
     class MRootSurfaceNode;
     class MVibrancyView;
+    class MMenuView;
+    class MMenuItem;
+    class MMenuAction;
+    class MMenuDivider;
 
     /* Input */
     class MPointer;

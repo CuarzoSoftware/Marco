@@ -10,6 +10,7 @@ using namespace CZ;
 MPopup::Imp::Imp(MPopup &obj) noexcept : obj(obj)
 {
     obj.MSurface::imp()->flags.add(MSurface::Imp::PendingNullCommit);
+    pendingReposition = false;
     xdgSurfaceListener.configure = &xdg_surface_configure;
     xdgPopupListener.configure = &xdg_popup_configure;
     xdgPopupListener.popup_done = &xdg_popup_done;
@@ -29,7 +30,8 @@ void MPopup::Imp::xdg_surface_configure(void *data, xdg_surface */*xdgSurface*/,
     role->MSurface::imp()->flags.add(MSurface::Imp::PendingConfigureAck);
     role->imp()->configureSerial = serial;
 
-    const bool update { role->MSurface::imp()->flags.has(MSurface::Imp::PendingFirstConfigure) };
+    const bool update { role->MSurface::imp()->flags.has(MSurface::Imp::PendingFirstConfigure) || role->imp()->pendingReposition };
+    role->imp()->pendingReposition = false;
     const bool notifyAssignedRect { role->imp()->pendingAssignedRect != role->imp()->currentAssignedRect };
     role->MSurface::imp()->flags.remove(MSurface::Imp::PendingFirstConfigure);
 
@@ -64,15 +66,15 @@ void MPopup::Imp::xdg_popup_done(void *data, xdg_popup */*xdgPopup*/)
 
 void MPopup::Imp::xdg_popup_repositioned(void */*data*/, xdg_popup */*xdgPopup*/, UInt32 /*token*/) {}
 
-xdg_positioner *MPopup::Imp::createPositioner() noexcept
+SkISize MPopup::Imp::calculatePositionerSize() noexcept
 {
-    assert(parent);
-
-    xdg_positioner *positioner { xdg_wm_base_create_positioner(MApp::Get()->wl.xdgWmBase) };
-
     obj.layout().setPosition(YGEdgeLeft, 0.f);
     obj.layout().setPosition(YGEdgeTop, 0.f);
     obj.layout().setMargin(YGEdgeAll, 0.f);
+    // Same constraints MPopup::render() applies, so both agree on the size.
+    const auto &r { obj.borderRadius() };
+    obj.layout().setMinWidth(std::max(r.fTL, r.fBL) + std::max(r.fTR, r.fBR));
+    obj.layout().setMinHeight(std::max(r.fTL, r.fTR) + std::max(r.fBL, r.fBR));
     obj.scene().root()->layout().calculate();
 
     SkISize size {
@@ -82,7 +84,17 @@ xdg_positioner *MPopup::Imp::createPositioner() noexcept
 
     if (size.fWidth < 8) size.fWidth = 8;
     if (size.fHeight < 8) size.fHeight = 8;
+    return size;
+}
 
+xdg_positioner *MPopup::Imp::createPositioner() noexcept
+{
+    assert(parent);
+
+    xdg_positioner *positioner { xdg_wm_base_create_positioner(MApp::Get()->wl.xdgWmBase) };
+
+    const SkISize size { calculatePositionerSize() };
+    positionerSize = size;
     xdg_positioner_set_size(positioner, size.width(), size.height());
 
     // A degenerate rect (any negative component) means "anchor to the whole parent surface".

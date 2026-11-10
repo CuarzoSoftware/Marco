@@ -12,6 +12,9 @@
 #include <CZ/AK/AKColors.h>
 #include <CZ/AK/Events/AKVibrancyEvent.h>
 
+#include <CZ/Marco/Protocols/LvrSvgPath/lvr-svg-path-client.h>
+#include <CZ/skia/utils/SkParsePath.h>
+
 using namespace CZ;
 
 MSurface::MSurface(Role role) noexcept : CZ::AKSolidColor(SK_ColorWHITE)
@@ -379,14 +382,42 @@ void MSurface::HandleBackgroundBlur(MSurface &window) noexcept
             lvr_background_blur_set_region(window.MSurface::imp()->backgroundBlur, region);
             wl_region_destroy(region);
 
+            auto &imp { *window.MSurface::imp() };
             const CZBorderRadius &br { window.borderRadius() };
             int x = window.layout().calculatedMargin(YGEdgeLeft);
             int y = window.layout().calculatedMargin(YGEdgeTop);
             int w = window.layout().calculatedWidth();
             int h = window.layout().calculatedHeight();
-            lvr_background_blur_set_round_rect_mask(window.MSurface::imp()->backgroundBlur,
-                                                    x, y, w, h,
-                                                    br.fTL, br.fTR, br.fBR, br.fBL);
+
+            if (imp.blurMaskPath && app->maskingCapabilities().has(MApp::SVGPathCap) && app->wl.svgPathManager)
+            {
+                // The path is central-node-local, the mask surface-local.
+                SkPath path;
+                imp.blurMaskPath->offset(x, y, &path);
+                const SkString svg { SkParsePath::ToSVGString(path) };
+
+                if (imp.sentBlurMaskSVG != svg.c_str())
+                {
+                    imp.sentBlurMaskSVG = svg.c_str();
+                    auto *svgPath { lvr_svg_path_manager_get_svg_path(app->wl.svgPathManager) };
+
+                    // Keep each request well below the Wayland message size limit.
+                    constexpr size_t chunk { 1024 };
+                    for (size_t i = 0; i < imp.sentBlurMaskSVG.size(); i += chunk)
+                        lvr_svg_path_concat_commands(svgPath, imp.sentBlurMaskSVG.substr(i, chunk).c_str());
+
+                    lvr_svg_path_done(svgPath);
+                    lvr_background_blur_set_svg_path_mask(imp.backgroundBlur, svgPath);
+                    lvr_svg_path_destroy(svgPath); // The mask has copy semantics
+                }
+            }
+            else
+            {
+                imp.sentBlurMaskSVG.clear();
+                lvr_background_blur_set_round_rect_mask(imp.backgroundBlur,
+                                                        x, y, w, h,
+                                                        br.fTL, br.fTR, br.fBR, br.fBL);
+            }
         }
         else
         {
@@ -439,6 +470,27 @@ void MSurface::setCustomInputRegion(const SkRegion *region) noexcept
         imp()->customInputRegion.reset();
 
     update();
+}
+
+void MSurface::setBlurMaskPath(const SkPath *path) noexcept
+{
+    if (!path && !imp()->blurMaskPath)
+        return;
+
+    if (path && imp()->blurMaskPath && *path == *imp()->blurMaskPath)
+        return;
+
+    if (path)
+        imp()->blurMaskPath = *path;
+    else
+        imp()->blurMaskPath.reset();
+
+    update();
+}
+
+const SkPath *MSurface::blurMaskPath() const noexcept
+{
+    return imp()->blurMaskPath ? &*imp()->blurMaskPath : nullptr;
 }
 
 const SkRegion *MSurface::customInputRegion() const noexcept

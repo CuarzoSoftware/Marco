@@ -162,6 +162,7 @@ void MSurface::Imp::createSurface() noexcept
     if (backgroundBlur)
     {
         lvr_background_blur_destroy(backgroundBlur);
+        sentBlurMaskSVG.clear();
         backgroundBlur = nullptr;
     }
 
@@ -187,6 +188,7 @@ void MSurface::Imp::createSurface() noexcept
     if (app->wl.backgroundBlurManager)
     {
         backgroundBlur = lvr_background_blur_manager_get_background_blur(app->wl.backgroundBlurManager, wlSurface);
+        sentBlurMaskSVG.clear();
         lvr_background_blur_add_listener(backgroundBlur, &backgroundBlurListener, &obj);
         sentBlurScheme = CZColorScheme::Unknown; // fresh object: its scheme is unknown again
 

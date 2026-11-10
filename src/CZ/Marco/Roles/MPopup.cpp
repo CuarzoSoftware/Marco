@@ -249,6 +249,19 @@ void MPopup::onUpdate() noexcept
         return;
     }
 
+    // Resized while mapped: ask to be positioned again and present the new size only once the
+    // compositor assigns the new position (so it never shows at the old one).
+    if (MApp::Get()->wl.xdgWmBase.version() >= 3 && imp()->calculatePositionerSize() != imp()->positionerSize)
+    {
+        xdg_positioner *positioner { imp()->createPositioner() };
+        xdg_popup_reposition(imp()->xdgPopup, positioner, ++imp()->repositionToken);
+        xdg_positioner_destroy(positioner);
+        imp()->pendingReposition = true;
+    }
+
+    if (imp()->pendingReposition)
+        return;
+
     MSurface::imp()->setMapped(true);
 
     if (tmpFlags.has(STF::ScaleChanged))
