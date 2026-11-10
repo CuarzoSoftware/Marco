@@ -1,6 +1,7 @@
 #include <CZ/Marco/MLog.h>
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
+#include <CZ/Marco/Private/MPopupPrivate.h>
 #include <CZ/Marco/Nodes/MVibrancyView.h>
 #include <CZ/Marco/Nodes/MShadowDecorations.h>
 #include <CZ/Marco/Roles/MPopup.h>
@@ -70,8 +71,13 @@ MToplevel::MToplevel() noexcept : MSurface(Role::Toplevel)
 
 MToplevel::~MToplevel() noexcept
 {
+    // Child popups must be destroyed before their parent's role.
     while (!imp()->childPopups.empty())
-        (*imp()->childPopups.begin())->setParent(nullptr);
+    {
+        MPopup *child { *imp()->childPopups.begin() };
+        child->imp()->destroy();
+        child->setParent(nullptr);
+    }
 
     setParentToplevel(nullptr);
 

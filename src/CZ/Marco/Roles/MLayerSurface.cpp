@@ -1,5 +1,6 @@
 #include <CZ/Marco/Private/MLayerSurfacePrivate.h>
 #include <CZ/Marco/Private/MSurfacePrivate.h>
+#include <CZ/Marco/Private/MPopupPrivate.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/MLog.h>
 #include <CZ/AK/AKLog.h>
@@ -16,6 +17,15 @@ MLayerSurface::MLayerSurface() noexcept :
 
 MLayerSurface::~MLayerSurface() noexcept
 {
+    // Child popups must be destroyed before their parent's role (e.g. when the layer surface is
+    // deleted because its screen was unplugged while a popup was open).
+    while (!imp()->childPopups.empty())
+    {
+        MPopup *child { *imp()->childPopups.begin() };
+        child->imp()->destroy();
+        child->setParent(nullptr);
+    }
+
     if (imp()->layerSurface)
     {
         zwlr_layer_surface_v1_destroy(imp()->layerSurface);

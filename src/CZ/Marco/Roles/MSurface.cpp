@@ -89,6 +89,15 @@ MSurface::~MSurface()
     }
 
     notifyDestruction();
+
+    // This node and the scene's AKTarget are destroyed in the wrong order otherwise: m_imp (which
+    // owns the scene, its target and rootNode) dies before the AKNode base, whose destructor then
+    // detaches the remaining children and itself, damaging the already freed target. Detach them
+    // while the target is still alive.
+    while (!children().empty())
+        children().back()->setParent(nullptr);
+
+    setParent(nullptr);
 }
 
 MSurface::Role MSurface::role() noexcept
