@@ -271,7 +271,7 @@ void MLayerSurface::render() noexcept
 
     if (imp()->pendingKeyboardInteractivity != imp()->currentKeyboardInteractivity)
     {
-        imp()->currentKeyboardInteractivity = imp()->currentKeyboardInteractivity;
+        imp()->currentKeyboardInteractivity = imp()->pendingKeyboardInteractivity;
         zwlr_layer_surface_v1_set_keyboard_interactivity(imp()->layerSurface, keyboardInteractivity());
     }
 

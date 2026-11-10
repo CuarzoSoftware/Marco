@@ -55,7 +55,8 @@ public:
         SubSurface,
         Toplevel,
         Popup,
-        LayerSurface
+        LayerSurface,
+        DNDIcon
     };
 
     // Continues the change ids of the base classes so they never overlap.
@@ -165,6 +166,20 @@ public:
     CZSignal<MScreen&> onEnteredScreen;
     CZSignal<MScreen&> onLeftScreen;
     CZSignal<UInt32> onCallbackDone;
+
+    /**
+     * @name Drag & drop target
+     *
+     * Emitted while a drag & drop session (from any client, see MDND) is over this surface.
+     * Positions are surface-local (decoration margins included, like worldRect()). The offer is
+     * only valid until onDNDLeave / onDNDDrop return; no leave follows a drop.
+     */
+    ///@{
+    CZSignal<MDNDOffer&, const SkPoint&> onDNDEnter;
+    CZSignal<MDNDOffer&, const SkPoint&> onDNDMotion;
+    CZSignal<MDNDOffer&> onDNDLeave;
+    CZSignal<MDNDOffer&, const SkPoint&> onDNDDrop;
+    ///@}
     class Imp;
     Imp *imp() const noexcept;
 protected:

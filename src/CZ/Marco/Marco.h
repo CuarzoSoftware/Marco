@@ -16,6 +16,9 @@ namespace CZ
 
     class MMenu;
     class MTooltip;
+    class MDND;
+    class MDNDOffer;
+    struct MWlDataDevice;
 
     class MTheme;
     class MDecorations;

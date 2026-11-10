@@ -51,6 +51,10 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
         wl_output_add_listener(output, &MWlOutput::Listener, screen);
         MApp::Get()->m_pendingScreens.push_back(screen);
     }
+    else if (!wl.dataDeviceManager && strcmp(interface, wl_data_device_manager_interface.name) == 0)
+    {
+        wl.dataDeviceManager.set(wl_registry_bind(registry, name, &wl_data_device_manager_interface, std::min(version, 3u)), name);
+    }
     else if (!wl.seat && strcmp(interface, wl_seat_interface.name) == 0)
     {
         wl.seat.set(wl_registry_bind(registry, name, &wl_seat_interface, std::min(version, 9u)), name);

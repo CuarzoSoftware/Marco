@@ -1,3 +1,4 @@
+#include <CZ/Marco/Protocols/Wayland/MWlDataDevice.h>
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
 #include <CZ/Marco/Protocols/Wayland/MWlPointer.h>
 #include <CZ/Marco/MApp.h>
@@ -164,6 +165,13 @@ bool MApp::init() noexcept
     }
 
     wl.cursorShapePointer.set(wp_cursor_shape_manager_v1_get_pointer(wl.cursorShapeManager, wl.pointer));
+
+    // Drag & drop (optional)
+    if (wl.dataDeviceManager && wl.seat)
+    {
+        wl.dataDevice.set(wl_data_device_manager_get_data_device(wl.dataDeviceManager, wl.seat));
+        wl_data_device_add_listener(wl.dataDevice, &MWlDataDevice::Listener, nullptr);
+    }
 
     if (!wl.xdgWmBase)
     {

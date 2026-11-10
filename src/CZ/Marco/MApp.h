@@ -33,6 +33,8 @@ public:
         MProxy<xdg_wm_base> xdgWmBase;
         MProxy<zxdg_decoration_manager_v1> xdgDecorationManager;
         MProxy<wl_seat> seat;
+        MProxy<wl_data_device_manager> dataDeviceManager;
+        MProxy<wl_data_device> dataDevice;
         MProxy<wl_pointer> pointer;
         MProxy<wl_keyboard> keyboard;
         MProxy<wp_viewporter> viewporter;
