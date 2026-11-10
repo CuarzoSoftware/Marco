@@ -204,11 +204,16 @@ MLayerSurface::Imp *MLayerSurface::imp() const noexcept
 
 void MLayerSurface::suggestedSizeChanged()
 {
+    // The configured size is the whole surface, which includes the decoration margins around the
+    // central node (unlike xdg toplevels, whose configure excludes them via the window geometry).
+    // Applying it as-is would grow the surface by the margins on every configure.
     if (suggestedSize().width() != 0)
-        layout().setWidth(suggestedSize().width());
+        layout().setWidth(std::max(1.f, suggestedSize().width()
+            - layout().calculatedMargin(YGEdgeLeft) - layout().calculatedMargin(YGEdgeRight)));
 
     if (suggestedSize().height() != 0)
-        layout().setHeight(suggestedSize().height());
+        layout().setHeight(std::max(1.f, suggestedSize().height()
+            - layout().calculatedMargin(YGEdgeTop) - layout().calculatedMargin(YGEdgeBottom)));
 }
 
 void MLayerSurface::render() noexcept

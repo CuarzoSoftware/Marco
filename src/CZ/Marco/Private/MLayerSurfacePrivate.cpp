@@ -95,8 +95,9 @@ void MLayerSurface::Imp::createRole() noexcept
 
     obj.scene().root()->layout().calculate();
 
-    const Int32 w = obj.layout().calculatedWidth();
-    const Int32 h = obj.layout().calculatedHeight();
+    // Whole surface size: the central node plus the decoration margins (see MSurface::CalculatedSize).
+    const Int32 w = obj.layout().calculatedWidth() + obj.layout().calculatedMargin(YGEdgeLeft) + obj.layout().calculatedMargin(YGEdgeRight);
+    const Int32 h = obj.layout().calculatedHeight() + obj.layout().calculatedMargin(YGEdgeTop) + obj.layout().calculatedMargin(YGEdgeBottom);
 
     const Int32 finalW = requestAvailableWidth && pendingAnchor.hasAll(CZEdgeLeft | CZEdgeRight) ? 0 : (w != 0 ? w : 8);
     const Int32 finalH = requestAvailableHeight && pendingAnchor.hasAll(CZEdgeTop | CZEdgeBottom) ? 0 : (h != 0 ? h : 8);

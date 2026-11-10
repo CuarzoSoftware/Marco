@@ -124,6 +124,18 @@ public:
     /** @brief Whether decorations are currently enabled (independent of whether one is set). */
     bool decorationsEnabled() const noexcept;
 
+    /**
+     * @brief Overrides the Wayland input region, in surface-local logical coordinates.
+     *
+     * By default the input region is the central node's rect (outset a few units for resize zones).
+     * Pass `nullptr` to restore the default. The region may extend past the central node (e.g. into
+     * decoration margins) but is clipped by the compositor to the surface bounds.
+     */
+    void setCustomInputRegion(const SkRegion *region) noexcept;
+
+    /** @brief The custom input region, or `nullptr` if the default one is used. */
+    const SkRegion *customInputRegion() const noexcept;
+
     wl_surface *wlSurface() const noexcept;
     wl_callback *wlCallback() const noexcept;
     wp_viewport *wlViewport() const noexcept;

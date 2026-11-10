@@ -368,7 +368,13 @@ void MSurface::HandleBackgroundBlur(MSurface &window) noexcept
             wl_region *region = wl_compositor_create_region(app->wl.compositor);
 
             for (MVibrancyView *view : vibrancyViews)
+            {
+                // Hidden or fully transparent views don't request blur.
+                if (!view->visible() || view->opacity() <= 0.f)
+                    continue;
+
                 wl_region_add(region, view->worldRect().x(), view->worldRect().y(), view->worldRect().width(), view->worldRect().height());
+            }
 
             lvr_background_blur_set_region(window.MSurface::imp()->backgroundBlur, region);
             wl_region_destroy(region);
@@ -419,8 +425,41 @@ void MSurface::PrepareTarget(MSurface &window, const RSwapchainImage &ssImage, S
         window.target()->outInvisible = nullptr;
 }
 
+void MSurface::setCustomInputRegion(const SkRegion *region) noexcept
+{
+    if (!region && !imp()->customInputRegion)
+        return;
+
+    if (region && imp()->customInputRegion && *region == *imp()->customInputRegion)
+        return;
+
+    if (region)
+        imp()->customInputRegion = *region;
+    else
+        imp()->customInputRegion.reset();
+
+    update();
+}
+
+const SkRegion *MSurface::customInputRegion() const noexcept
+{
+    return imp()->customInputRegion ? &*imp()->customInputRegion : nullptr;
+}
+
 void MSurface::AttachInputRegion(MSurface &window) noexcept
 {
+    if (const auto &custom { window.imp()->customInputRegion })
+    {
+        auto *region { wl_compositor_create_region(MApp::Get()->wl.compositor) };
+
+        for (SkRegion::Iterator it(*custom); !it.done(); it.next())
+            wl_region_add(region, it.rect().x(), it.rect().y(), it.rect().width(), it.rect().height());
+
+        wl_surface_set_input_region(window.wlSurface(), region);
+        wl_region_destroy(region);
+        return;
+    }
+
     // This input region is set to prevent decorations to be considered
     // part of the window when clicked by the compositor.
     // An outset of 6 is added for toplevel resize zones

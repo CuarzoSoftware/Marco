@@ -9,6 +9,7 @@
 #include <CZ/AK/Nodes/AKImage.h>
 #include <CZ/Core/CZBorderRadius.h>
 #include <memory>
+#include <optional>
 
 class CZ::MSurface::Imp
 {
@@ -67,6 +68,9 @@ public:
     // round the content without carving the shadow. Order in root: [central node][masks][decorations].
     CZBorderRadius borderRadius {};
     AKImage cornerRadius[4]; // TL, TR, BR, BL
+
+    // Custom Wayland input region (surface-local), see MSurface::setCustomInputRegion().
+    std::optional<SkRegion> customInputRegion;
 
     // Current wl_surface scale factor
     Int32 scale { 1 };
