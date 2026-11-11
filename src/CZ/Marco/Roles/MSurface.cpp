@@ -29,6 +29,9 @@ MSurface::MSurface(Role role) noexcept : CZ::AKSolidColor(SK_ColorWHITE)
 
     imp()->appLink = app->m_surfaces.size();
     app->m_surfaces.push_back(this);
+
+    // The app's color scheme: the surface (and every node added to it) adopts it from the root.
+    rootNode()->setColorScheme(app->colorScheme());
     setParent(rootNode());
     enableChildrenClipping(true);
 

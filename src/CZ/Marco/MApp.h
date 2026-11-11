@@ -6,6 +6,10 @@
 #include <CZ/AK/AKApp.h>
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 #include <CZ/Marco/Extensions/MForeignToplevelManager.h>
+#include <CZ/Core/CZColorScheme.h>
+#include <CZ/Core/CZBus.h>
+
+struct sd_bus_slot;
 
 namespace CZ
 {
@@ -80,6 +84,20 @@ public:
 
     const std::string &privateHandle() const noexcept { return m_privateHandle; }
 
+    /**
+     * @brief The system color scheme, applied to every surface (and its nodes).
+     *
+     * Follows the desktop's preference (the XDG desktop portal's `org.freedesktop.appearance`
+     * `color-scheme` setting, e.g. GNOME's `org.gnome.desktop.interface color-scheme`), Light if
+     * unavailable. Changes are applied live and notified through onColorSchemeChanged.
+     */
+    CZColorScheme colorScheme() const noexcept { return m_colorScheme; }
+
+    /// Applies @p scheme to every surface (overridden by the desktop's preference when it changes).
+    void setColorScheme(CZColorScheme scheme) noexcept;
+
+    CZSignal<CZColorScheme> onColorSchemeChanged;
+
 
     Wayland wl {};
 
@@ -102,6 +120,13 @@ private:
     friend struct MLvrPrivateHandleManager;
 
     MApp(const MOptions &options) noexcept : m_options(options) {}
+public:
+    ~MApp() noexcept;
+private:
+    void initColorScheme() noexcept;
+    CZColorScheme m_colorScheme { CZColorScheme::Light };
+    std::shared_ptr<CZBus> m_userBus;
+    sd_bus_slot *m_colorSchemeSlot {};
 
     bool init() noexcept;
     void updateSurfaces();
