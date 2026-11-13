@@ -47,6 +47,9 @@ public:
         MProxy<lvr_svg_path_manager> svgPathManager;
         MProxy<lvr_invisible_region_manager> invisibleRegionManager;
         MProxy<lvr_private_handle_manager> privateHandleManager;
+        MProxy<ext_image_copy_capture_manager_v1> imageCopyCaptureManager;
+        MProxy<ext_foreign_toplevel_list_v1> foreignToplevelList;
+        MProxy<ext_foreign_toplevel_image_capture_source_manager_v1> toplevelCaptureSourceManager;
         MProxy<wp_cursor_shape_manager_v1> cursorShapeManager;
         MProxy<wp_cursor_shape_device_v1> cursorShapePointer;
     };

@@ -338,6 +338,23 @@ struct zwlr_foreign_toplevel_handle_v1_listener {
 	void (*parent)(void *data,
 		       struct zwlr_foreign_toplevel_handle_v1 *zwlr_foreign_toplevel_handle_v1,
 		       struct zwlr_foreign_toplevel_handle_v1 *parent);
+	/**
+	 * ext-foreign-toplevel-list identifier
+	 *
+	 * The identifier of this toplevel in the
+	 * ext-foreign-toplevel-list protocol
+	 * (ext_foreign_toplevel_handle_v1.identifier), so clients can find
+	 * its ext_foreign_toplevel_handle_v1, e.g. to create an image
+	 * capture source for it (ext-image-capture-source).
+	 *
+	 * Sent when the handle is created and whenever it changes (a new
+	 * identifier is assigned each time the toplevel is mapped),
+	 * followed by a done event.
+	 * @since 4
+	 */
+	void (*identifier)(void *data,
+			   struct zwlr_foreign_toplevel_handle_v1 *zwlr_foreign_toplevel_handle_v1,
+			   const char *identifier);
 };
 
 /**
@@ -394,6 +411,10 @@ zwlr_foreign_toplevel_handle_v1_add_listener(struct zwlr_foreign_toplevel_handle
  * @ingroup iface_zwlr_foreign_toplevel_handle_v1
  */
 #define ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_PARENT_SINCE_VERSION 3
+/**
+ * @ingroup iface_zwlr_foreign_toplevel_handle_v1
+ */
+#define ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_IDENTIFIER_SINCE_VERSION 4
 
 /**
  * @ingroup iface_zwlr_foreign_toplevel_handle_v1

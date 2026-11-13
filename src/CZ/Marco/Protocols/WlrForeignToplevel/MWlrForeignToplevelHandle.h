@@ -16,6 +16,7 @@ struct MWlrForeignToplevelHandle
     static void done(void *data, zwlr_foreign_toplevel_handle_v1 *handle);
     static void closed(void *data, zwlr_foreign_toplevel_handle_v1 *handle);
     static void parent(void *data, zwlr_foreign_toplevel_handle_v1 *handle, zwlr_foreign_toplevel_handle_v1 *parent);
+    static void identifier(void *data, zwlr_foreign_toplevel_handle_v1 *handle, const char *identifier);
 
     static constexpr zwlr_foreign_toplevel_handle_v1_listener Listener
     {
@@ -26,7 +27,8 @@ struct MWlrForeignToplevelHandle
         .state = state,
         .done = done,
         .closed = closed,
-        .parent = parent
+        .parent = parent,
+        .identifier = identifier
     };
 };
 }

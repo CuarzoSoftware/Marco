@@ -11,6 +11,7 @@
 
 #include <CZ/Marco/Protocols/Wayland/MWlRegistry.h>
 #include <CZ/Marco/MLog.h>
+#include <CZ/Marco/Private/MFreezeWatchdog.h>
 
 #include <CZ/Core/CZCore.h>
 #include <CZ/Core/Events/CZColorSchemeEvent.h>
@@ -73,9 +74,11 @@ int MApp::dispatch(int timeoutMs) noexcept
 
     if (ret == 1)
     {
+        MFreezeWatchdog::Busy();
         m_core->dispatch(0);
         updateSurfaces();
         MWlPointer::SetCursorFromFocus();
+        MFreezeWatchdog::Idle();
     }
 
     return ret;
@@ -88,6 +91,7 @@ void MApp::update() noexcept
 
 bool MApp::init() noexcept
 {
+    MFreezeWatchdog::Init();
     m_core = CZCore::GetOrMake();
 
     if (!m_core)

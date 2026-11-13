@@ -61,6 +61,9 @@ struct lvr_background_blur_manager;
 struct lvr_svg_path_manager;
 struct lvr_invisible_region_manager;
 struct lvr_private_handle_manager;
+struct ext_image_copy_capture_manager_v1;
+struct ext_foreign_toplevel_list_v1;
+struct ext_foreign_toplevel_image_capture_source_manager_v1;
 struct wp_cursor_shape_manager_v1;
 struct wp_cursor_shape_device_v1;
 

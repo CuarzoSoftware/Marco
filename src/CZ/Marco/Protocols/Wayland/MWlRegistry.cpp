@@ -11,6 +11,11 @@
 #include <CZ/Marco/Protocols/LvrSvgPath/lvr-svg-path-client.h>
 #include <CZ/Marco/Protocols/WlrLayerShell/wlr-layer-shell-unstable-v1-client.h>
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
+#include <CZ/Marco/Protocols/ImageCapture/ext-image-capture-source-v1-client.h>
+#include <CZ/Marco/Protocols/ImageCapture/ext-foreign-toplevel-list-v1-client.h>
+#include <CZ/Marco/Extensions/MForeignToplevel.h>
+#include <algorithm>
+#include <CZ/Marco/Protocols/ImageCapture/ext-image-copy-capture-v1-client.h>
 #include <CZ/Marco/Protocols/WlrForeignToplevel/MWlrForeignToplevelManager.h>
 #include <CZ/Marco/MApp.h>
 
@@ -85,13 +90,29 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     {
         wl.invisibleRegionManager.set(wl_registry_bind(registry, name, &lvr_invisible_region_manager_interface, version), name);
     }
+    else if (app->m_options.extensions.has(MForeignToplevelManagerExt) && !wl.toplevelCaptureSourceManager &&
+             strcmp(interface, ext_foreign_toplevel_image_capture_source_manager_v1_interface.name) == 0)
+    {
+        wl.toplevelCaptureSourceManager.set(wl_registry_bind(registry, name, &ext_foreign_toplevel_image_capture_source_manager_v1_interface, 1), name);
+    }
+    else if (app->m_options.extensions.has(MForeignToplevelManagerExt) && !wl.foreignToplevelList &&
+             strcmp(interface, ext_foreign_toplevel_list_v1_interface.name) == 0)
+    {
+        // Their identifiers match the wlr handles' (v4 identifier event): used to capture them
+        wl.foreignToplevelList.set(wl_registry_bind(registry, name, &ext_foreign_toplevel_list_v1_interface, 1), name);
+        MForeignToplevel::ToplevelListBound(wl.foreignToplevelList);
+    }
+    else if (!wl.imageCopyCaptureManager && strcmp(interface, ext_image_copy_capture_manager_v1_interface.name) == 0)
+    {
+        wl.imageCopyCaptureManager.set(wl_registry_bind(registry, name, &ext_image_copy_capture_manager_v1_interface, 1), name);
+    }
     else if (!wl.cursorShapeManager && strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0)
     {
         wl.cursorShapeManager.set(wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, version), name);
     }
     else if (app->m_options.extensions.has(MForeignToplevelManagerExt) && !wl.foreignToplevelManager && strcmp(interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0)
     {
-        wl.foreignToplevelManager.set(wl_registry_bind(registry, name, &zwlr_foreign_toplevel_manager_v1_interface, version), name);
+        wl.foreignToplevelManager.set(wl_registry_bind(registry, name, &zwlr_foreign_toplevel_manager_v1_interface, std::min<UInt32>(version, 4)), name);
         zwlr_foreign_toplevel_manager_v1_add_listener(wl.foreignToplevelManager, &MWlrForeignToplevelManager::Listener, nullptr);
         MWlrForeignToplevelManager::bound();
     }

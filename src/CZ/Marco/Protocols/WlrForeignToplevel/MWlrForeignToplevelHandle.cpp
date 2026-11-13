@@ -85,6 +85,14 @@ void MWlrForeignToplevelHandle::done(void */*data*/, zwlr_foreign_toplevel_handl
             MLog(CZTrace, "Foreign toplevel changed screens: {}", res->m_current.screens.size());
         }
 
+        if (res->m_changes.has(CH::CHIdentifier) && res->m_pending.identifier != res->m_current.identifier)
+        {
+            realChanges.add(CH::CHIdentifier);
+            res->m_current.identifier = res->m_pending.identifier;
+        }
+
+        res->m_changes.set(0);
+
         if (realChanges.get() != 0)
             res->onPropsChanged.notify(realChanges);
     }
@@ -128,4 +136,12 @@ void MWlrForeignToplevelHandle::parent(void *data, zwlr_foreign_toplevel_handle_
     CZ_UNUSED(data)
     CZ_UNUSED(handle)
     CZ_UNUSED(parent)
+}
+
+void MWlrForeignToplevelHandle::identifier(void */*data*/, zwlr_foreign_toplevel_handle_v1 *handle, const char *identifier)
+{
+    // Louvre extension (v4): its ext-foreign-toplevel-list identifier (see MForeignToplevel::captureImage())
+    auto *res { static_cast<MForeignToplevel*>(zwlr_foreign_toplevel_handle_v1_get_user_data(handle)) };
+    res->m_changes.add(MForeignToplevel::CHIdentifier);
+    res->m_pending.identifier = identifier ? identifier : "";
 }
