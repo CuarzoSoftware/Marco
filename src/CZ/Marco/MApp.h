@@ -7,9 +7,8 @@
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 #include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 #include <CZ/Core/CZColorScheme.h>
-#include <CZ/Core/CZBus.h>
+#include <CZ/Core/CZColorSchemeMonitor.h>
 
-struct sd_bus_slot;
 
 namespace CZ
 {
@@ -125,8 +124,7 @@ public:
 private:
     void initColorScheme() noexcept;
     CZColorScheme m_colorScheme { CZColorScheme::Light };
-    std::shared_ptr<CZBus> m_userBus;
-    sd_bus_slot *m_colorSchemeSlot {};
+    std::shared_ptr<CZColorSchemeMonitor> m_colorSchemeMonitor;
 
     bool init() noexcept;
     void updateSurfaces();

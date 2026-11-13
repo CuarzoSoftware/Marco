@@ -192,61 +192,20 @@ bool MApp::init() noexcept
     return true;
 }
 
-MApp::~MApp() noexcept
-{
-    sd_bus_slot_unref(m_colorSchemeSlot);
-}
-
-// org.freedesktop.appearance color-scheme: 0 no preference, 1 prefer dark, 2 prefer light.
-static CZColorScheme ReadPortalColorScheme(sd_bus_message *m) noexcept
-{
-    UInt32 value { 0 };
-
-    // The value is a variant, possibly nested in another one (ReadOne vs the older Read).
-    if (sd_bus_message_enter_container(m, 'v', "u") >= 0)
-    {
-        sd_bus_message_read(m, "u", &value);
-        sd_bus_message_exit_container(m);
-    }
-    else if (sd_bus_message_enter_container(m, 'v', "v") >= 0 && sd_bus_message_enter_container(m, 'v', "u") >= 0)
-        sd_bus_message_read(m, "u", &value);
-
-    return value == 1 ? CZColorScheme::Dark : CZColorScheme::Light;
-}
+MApp::~MApp() noexcept {}
 
 void MApp::initColorScheme() noexcept
 {
-    m_userBus = CZBus::GetOrMakeUser();
+    // The desktop's light/dark preference (see CZColorSchemeMonitor)
+    m_colorSchemeMonitor = CZColorSchemeMonitor::GetOrMake();
 
-    if (!m_userBus)
+    if (!m_colorSchemeMonitor)
         return;
 
-    static constexpr const char *Portal { "org.freedesktop.portal.Desktop" };
-    static constexpr const char *Path { "/org/freedesktop/portal/desktop" };
-    static constexpr const char *Iface { "org.freedesktop.portal.Settings" };
+    m_colorSchemeMonitor->onChanged.subscribe(this, [this](CZColorScheme scheme){ setColorScheme(scheme); });
 
-    // Changes...
-    sd_bus_match_signal_async(m_userBus->bus(), &m_colorSchemeSlot, nullptr, Path, Iface, "SettingChanged",
-        [](sd_bus_message *m, void *, sd_bus_error *) -> int {
-            const char *ns {}, *key {};
-
-            if (sd_bus_message_read(m, "ss", &ns, &key) >= 0 && ns && key &&
-                strcmp(ns, "org.freedesktop.appearance") == 0 && strcmp(key, "color-scheme") == 0)
-                if (auto app { MApp::Get() })
-                    app->setColorScheme(ReadPortalColorScheme(m));
-
-            return 0;
-        }, nullptr, nullptr);
-
-    // ...and the current value (async: the portal may need to be started).
-    sd_bus_call_method_async(m_userBus->bus(), nullptr, Portal, Path, Iface, "ReadOne",
-        [](sd_bus_message *m, void *, sd_bus_error *) -> int {
-            if (!sd_bus_message_is_method_error(m, nullptr))
-                if (auto app { MApp::Get() })
-                    app->setColorScheme(ReadPortalColorScheme(m));
-
-            return 0;
-        }, nullptr, "ss", "org.freedesktop.appearance", "color-scheme");
+    if (m_colorSchemeMonitor->known())
+        setColorScheme(m_colorSchemeMonitor->colorScheme());
 }
 
 void MApp::setColorScheme(CZColorScheme scheme) noexcept
