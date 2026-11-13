@@ -11,6 +11,7 @@
 
 #include <CZ/Marco/Protocols/Wayland/MWlRegistry.h>
 #include <CZ/Marco/MLog.h>
+#include <CZ/Marco/Private/MClipboard.h>
 #include <CZ/Marco/Private/MFreezeWatchdog.h>
 
 #include <CZ/Core/CZCore.h>
@@ -177,6 +178,9 @@ bool MApp::init() noexcept
     {
         wl.dataDevice.set(wl_data_device_manager_get_data_device(wl.dataDeviceManager, wl.seat));
         wl_data_device_add_listener(wl.dataDevice, &MWlDataDevice::Listener, nullptr);
+
+        // Copy & paste in Kay's text nodes
+        m_kay->setClipboard(std::make_shared<MClipboard>());
     }
 
     if (!wl.xdgWmBase)

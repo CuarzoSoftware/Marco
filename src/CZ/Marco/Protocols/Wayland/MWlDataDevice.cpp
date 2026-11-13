@@ -14,7 +14,7 @@ static MDNDOffer *s_dndOffer { nullptr };
 static CZWeak<MSurface> s_dndSurface;
 static SkPoint s_dndPos {};
 
-// Current selection (clipboard) offer: kept only so it's destroyed when replaced.
+// Current selection (clipboard) offer (read by MClipboard), destroyed when replaced.
 static MDNDOffer *s_selectionOffer { nullptr };
 
 static MDNDOffer *TakeAnnounced(wl_data_offer *offer) noexcept
@@ -89,6 +89,11 @@ void MWlDataDevice::selection(void */*data*/, wl_data_device */*device*/, wl_dat
 {
     DestroyOffer(s_selectionOffer);
     s_selectionOffer = TakeAnnounced(offer);
+}
+
+MDNDOffer *MWlDataDevice::SelectionOffer() noexcept
+{
+    return s_selectionOffer;
 }
 
 MDNDOffer *MWlDataDevice::CreateOffer(wl_data_offer *offer) noexcept

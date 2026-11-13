@@ -16,6 +16,9 @@ struct MWlDataDevice
     static void drop(void *data, wl_data_device *device);
     static void selection(void *data, wl_data_device *device, wl_data_offer *offer);
 
+    /// The current selection (clipboard) offer, or nullptr (see MClipboard).
+    static MDNDOffer *SelectionOffer() noexcept;
+
     // MDNDOffer's constructor/destructor are only accessible from here.
     static MDNDOffer *CreateOffer(wl_data_offer *offer) noexcept;
     static void DestroyOffer(MDNDOffer *offer) noexcept;
