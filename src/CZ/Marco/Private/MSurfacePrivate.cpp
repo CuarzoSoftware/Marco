@@ -106,10 +106,60 @@ static UInt32 ToLvrColorScheme(CZColorScheme scheme) noexcept
     }
 }
 
+bool MSurface::Imp::updateBlurMaterial(bool scheduleCommit) noexcept
+{
+    if (!backgroundBlur || wl_proxy_get_version((wl_proxy*)backgroundBlur) < 2)
+        return false;
+
+    std::optional<std::tuple<wl_fixed_t, wl_fixed_t, UInt32>> material;
+
+    if (blurMaterial)
+        material = std::make_tuple(
+            wl_fixed_from_double(std::max(0.f, blurMaterial->radius)),
+            wl_fixed_from_double(std::max(0.f, blurMaterial->saturation)),
+            UInt32(blurMaterial->tint.resolve(obj.colorScheme())));
+
+    if (material == sentBlurMaterial)
+        return false;
+
+    sentBlurMaterial = material;
+
+    if (material)
+        lvr_background_blur_set_material(backgroundBlur, std::get<0>(*material), std::get<1>(*material), std::get<2>(*material));
+    else
+        lvr_background_blur_unset_material(backgroundBlur);
+
+    if (scheduleCommit)
+        obj.update(true); // double-buffered request → schedule a commit
+
+    return true;
+}
+
+bool MSurface::Imp::updateBlurOpacity(bool scheduleCommit) noexcept
+{
+    if (!backgroundBlur || wl_proxy_get_version((wl_proxy*)backgroundBlur) < 2)
+        return false;
+
+    const wl_fixed_t opacity { wl_fixed_from_double(std::clamp(blurOpacity * obj.opacity(), 0.f, 1.f)) };
+
+    if (opacity == sentBlurOpacity)
+        return false;
+
+    sentBlurOpacity = opacity;
+    lvr_background_blur_set_opacity(backgroundBlur, opacity);
+
+    if (scheduleCommit)
+        obj.update(true); // double-buffered request → schedule a commit
+
+    return true;
+}
+
 void MSurface::Imp::updateBlurColorScheme() noexcept
 {
     if (!backgroundBlur)
         return;
+
+    updateBlurMaterial(true); // The tint follows the color scheme
 
     const CZColorScheme scheme { obj.colorScheme() };
 
@@ -191,6 +241,8 @@ void MSurface::Imp::createSurface() noexcept
         sentBlurMaskSVG.clear();
         lvr_background_blur_add_listener(backgroundBlur, &backgroundBlurListener, &obj);
         sentBlurScheme = CZColorScheme::Unknown; // fresh object: its scheme is unknown again
+        sentBlurMaterial.reset();                // and its material unset
+        sentBlurOpacity = wl_fixed_from_int(1);  // and opaque
 
         // The compositor enables background blur by default on this object. Suppress it with an
         // empty region so it never shows unless a role opts in (e.g. MToplevel sets a real region

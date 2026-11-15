@@ -359,9 +359,42 @@ bool MSurface::event(const CZEvent &event) noexcept
     return AKSolidColor::event(event);
 }
 
+void MSurface::setBlurMaterial(const std::optional<MBlurMaterial> &material) noexcept
+{
+    if (imp()->blurMaterial == material)
+        return;
+
+    imp()->blurMaterial = material;
+    imp()->updateBlurMaterial(true);
+}
+
+const std::optional<MBlurMaterial> &MSurface::blurMaterial() const noexcept
+{
+    return imp()->blurMaterial;
+}
+
+void MSurface::setBlurOpacity(SkScalar opacity) noexcept
+{
+    opacity = std::clamp(opacity, 0.f, 1.f);
+
+    if (imp()->blurOpacity == opacity)
+        return;
+
+    imp()->blurOpacity = opacity;
+    imp()->updateBlurOpacity(true);
+}
+
+SkScalar MSurface::blurOpacity() const noexcept
+{
+    return imp()->blurOpacity;
+}
+
 void MSurface::HandleBackgroundBlur(MSurface &window) noexcept
 {
     auto app { MApp::Get() };
+
+    window.MSurface::imp()->updateBlurMaterial(false); // Committed right after
+    window.MSurface::imp()->updateBlurOpacity(false);  // Follows opacity() too
 
     if (window.MSurface::imp()->backgroundBlur/* && app->wl.svgPathManager*/)
     {

@@ -116,6 +116,11 @@ extern const struct wl_interface lvr_background_blur_manager_interface;
  * commits a new configuration.
  *
  * Initially, the blur region is empty (no blur is applied).
+ *
+ * Since version 2, the client can also describe how the backdrop is rendered with
+ * set_material: the blur radius, a saturation boost and a translucent tint drawn over it.
+ * Otherwise the compositor uses its own material. It can also fade the effect with
+ * set_opacity (e.g. to animate it along with the surface's content).
  * @section page_iface_lvr_background_blur_api API
  * See @ref iface_lvr_background_blur.
  */
@@ -150,6 +155,11 @@ extern const struct wl_interface lvr_background_blur_manager_interface;
  * commits a new configuration.
  *
  * Initially, the blur region is empty (no blur is applied).
+ *
+ * Since version 2, the client can also describe how the backdrop is rendered with
+ * set_material: the blur radius, a saturation boost and a translucent tint drawn over it.
+ * Otherwise the compositor uses its own material. It can also fade the effect with
+ * set_opacity (e.g. to animate it along with the surface's content).
  */
 extern const struct wl_interface lvr_background_blur_interface;
 #endif
@@ -333,7 +343,25 @@ enum lvr_background_blur_error {
 	 * invalid svg path
 	 */
 	LVR_BACKGROUND_BLUR_ERROR_INVALID_SVG_PATH = 5,
+	/**
+	 * invalid material parameters
+	 * @since 2
+	 */
+	LVR_BACKGROUND_BLUR_ERROR_INVALID_MATERIAL = 6,
+	/**
+	 * opacity out of the [0, 1] range
+	 * @since 2
+	 */
+	LVR_BACKGROUND_BLUR_ERROR_INVALID_OPACITY = 7,
 };
+/**
+ * @ingroup iface_lvr_background_blur
+ */
+#define LVR_BACKGROUND_BLUR_ERROR_INVALID_MATERIAL_SINCE_VERSION 2
+/**
+ * @ingroup iface_lvr_background_blur
+ */
+#define LVR_BACKGROUND_BLUR_ERROR_INVALID_OPACITY_SINCE_VERSION 2
 #endif /* LVR_BACKGROUND_BLUR_ERROR_ENUM */
 
 #ifndef LVR_BACKGROUND_BLUR_STATE_ENUM
@@ -427,6 +455,9 @@ lvr_background_blur_add_listener(struct lvr_background_blur *lvr_background_blur
 #define LVR_BACKGROUND_BLUR_CLEAR_MASK 4
 #define LVR_BACKGROUND_BLUR_SET_ROUND_RECT_MASK 5
 #define LVR_BACKGROUND_BLUR_SET_SVG_PATH_MASK 6
+#define LVR_BACKGROUND_BLUR_SET_MATERIAL 7
+#define LVR_BACKGROUND_BLUR_UNSET_MATERIAL 8
+#define LVR_BACKGROUND_BLUR_SET_OPACITY 9
 
 /**
  * @ingroup iface_lvr_background_blur
@@ -465,6 +496,18 @@ lvr_background_blur_add_listener(struct lvr_background_blur *lvr_background_blur
  * @ingroup iface_lvr_background_blur
  */
 #define LVR_BACKGROUND_BLUR_SET_SVG_PATH_MASK_SINCE_VERSION 1
+/**
+ * @ingroup iface_lvr_background_blur
+ */
+#define LVR_BACKGROUND_BLUR_SET_MATERIAL_SINCE_VERSION 2
+/**
+ * @ingroup iface_lvr_background_blur
+ */
+#define LVR_BACKGROUND_BLUR_UNSET_MATERIAL_SINCE_VERSION 2
+/**
+ * @ingroup iface_lvr_background_blur
+ */
+#define LVR_BACKGROUND_BLUR_SET_OPACITY_SINCE_VERSION 2
 
 /** @ingroup iface_lvr_background_blur */
 static inline void
@@ -622,6 +665,75 @@ lvr_background_blur_set_svg_path_mask(struct lvr_background_blur *lvr_background
 {
 	wl_proxy_marshal_flags((struct wl_proxy *) lvr_background_blur,
 			 LVR_BACKGROUND_BLUR_SET_SVG_PATH_MASK, NULL, wl_proxy_get_version((struct wl_proxy *) lvr_background_blur), 0, path);
+}
+
+/**
+ * @ingroup iface_lvr_background_blur
+ *
+ * This is a double-buffered operation, refer to wl_surface.commit.
+ *
+ * The backdrop is processed in this order:
+ *
+ * 1. Blurred with a Gaussian of standard deviation radius, in surface-local logical
+ * units (like the CSS blur() function).
+ * 2. Saturated by saturation: 1 leaves the colors unchanged, 0 makes them grayscale and
+ * larger values boost them (like the CSS saturate() function, Rec. 709 luma).
+ * 3. Covered by tint, a color in unpremultiplied 0xAARRGGBB format whose alpha is its
+ * opacity. A fully transparent tint leaves the saturated backdrop as is.
+ *
+ * The material applies regardless of the color scheme set with set_color_scheme: clients
+ * should set a new one when their color scheme changes.
+ *
+ * Compositors may clamp the radius and saturation to the ranges they can render, and may
+ * ignore the material entirely (e.g. for accessibility settings such as reduced
+ * transparency).
+ *
+ * A negative radius or saturation triggers the invalid_material error.
+ *
+ * Until this request is sent, or after unset_material, the compositor uses its own
+ * material, which may depend on the color scheme.
+ */
+static inline void
+lvr_background_blur_set_material(struct lvr_background_blur *lvr_background_blur, wl_fixed_t radius, wl_fixed_t saturation, uint32_t tint)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) lvr_background_blur,
+			 LVR_BACKGROUND_BLUR_SET_MATERIAL, NULL, wl_proxy_get_version((struct wl_proxy *) lvr_background_blur), 0, radius, saturation, tint);
+}
+
+/**
+ * @ingroup iface_lvr_background_blur
+ *
+ * This is a double-buffered operation, refer to wl_surface.commit.
+ *
+ * Reverts a material set with set_material: the compositor chooses it again.
+ * If no material was set, this is a no-op.
+ */
+static inline void
+lvr_background_blur_unset_material(struct lvr_background_blur *lvr_background_blur)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) lvr_background_blur,
+			 LVR_BACKGROUND_BLUR_UNSET_MATERIAL, NULL, wl_proxy_get_version((struct wl_proxy *) lvr_background_blur), 0);
+}
+
+/**
+ * @ingroup iface_lvr_background_blur
+ *
+ * This is a double-buffered operation, refer to wl_surface.commit.
+ *
+ * Multiplies the opacity of the whole effect (the blurred, saturated and tinted backdrop):
+ * 0 makes it invisible, showing what's behind the surface as is, and 1 shows it fully.
+ * Clients typically set it along with the opacity of their own content while animating it,
+ * so the blur doesn't linger behind a fading surface.
+ *
+ * Values outside the [0, 1] range trigger the invalid_opacity error.
+ *
+ * The initial value is 1.
+ */
+static inline void
+lvr_background_blur_set_opacity(struct lvr_background_blur *lvr_background_blur, wl_fixed_t opacity)
+{
+	wl_proxy_marshal_flags((struct wl_proxy *) lvr_background_blur,
+			 LVR_BACKGROUND_BLUR_SET_OPACITY, NULL, wl_proxy_get_version((struct wl_proxy *) lvr_background_blur), 0, opacity);
 }
 
 #ifdef  __cplusplus

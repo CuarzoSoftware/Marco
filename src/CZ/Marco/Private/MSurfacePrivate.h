@@ -107,6 +107,19 @@ public:
     // Informs the compositor of the surface's color scheme via the background-blur protocol.
     void updateBlurColorScheme() noexcept;
 
+    // See MSurface::setBlurMaterial(). The last one sent: radius, saturation and tint (nullopt:
+    // unset, the protocol's initial value).
+    std::optional<MBlurMaterial> blurMaterial;
+    std::optional<std::tuple<wl_fixed_t, wl_fixed_t, UInt32>> sentBlurMaterial;
+    // Sends the material (resolved for the current color scheme) if it changed. Returns true if sent.
+    bool updateBlurMaterial(bool scheduleCommit) noexcept;
+
+    // See MSurface::setBlurOpacity(). The last one sent (the protocol's initial value is 1).
+    SkScalar blurOpacity { 1.f };
+    wl_fixed_t sentBlurOpacity { wl_fixed_from_int(1) };
+    // Sends blurOpacity * the surface opacity if it changed. Returns true if sent.
+    bool updateBlurOpacity(bool scheduleCommit) noexcept;
+
     std::shared_ptr<RWLSwapchain> swapchain;
 
     std::list<MSubsurface*> subSurfaces;

@@ -11,10 +11,50 @@
 #include <CZ/AK/AKScene.h>
 #include <CZ/skia/core/SkPath.h>
 #include <CZ/Marco/Marco.h>
+#include <CZ/Core/CZAdaptive.h>
+#include <optional>
 #include <CZ/Ream/RSwapchain.h>
 #include <wayland-client.h>
 #include <memory>
 #include <set>
+
+namespace CZ
+{
+    /**
+     * @brief How the compositor renders a surface's blurred backdrop (see MSurface::setBlurMaterial()).
+     *
+     * The backdrop is blurred, saturated and then covered by a translucent tint, like the Apple
+     * materials. The presets approximate the macOS ones for each kind of surface.
+     */
+    struct MBlurMaterial
+    {
+        /// Gaussian standard deviation in logical units (like CSS `blur()`).
+        SkScalar radius { 20.f };
+
+        /// Saturation multiplier: 1 unchanged, 0 grayscale (like CSS `saturate()`).
+        SkScalar saturation { 1.8f };
+
+        /// Unpremultiplied tint drawn over the saturated backdrop (alpha = opacity), per color scheme.
+        CZAdaptiveColor tint { 0xCCF6F6F6, 0xCC1E1E1E };
+
+        bool operator==(const MBlurMaterial &other) const noexcept
+        {
+            return radius == other.radius && saturation == other.saturation && tint == other.tint;
+        }
+
+        static const MBlurMaterial Menu;    ///< Menus (context, dropdown).
+        static const MBlurMaterial Popover; ///< Popovers and panels (e.g. a control center).
+        static const MBlurMaterial Tooltip; ///< Small labels (e.g. a dock item's name).
+        static const MBlurMaterial MenuBar; ///< A translucent top bar.
+        static const MBlurMaterial Dock;    ///< A dock: the most translucent one.
+    };
+
+    inline const MBlurMaterial MBlurMaterial::Menu    { 20.f, 1.8f, { 0xC7F2F2F2, 0xBF282828 } };
+    inline const MBlurMaterial MBlurMaterial::Popover { 24.f, 1.8f, { 0xB8EDEDED, 0xB3242424 } };
+    inline const MBlurMaterial MBlurMaterial::Tooltip { 20.f, 1.8f, { 0xD9F5F5F5, 0xD9262626 } };
+    inline const MBlurMaterial MBlurMaterial::MenuBar { 24.f, 1.8f, { 0x99F6F6F6, 0x8C1E1E1E } };
+    inline const MBlurMaterial MBlurMaterial::Dock    { 24.f, 2.0f, { 0x66F6F6F6, 0x66282828 } };
+}
 
 /**
  * @brief Base class for surface roles.
@@ -150,6 +190,28 @@ public:
 
     /** @brief The blur mask path, or `nullptr` if the default rounded rect is used. */
     const SkPath *blurMaskPath() const noexcept;
+
+    /**
+     * @brief Sets how the compositor renders the blurred backdrop (radius, saturation and tint).
+     *
+     * The tint follows the surface's color scheme. Pass `std::nullopt` (the default) to let the
+     * compositor choose. Requires lvr_background_blur version 2, ignored otherwise.
+     */
+    void setBlurMaterial(const std::optional<MBlurMaterial> &material) noexcept;
+
+    /** @brief The blur material, or `std::nullopt` if the compositor chooses it. */
+    const std::optional<MBlurMaterial> &blurMaterial() const noexcept;
+
+    /**
+     * @brief Fades the compositor's background blur, from 0 (invisible) to 1 (default).
+     *
+     * The opacity sent is this one multiplied by the surface's own opacity(), so fading the
+     * surface fades its blur too. Requires lvr_background_blur version 2, ignored otherwise.
+     */
+    void setBlurOpacity(SkScalar opacity) noexcept;
+
+    /** @brief See setBlurOpacity(). */
+    SkScalar blurOpacity() const noexcept;
 
     wl_surface *wlSurface() const noexcept;
     wl_callback *wlCallback() const noexcept;

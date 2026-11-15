@@ -6,6 +6,7 @@ using namespace CZ;
 
 MMenu::MMenu() noexcept : MPopup()
 {
+    setBlurMaterial(MBlurMaterial::Menu);
     setSlot(&m_vibrancy);
     m_vibrancy.layout().setWidthPercent(100);
     m_vibrancy.layout().setHeightPercent(100);

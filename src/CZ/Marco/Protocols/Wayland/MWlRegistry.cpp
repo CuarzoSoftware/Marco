@@ -79,7 +79,8 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     }
     else if (!wl.backgroundBlurManager && strcmp(interface, lvr_background_blur_manager_interface.name) == 0)
     {
-        wl.backgroundBlurManager.set(wl_registry_bind(registry, name, &lvr_background_blur_manager_interface, version), name);
+        wl.backgroundBlurManager.set(wl_registry_bind(registry, name, &lvr_background_blur_manager_interface,
+            std::min(version, UInt32(lvr_background_blur_manager_interface.version))), name);
         lvr_background_blur_manager_add_listener(wl.backgroundBlurManager, &MLvrBackgroundBlurManager::Listener, NULL);
     }
     else if (!wl.svgPathManager && strcmp(interface, lvr_svg_path_manager_interface.name) == 0)

@@ -176,6 +176,11 @@ void MPopup::Imp::destroy() noexcept
     obj.MSurface::imp()->flags.remove(MSurface::Imp::PendingConfigureAck | MSurface::Imp::PendingFirstConfigure);
     obj.MSurface::imp()->flags.add(MSurface::Imp::PendingNullCommit);
 
+    // The next xdg_popup is a new placement: its first configure must notify assignedRectChanged()
+    // even if the rect matches the previous one (e.g. MTooltip resets its caret in pointTo()).
+    pendingAssignedRect.setEmpty();
+    currentAssignedRect.setEmpty();
+
     if (xdgPopup)
     {
         wl_surface_attach(obj.wlSurface(), NULL, 0, 0);

@@ -81,6 +81,8 @@ MTooltip::MTooltip() noexcept : MPopup()
     m_shadow = shadow.get();
     setDecorations(std::move(shadow));
 
+    setBlurMaterial(MBlurMaterial::Menu);
+
     // Redraw the fill when blur becomes (un)available.
     onVibrancyChanged.subscribe(this, [this](const AKVibrancyEvent &){ m_shapeNode.rebake(); });
 }
