@@ -4,6 +4,9 @@
 #include <CZ/Marco/Private/MSurfacePrivate.h>
 #include <CZ/Marco/Roles/MToplevel.h>
 #include <CZ/Marco/Nodes/MShadowDecorations.h>
+#include <CZ/AK/Nodes/AKWindowButtonGroup.h>
+#include <CZ/Core/CZWeak.h>
+#include <vector>
 #include <CZ/Marco/Protocols/XdgShell/xdg-shell-client.h>
 #include <CZ/Marco/Protocols/XdgDecoration/xdg-decoration-unstable-v1-client.h>
 
@@ -36,6 +39,17 @@ public:
     CZWeak<MShadowDecorations> shadow;
     std::unordered_set<MToplevel*> childToplevels;
     std::unordered_set<MPopup*> childPopups;
+
+    // The AKWindowButtonGroup nodes of the window (their clicks handled, see syncWindowButtons())
+    std::vector<CZWeak<AKWindowButtonGroup>> windowButtonGroups;
+
+    /**
+     * Finds the AKWindowButtonGroup nodes of the window: their buttons' clicks perform their actions
+     * (close, minimize, maximize, fullscreen), and they're hidden while the window doesn't need them
+     * (fullscreen, or decorated by the compositor, which draws its own).
+     */
+    void syncWindowButtons() noexcept;
+    void windowButtonClicked(AKWindowButton::Type type) noexcept;
 
     void applyPendingParent() noexcept;
     void applyPendingChildren() noexcept;

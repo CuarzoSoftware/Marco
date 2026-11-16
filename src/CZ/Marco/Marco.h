@@ -12,6 +12,7 @@ namespace CZ
     class MToplevel;
     class MPopup;
     class MLayerSurface;
+    class MSessionLockSurface;
     class MSubsurface;
 
     class MMenu;
@@ -37,6 +38,7 @@ namespace CZ
     /* Extensions */
     class MForeignToplevelManager;
     class MForeignToplevel;
+    class MSessionLockManager;
 
     template <class T> class MProxy;
 
@@ -66,5 +68,6 @@ struct ext_foreign_toplevel_list_v1;
 struct ext_foreign_toplevel_image_capture_source_manager_v1;
 struct wp_cursor_shape_manager_v1;
 struct wp_cursor_shape_device_v1;
+struct ext_session_lock_manager_v1;
 
 #endif // MARCO_H

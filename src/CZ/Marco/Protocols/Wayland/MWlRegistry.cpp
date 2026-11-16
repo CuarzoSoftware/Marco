@@ -18,6 +18,7 @@
 #include <CZ/Marco/Protocols/ImageCapture/ext-image-copy-capture-v1-client.h>
 #include <CZ/Marco/Protocols/WlrForeignToplevel/MWlrForeignToplevelManager.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/Protocols/SessionLock/ext-session-lock-v1-client.h>
 
 using namespace CZ;
 
@@ -107,6 +108,12 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     {
         wl.imageCopyCaptureManager.set(wl_registry_bind(registry, name, &ext_image_copy_capture_manager_v1_interface, 1), name);
     }
+    else if (!app->m_sessionLockGlobalName && strcmp(interface, ext_session_lock_manager_v1_interface.name) == 0)
+    {
+        // Bound only if used (see MApp::sessionLockManager())
+        app->m_sessionLockGlobalName = name;
+        app->m_sessionLockGlobalVersion = version;
+    }
     else if (!wl.cursorShapeManager && strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0)
     {
         wl.cursorShapeManager.set(wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, version), name);
@@ -125,6 +132,13 @@ void MWlRegistry::global_remove(void *data, wl_registry *registry, UInt32 name)
     CZ_UNUSED(registry)
 
     auto app { MApp::Get() };
+
+    // Not available anymore (a manager already bound stays valid)
+    if (name == app->m_sessionLockGlobalName)
+    {
+        app->m_sessionLockGlobalName = 0;
+        app->m_sessionLockGlobalVersion = 0;
+    }
 
     for (size_t i = 0; i < app->m_screens.size(); i++)
     {

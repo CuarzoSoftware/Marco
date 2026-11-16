@@ -295,7 +295,7 @@ lvr_invisible_region *MSurface::wlInvisibleRegion() const noexcept
 
 AKVibrancyState MSurface::vibrancyState() const noexcept
 {
-    return imp()->currentVibrancyState;
+    return imp()->vibrancyState;
 }
 
 void MSurface::vibrancyEvent(const AKVibrancyEvent &event)

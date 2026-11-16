@@ -1,3 +1,4 @@
+#include <CZ/Marco/Protocols/SessionLock/ext-session-lock-v1-client.h>
 #include <CZ/Marco/Protocols/Wayland/MWlDataDevice.h>
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
 #include <CZ/Marco/Protocols/Wayland/MWlPointer.h>
@@ -201,6 +202,24 @@ bool MApp::init() noexcept
 }
 
 MApp::~MApp() noexcept {}
+
+MSessionLockManager *MApp::sessionLockManager() noexcept
+{
+    if (m_sessionLockManager)
+        return m_sessionLockManager.get();
+
+    if (!m_sessionLockGlobalName || !wl.registry)
+        return nullptr;
+
+    auto *manager { static_cast<ext_session_lock_manager_v1*>(wl_registry_bind(wl.registry, m_sessionLockGlobalName,
+        &ext_session_lock_manager_v1_interface, std::min(m_sessionLockGlobalVersion, UInt32(ext_session_lock_manager_v1_interface.version)))) };
+
+    if (!manager)
+        return nullptr;
+
+    m_sessionLockManager.reset(new MSessionLockManager(manager));
+    return m_sessionLockManager.get();
+}
 
 void MApp::initColorScheme() noexcept
 {

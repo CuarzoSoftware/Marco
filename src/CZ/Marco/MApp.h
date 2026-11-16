@@ -6,6 +6,7 @@
 #include <CZ/AK/AKApp.h>
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 #include <CZ/Marco/Extensions/MForeignToplevelManager.h>
+#include <CZ/Marco/Extensions/MSessionLockManager.h>
 #include <CZ/Core/CZColorScheme.h>
 #include <CZ/Core/CZColorSchemeMonitor.h>
 
@@ -100,6 +101,14 @@ public:
 
     CZSignal<CZColorScheme> onColorSchemeChanged;
 
+    /**
+     * @brief The session lock manager (ext-session-lock-v1), see MSessionLockManager.
+     *
+     * Created (the global bound) on the first call. nullptr if the compositor doesn't advertise the
+     * protocol to this client (it may restrict it to privileged clients).
+     */
+    MSessionLockManager *sessionLockManager() noexcept;
+
 
     Wayland wl {};
 
@@ -145,6 +154,11 @@ private:
 
     std::optional<CZPointerScrollEvent> m_pendingScrollEvent;
     MOptions m_options;
+
+    // ext_session_lock_manager_v1: the global (bound only when used, see sessionLockManager())
+    UInt32 m_sessionLockGlobalName { 0 };
+    UInt32 m_sessionLockGlobalVersion { 0 };
+    std::unique_ptr<MSessionLockManager> m_sessionLockManager;
 };
 
 #endif // MAPPLICATION_H

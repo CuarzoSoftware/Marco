@@ -91,9 +91,18 @@ public:
     // Surface size
     SkISize size { 0, 0 };
 
-    // Vibrancy
+    // Vibrancy: the compositor's (current: acknowledged) and the one the nodes were told (see
+    // updateVibrancyState())
     AKVibrancyState currentVibrancyState { AKVibrancyState::Disabled };
     AKVibrancyState pendingVibrancyState { AKVibrancyState::Disabled };
+    AKVibrancyState vibrancyState { AKVibrancyState::Disabled };
+
+    /**
+     * The compositor's vibrancy state, but disabled while the surface is a fullscreen toplevel (its
+     * background is opaque: nothing behind it to blur). Tells the nodes (AKVibrancyEvent) if it
+     * changed.
+     */
+    void updateVibrancyState() noexcept;
 
     UInt32 callbackSendMs { 0 };
     wl_callback *wlCallback { nullptr };

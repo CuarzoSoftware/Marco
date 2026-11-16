@@ -179,16 +179,23 @@ void MSurface::Imp::background_blur_configure(void *data, lvr_background_blur *b
     // The color scheme may be set once a configure has been acknowledged.
     surface.imp()->updateBlurColorScheme();
 
-    auto core { CZCore::Get() };
+    surface.imp()->currentVibrancyState = surface.imp()->pendingVibrancyState;
+    surface.imp()->updateVibrancyState();
+}
 
-    if (surface.imp()->pendingVibrancyState != surface.imp()->currentVibrancyState)
-    {
-        surface.update(true);
-        surface.imp()->currentVibrancyState = surface.imp()->pendingVibrancyState;
-        core->sendEvent(AKVibrancyEvent(
-            surface.imp()->currentVibrancyState),
-            surface);
-    }
+void MSurface::Imp::updateVibrancyState() noexcept
+{
+    AKVibrancyState state { currentVibrancyState };
+
+    if (role == Role::Toplevel && static_cast<MToplevel&>(obj).fullscreen())
+        state = AKVibrancyState::Disabled;
+
+    if (state == vibrancyState)
+        return;
+
+    vibrancyState = state;
+    obj.update(true); // The blur region follows it (see HandleBackgroundBlur())
+    CZCore::Get()->sendEvent(AKVibrancyEvent(state), obj);
 }
 
 void MSurface::Imp::createSurface() noexcept

@@ -96,7 +96,8 @@ public:
         Toplevel,
         Popup,
         LayerSurface,
-        DNDIcon
+        DNDIcon,
+        SessionLockSurface
     };
 
     // Continues the change ids of the base classes so they never overlap.
@@ -218,6 +219,12 @@ public:
     wp_viewport *wlViewport() const noexcept;
     lvr_invisible_region *wlInvisibleRegion() const noexcept;
 
+    /**
+     * @brief Whether vibrancy (the compositor's background blur) is applied.
+     *
+     * Disabled if the compositor doesn't support it or turned it off, and while the surface is a
+     * fullscreen toplevel. Changes are notified to the nodes with an AKVibrancyEvent.
+     */
     AKVibrancyState vibrancyState() const noexcept;
     virtual void vibrancyEvent(const AKVibrancyEvent &event);
 

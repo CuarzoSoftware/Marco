@@ -11,6 +11,9 @@
 #include <CZ/Core/Events/CZLayoutEvent.h>
 #include <CZ/Core/Events/CZWindowStateEvent.h>
 #include <CZ/Core/Events/CZPointerButtonEvent.h>
+#include <CZ/Core/Events/CZCloseEvent.h>
+#include <CZ/Core/CZCore.h>
+#include <algorithm>
 #include <CZ/AK/AKLog.h>
 
 #include <CZ/Ream/RSurface.h>
@@ -395,6 +398,10 @@ void MToplevel::windowStateEvent(const CZWindowStateEvent &event)
     MSurface::windowStateEvent(event);
     applyDecorationsState();
 
+    // No vibrancy while fullscreen
+    if (event.changes.has(CZWinFullscreen))
+        MSurface::imp()->updateVibrancyState();
+
     if (event.changes.has(CZWinActivated))
         updateShadowParams();
 
@@ -501,8 +508,74 @@ std::vector<std::string> splitString(const std::string& input, size_t chunkSize)
     return chunks;
 }
 
+void MToplevel::Imp::windowButtonClicked(AKWindowButton::Type type) noexcept
+{
+    switch (type)
+    {
+    case AKWindowButton::Close:
+    {
+        // Like a close request from the compositor: the app may refuse it (see onBeforeClose)
+        CZWeak<MToplevel> ref { &obj };
+        const bool accepted { CZCore::Get()->sendEvent(CZCloseEvent(), obj) };
+
+        if (ref && accepted)
+            obj.setMapped(false);
+        break;
+    }
+    case AKWindowButton::Minimize:
+        obj.setMinimized();
+        break;
+    case AKWindowButton::Maximize:
+        obj.setMaximized(!obj.maximized());
+        break;
+    case AKWindowButton::Fullscreen:
+        obj.setFullscreen(true);
+        break;
+    case AKWindowButton::UnsetFullscreen:
+        obj.setFullscreen(false);
+        break;
+    }
+}
+
+static void FindWindowButtonGroups(AKNode *node, std::vector<AKWindowButtonGroup*> &out) noexcept
+{
+    if (auto *group { dynamic_cast<AKWindowButtonGroup*>(node) })
+        out.push_back(group);
+
+    for (AKNode *child : node->children(true))
+        FindWindowButtonGroups(child, out);
+}
+
+void MToplevel::Imp::syncWindowButtons() noexcept
+{
+    std::erase_if(windowButtonGroups, [](const auto &g){ return !g; });
+
+    std::vector<AKWindowButtonGroup*> groups;
+
+    if (AKNode *root { obj.scene().root() })
+        FindWindowButtonGroups(root, groups);
+
+    // Not needed while fullscreen or server-side decorated
+    const bool shown { obj.decorationMode() == ClientSide && !obj.fullscreen() };
+
+    for (AKWindowButtonGroup *group : groups)
+    {
+        group->setVisible(shown);
+
+        if (std::any_of(windowButtonGroups.begin(), windowButtonGroups.end(), [group](const auto &g){ return g == group; }))
+            continue;
+
+        windowButtonGroups.emplace_back(group);
+
+        for (AKWindowButton *button : { &group->closeButton, &group->minimizeButton, &group->maximizeButton })
+            button->onClick.subscribe(&obj, [this, button]{ windowButtonClicked(button->type()); });
+    }
+}
+
 void MToplevel::render() noexcept
 {
+    // Before laying out: groups added or hidden since the last frame
+    imp()->syncWindowButtons();
     scene().root()->layout().calculate();
 
     auto app { MApp::Get() };
