@@ -9,7 +9,6 @@
 #include <CZ/Ream/RSurface.h>
 #include <CZ/Ream/WL/RWLSwapchain.h>
 #include <CZ/Ream/RImage.h>
-#include <CZ/AK/AKColors.h>
 #include <CZ/AK/Events/AKVibrancyEvent.h>
 
 #include <CZ/Marco/Protocols/LvrSvgPath/lvr-svg-path-client.h>
