@@ -25,12 +25,14 @@
 class CZ::MTooltip : public MPopup
 {
 public:
-    static constexpr Int32 CaretWidth   { 28 }; // Base width, including the flared base
-    static constexpr Int32 CaretHeight  { 11 };
-    static constexpr Int32 BorderRadius { 10 };
-    static constexpr Int32 Padding      { 5 };
-    static constexpr Int32 ShadowRadius { 24 };
-    static constexpr Int32 ShadowOffsetY { 6 };
+    static constexpr Int32 CaretWidth   { 28 }; ///< Caret base width, including the flared base.
+    static constexpr Int32 CaretHeight  { 11 }; ///< How far the caret sticks out of the body.
+    static constexpr Int32 BorderRadius { 10 }; ///< Corner radius of the body.
+    static constexpr Int32 Padding      { 5 };  ///< Padding around the content (plus CaretHeight on the caret edge).
+    static constexpr Int32 ShadowRadius { 24 }; ///< Drop shadow radius.
+    static constexpr Int32 ShadowOffsetY { 6 }; ///< Vertical offset of the drop shadow.
+
+    /** @brief Creates an unmapped tooltip; position it with pointTo() and show it with setMapped(). */
 
     MTooltip() noexcept;
 
@@ -65,6 +67,7 @@ public:
      * The compositor can't fade the blur, so disable it for tooltips animated with setFadeOpacity().
      */
     void setBlurEnabled(bool enabled) noexcept;
+    /** @brief See setBlurEnabled(). */
     bool blurEnabled() const noexcept { return m_blurEnabled; }
 
     /**
@@ -73,9 +76,15 @@ public:
      * Overrides the opacity of the content's renderables. Call it again after adding content.
      */
     void setFadeOpacity(SkScalar opacity) noexcept;
+    /** @brief See setFadeOpacity(). Defaults to 1. */
     SkScalar fadeOpacity() const noexcept { return m_fadeOpacity; }
 
 protected:
+    /**
+     * @brief Moves the caret to keep pointing at target() after the compositor slid or flipped the tooltip.
+     *
+     * Unlike MPopup's, it keeps the size requested by the content. Emits onAssignedRectChanged.
+     */
     void assignedRectChanged() override;
     void layoutEvent(const CZLayoutEvent &event) override;
 

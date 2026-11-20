@@ -8,7 +8,7 @@
 /**
  * @brief Default client-side decorations: a drop shadow that matches the surface's rounded corners.
  *
- * The shadow is fully described by a blur @ref radius() and an @ref offset() (x, y). These are
+ * The shadow is fully described by a blur radius() and an offset() (x, y). These are
  * plain, settable parameters: the node does not inspect the surface's activation state itself.
  * A role decides the look - e.g. MToplevel sets a larger radius/offset while active and a smaller
  * one while inactive, whereas MPopup leaves them fixed. The rounded-corner radii come from the
@@ -24,13 +24,18 @@ public:
 
     /** @brief Sets the shadow blur radius (in logical pixels). */
     void setRadius(Int32 radius) noexcept;
+
+    /** @brief The shadow blur radius (in logical pixels), MTheme::CSDShadowActiveRadius by default. */
     Int32 radius() const noexcept { return m_radius; }
 
     /** @brief Sets the shadow offset. A positive x/y shifts the shadow right/down. */
     void setOffset(const SkIPoint &offset) noexcept;
+
+    /** @brief The shadow offset, (0, MTheme::CSDShadowActiveOffsetY) by default. */
     const SkIPoint &offset() const noexcept { return m_offset; }
 
 protected:
+    /// @cond INTERNAL
     // Draws the theme drop shadow.
     class ShadowNode : public AKRenderable
     {
@@ -57,6 +62,7 @@ protected:
     Int32 m_radius { MTheme::CSDShadowActiveRadius };
     SkIPoint m_offset { 0, MTheme::CSDShadowActiveOffsetY };
     ShadowNode m_shadow;
+    /// @endcond
 };
 
 #endif // MSHADOWDECORATIONS_H

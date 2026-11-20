@@ -16,10 +16,13 @@
 class CZ::MMenuView : public AKContainer
 {
 public:
+    /** @brief Creates an empty menu view, added to @p parent. */
     MMenuView(AKNode *parent = nullptr) noexcept;
 
     /// Selects (hovers) an item, or clears the selection with nullptr. Disabled items aren't selected.
     void setActiveItem(MMenuItem *item) noexcept;
+
+    /** @brief The selected (hovered) item, or `nullptr`. */
     MMenuItem *activeItem() const noexcept { return m_activeItem; }
 
     /// Dims the selection outline while an item is being pressed.
@@ -27,6 +30,8 @@ public:
 
     /// Reserves a leading gutter in every item for check marks (keeps titles aligned).
     void setCheckGutter(bool enabled) noexcept;
+
+    /** @brief Whether the check gutter is reserved, see setCheckGutter(). */
     bool checkGutter() const noexcept { return m_checkGutter; }
 
     /**
@@ -43,6 +48,7 @@ public:
     /// Emitted after an item is activated (clicked).
     CZSignal<MMenuItem*> onItemActivated;
 
+    /** @brief The rounded highlight drawn behind the active item. */
     AKRoundSolidColor selectionOutline;
 
 protected:

@@ -116,15 +116,25 @@ public:
      */
     const SkIPoint &pos() const noexcept;
 
+    /**
+     * @brief Whether the parent surface, or one of its ancestors, has the given role.
+     *
+     * Walks up from parent() through the parents of popups (MPopup::parent()) and of toplevels
+     * (MToplevel::parentToplevel()).
+     */
     bool isChildOfRole(Role role) const noexcept;
 
+    /// @cond INTERNAL
     class Imp;
     Imp *imp() const noexcept;
+    /// @endcond
 private:
     std::unique_ptr<Imp> m_imp;
 protected:
+    /// @cond INTERNAL
     void onUpdate() noexcept override;
     void render() noexcept;
+    /// @endcond
 };
 
 #endif // MSUBSURFACE_H

@@ -42,8 +42,10 @@ namespace CZ
 
     template <class T> class MProxy;
 
+    /// @cond INTERNAL
     MPointer &pointer() noexcept;
     MKeyboard &keyboard() noexcept;
+    /// @endcond
 };
 
 struct wl_display;

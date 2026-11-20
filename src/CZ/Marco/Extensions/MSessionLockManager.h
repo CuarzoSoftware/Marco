@@ -35,6 +35,7 @@ struct ext_session_lock_v1;
 class CZ::MSessionLockManager : public AKObject
 {
 public:
+    /** @brief The lock state, see state(). */
     enum State
     {
         Unlocked, ///< Not locked (or the lock ended)
@@ -42,6 +43,7 @@ public:
         Locked    ///< Locked: this client decides when it's unlocked
     };
 
+    /** @brief The current lock state. */
     State state() const noexcept { return m_state; }
 
     /**

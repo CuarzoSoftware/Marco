@@ -26,6 +26,7 @@
 class CZ::MDND : public MSurface
 {
 public:
+    /** @brief Drag & drop actions (copy, move, ask), shared with MDNDOffer. */
     using Action = MDNDOffer::Action;
 
     MDND() noexcept;
@@ -46,10 +47,12 @@ public:
     /// Ends the session (the drop target is told it was cancelled).
     void cancel() noexcept;
 
+    /** @brief Whether a session started with start() is active. */
     bool dragging() const noexcept { return m_source != nullptr; }
 
     /// Position of the pointer within the icon. Defaults to (0, 0).
     void setHotspot(const SkIPoint &hotspot) noexcept;
+    /// Position of the pointer within the icon, see setHotspot().
     const SkIPoint &hotspot() const noexcept { return m_hotspot; }
 
     /// MIME type accepted by the target under the pointer (empty if none).
@@ -66,7 +69,9 @@ public:
     CZSignal<> onCancelled;     ///< Rejected / released over nothing / cancelled: session over
 
 protected:
+    /// @cond INTERNAL
     void onUpdate() noexcept override;
+    /// @endcond
 
 private:
     void render() noexcept;

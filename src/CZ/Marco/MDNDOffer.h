@@ -31,10 +31,14 @@ public:
 
     /// MIME types offered by the source.
     const std::vector<std::string> &mimeTypes() const noexcept { return m_mimeTypes; }
+
+    /// Whether @p mimeType is one of the mimeTypes().
     bool hasMimeType(const std::string &mimeType) const noexcept;
 
     /// Actions supported by the source and the one selected by the compositor.
     CZBitset<Action> sourceActions() const noexcept { return m_sourceActions; }
+
+    /// The action selected by the compositor (NoAction until it picks one).
     Action action() const noexcept { return m_action; }
 
     /// Accepts a MIME type for the drop (an empty string rejects it).
@@ -53,6 +57,7 @@ public:
     /// Tells the source the drop was completed (after receive()).
     void finish() noexcept;
 
+    /// The underlying wl_data_offer.
     wl_data_offer *offer() const noexcept { return m_offer; }
 
 private:

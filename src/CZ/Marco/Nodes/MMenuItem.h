@@ -15,6 +15,7 @@
 class CZ::MMenuItem : public AKContainer
 {
 public:
+    /** @brief Creates an item, added to @p parent (usually an MMenuView). */
     MMenuItem(AKNode *parent = nullptr) noexcept;
 
     /// Called by the view when the item gains/loses the selection.

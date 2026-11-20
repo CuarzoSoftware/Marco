@@ -329,6 +329,7 @@ public:
      */
     const std::unordered_set<MToplevel*> &childToplevels() const noexcept;
 
+    /** @brief The popups whose parent (MPopup::setParent()) is this window. */
     const std::unordered_set<MPopup*> &childPopups() const noexcept;
 
     /**
@@ -396,8 +397,10 @@ public:
      */
     CZSignal<> onDecorationModeChanged;
 
+    /// @cond INTERNAL
     class Imp;
     Imp *imp() const noexcept;
+    /// @endcond
 
 protected:
 
@@ -451,9 +454,19 @@ protected:
      */
     void windowStateEvent(const CZWindowStateEvent &event) override;
     void pointerButtonEvent(const CZPointerButtonEvent &event) override;
+
+    /**
+     * @brief Watches the pointer events of rootNode() to start interactive resizes and moves.
+     *
+     * A left click near the edges of the central node starts an `xdg_toplevel.resize`, and over a
+     * node with the `UCWindowMove` capability near its top an `xdg_toplevel.move`. Pointer moves update the resize
+     * cursor. Subclasses overriding it must call `MToplevel::eventFilter()`.
+     */
     bool eventFilter(const CZEvent &event, CZObject &object) noexcept override;
     bool event(const CZEvent &e) noexcept override;
+    /// @cond INTERNAL
     void onUpdate() noexcept override;
+    /// @endcond
 
 private:
     std::unique_ptr<Imp> m_imp;

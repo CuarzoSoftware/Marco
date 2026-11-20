@@ -36,15 +36,33 @@ public:
     virtual void subtractOpaque(SkRegion &opaque) const noexcept { (void)opaque; }
 
     // Assigned to a surface
+
+    /**
+     * @brief Called when the decoration is assigned to a surface.
+     *
+     * The default implementation parents it to the surface's root node (MSurface::rootNode()).
+     */
     virtual void onBind() noexcept;
 
     // Unassigned to a surface (surface() still points to it)
+
+    /**
+     * @brief Called when the decoration is removed from its surface (surface() still points to it).
+     *
+     * The default implementation unparents it.
+     */
     virtual void onUnbind() noexcept;
 
 protected:
     void renderEvent(const AKRenderEvent &event) override;
 
     // Returns true if changed
+
+    /**
+     * @brief Sets margins() (negative values are clamped to 0) and updates the surface.
+     *
+     * @return `true` if they changed.
+     */
     bool setMargins(SkIRect margins) noexcept;
 
 private:

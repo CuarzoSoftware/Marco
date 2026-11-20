@@ -19,23 +19,39 @@
 class CZ::MSessionLockSurface : public MSurface
 {
 public:
+    /** @brief Creates an unmapped lock surface for @p screen (can be set later with setScreen()). */
     MSessionLockSurface(MScreen *screen = nullptr) noexcept;
+
+    /** @brief Destroys the `ext_session_lock_surface_v1`, letting another surface waiting for its screen take it. */
     ~MSessionLockSurface() noexcept;
 
+    /**
+     * @brief Sets the screen to cover, or `nullptr` to show nothing.
+     *
+     * Changing it while shown recreates the role on the new screen.
+     *
+     * @return `false` if it was already set.
+     */
     bool setScreen(MScreen *screen) noexcept;
+
+    /** @brief The screen set with setScreen(), or `nullptr` (also after it's unplugged). */
     MScreen *screen() const noexcept;
 
     /// The size the compositor requires (its screen's), (0, 0) until configured.
     const SkISize &suggestedSize() const noexcept;
 
+    /// @cond INTERNAL
     class Imp;
     Imp *imp() const noexcept;
+    /// @endcond
 
 protected:
     /// Applies suggestedSize() to the layout (by default).
     virtual void suggestedSizeChanged();
+    /// @cond INTERNAL
     virtual void render() noexcept;
     void onUpdate() noexcept override;
+    /// @endcond
 
 private:
     std::unique_ptr<Imp> m_imp;
