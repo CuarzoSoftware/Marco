@@ -7,6 +7,7 @@
 #include <CZ/Core/Events/CZPointerScrollEvent.h>
 #include <CZ/Marco/Extensions/MForeignToplevelManager.h>
 #include <CZ/Marco/Extensions/MSessionLockManager.h>
+#include <CZ/Marco/Extensions/MOutputManager.h>
 #include <CZ/Core/CZColorScheme.h>
 #include <CZ/Core/CZColorSchemeMonitor.h>
 
@@ -19,7 +20,10 @@ namespace CZ
     enum MExtension
     {
         /// Binds wlr-foreign-toplevel-management (and ext-foreign-toplevel-list / image capture) to list and control other clients' windows, see MApp::ext and MForeignToplevelManager.
-        MForeignToplevelManagerExt = 1 << 0
+        MForeignToplevelManagerExt = 1 << 0,
+
+        /// Binds wlr-output-management to list the outputs (enabled or not) and change how they're set up, see MApp::ext and MOutputManager.
+        MOutputManagerExt = 1 << 1
     };
 
     /**
@@ -90,6 +94,7 @@ public:
         MProxy<wp_viewporter> viewporter; ///< wp_viewporter (required).
         MProxy<zwlr_layer_shell_v1> layerShell; ///< wlr-layer-shell (for MLayerSurface).
         MProxy<zwlr_foreign_toplevel_manager_v1> foreignToplevelManager; ///< wlr-foreign-toplevel-management (MForeignToplevelManagerExt).
+        MProxy<zwlr_output_manager_v1> outputManager; ///< wlr-output-management (MOutputManagerExt).
         MProxy<lvr_background_blur_manager> backgroundBlurManager; ///< Louvre's background blur.
         MProxy<lvr_svg_path_manager> svgPathManager; ///< Louvre's SVG paths (background blur masks).
         MProxy<lvr_invisible_region_manager> invisibleRegionManager; ///< Louvre's invisible regions.
@@ -211,6 +216,7 @@ public:
     struct
     {
         MForeignToplevelManager foreignToplevelManager; ///< Other clients' windows (MForeignToplevelManagerExt).
+        MOutputManager outputManager; ///< The outputs and their setup (MOutputManagerExt).
     } ext;
 
     /** @brief Emitted when a screen is added (after its properties are known). */

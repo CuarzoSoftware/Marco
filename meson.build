@@ -78,6 +78,7 @@ header_dirs = [
   ['./src/CZ/Marco/Protocols/LvrPrivateHandle', 'Protocols/LvrPrivateHandle'],
   ['./src/CZ/Marco/Protocols/ImageCapture', 'Protocols/ImageCapture'],
   ['./src/CZ/Marco/Protocols/SessionLock', 'Protocols/SessionLock'],
+  ['./src/CZ/Marco/Protocols/WlrOutputManagement', 'Protocols/WlrOutputManagement'],
 ]
 
 foreach header_dir : header_dirs

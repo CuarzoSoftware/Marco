@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <CZ/Marco/Protocols/ImageCapture/ext-image-copy-capture-v1-client.h>
 #include <CZ/Marco/Protocols/WlrForeignToplevel/MWlrForeignToplevelManager.h>
+#include <CZ/Marco/Protocols/WlrOutputManagement/MWlrOutputManager.h>
 #include <CZ/Marco/MApp.h>
 #include <CZ/Marco/Protocols/SessionLock/ext-session-lock-v1-client.h>
 
@@ -123,6 +124,11 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
         wl.foreignToplevelManager.set(wl_registry_bind(registry, name, &zwlr_foreign_toplevel_manager_v1_interface, std::min<UInt32>(version, 4)), name);
         zwlr_foreign_toplevel_manager_v1_add_listener(wl.foreignToplevelManager, &MWlrForeignToplevelManager::Listener, nullptr);
         MWlrForeignToplevelManager::bound();
+    }
+    else if (app->m_options.extensions.has(MOutputManagerExt) && !wl.outputManager && strcmp(interface, zwlr_output_manager_v1_interface.name) == 0)
+    {
+        wl.outputManager.set(wl_registry_bind(registry, name, &zwlr_output_manager_v1_interface, std::min<UInt32>(version, 4)), name);
+        zwlr_output_manager_v1_add_listener(wl.outputManager, &MWlrOutputManager::Listener, nullptr);
     }
 }
 
