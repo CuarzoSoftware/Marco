@@ -26,6 +26,8 @@ namespace CZ
     class MShadowDecorations;
     class MRootSurfaceNode;
     class MVibrancyView;
+    class MSidebar;
+    class MDialog;
     class MMenuView;
     class MMenuItem;
     class MMenuAction;

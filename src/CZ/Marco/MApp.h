@@ -122,8 +122,15 @@ public:
     /** @brief The app created with Make(), or `nullptr`. */
     static std::shared_ptr<MApp> Get() noexcept;
 
-    /** @brief Runs the event loop, dispatching events while running(). */
+    /** @brief Runs the event loop, dispatching events while running(). Returns the exit() code (0 by default). */
     int run() noexcept;
+
+    /**
+     * @brief Stops the event loop: run() returns @p code once the current dispatch ends.
+     *
+     * E.g. when the app's last window is closed. dispatch() does nothing afterwards.
+     */
+    void exit(int code = 0) noexcept;
 
     /** @brief Whether the app was initialized and its loop can be dispatched. */
     bool running() const noexcept { return m_running; }
@@ -243,6 +250,7 @@ private:
     std::shared_ptr<CZEventSource> m_source;
 
     bool m_running { false };
+    int m_exitCode { 0 };
     std::string m_appId, m_privateHandle;
     std::vector<MSurface*> m_surfaces;
     std::vector<MScreen*> m_screens, m_pendingScreens;

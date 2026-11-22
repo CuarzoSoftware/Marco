@@ -58,7 +58,14 @@ int MApp::run() noexcept
 {
     while (running())
         dispatch(-1);
-    return 0;
+    return m_exitCode;
+}
+
+void MApp::exit(int code) noexcept
+{
+    m_exitCode = code;
+    m_running = false;
+    update(); // Wake the loop if it's waiting
 }
 
 int MApp::dispatch(int timeoutMs) noexcept
