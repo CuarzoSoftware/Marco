@@ -95,6 +95,7 @@ public:
         MProxy<zwlr_layer_shell_v1> layerShell; ///< wlr-layer-shell (for MLayerSurface).
         MProxy<zwlr_foreign_toplevel_manager_v1> foreignToplevelManager; ///< wlr-foreign-toplevel-management (MForeignToplevelManagerExt).
         MProxy<zwlr_output_manager_v1> outputManager; ///< wlr-output-management (MOutputManagerExt).
+        MProxy<zxdg_output_manager_v1> xdgOutputManager; ///< xdg-output (the screens' logical size, see MScreen::logicalSize()).
         MProxy<lvr_background_blur_manager> backgroundBlurManager; ///< Louvre's background blur.
         MProxy<lvr_svg_path_manager> svgPathManager; ///< Louvre's SVG paths (background blur masks).
         MProxy<lvr_invisible_region_manager> invisibleRegionManager; ///< Louvre's invisible regions.

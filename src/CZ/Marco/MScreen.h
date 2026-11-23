@@ -10,6 +10,7 @@
 #include <CZ/Ream/RSubpixel.h>
 #include <CZ/skia/core/SkSize.h>
 #include <CZ/skia/core/SkPoint.h>
+#include <optional>
 
 /**
  * @brief A compositor screen (wl_output).
@@ -32,7 +33,9 @@ public:
         Make            = 1 << 6, ///< Props::make
         Model           = 1 << 7, ///< Props::model
         Transform       = 1 << 8, ///< Props::transform
-        Modes           = 1 << 9  ///< Props::modes
+        Modes           = 1 << 9, ///< Props::modes
+        LogicalPosition = 1 << 10, ///< Props::logicalPos
+        LogicalSize     = 1 << 11  ///< Props::logicalSize
     };
 
     /** @brief A display mode (wl_output.mode). */
@@ -57,10 +60,21 @@ public:
         RSubpixel pixelGeometry;   ///< Subpixel layout.
         CZTransform transform;     ///< Transform applied to the screen content.
         std::vector<Mode> modes;   ///< Display modes.
+        std::optional<SkIPoint> logicalPos; ///< Position in the global compositor space (xdg-output), unset without it.
+        std::optional<SkISize> logicalSize; ///< Size in surface coordinates, fractional scaling included (xdg-output), unset without it.
     };
 
     /** @brief The current properties. */
     const Props &props() const noexcept { return m_current; }
+
+    /**
+     * @brief The size surfaces get on this screen, in surface coordinates.
+     *
+     * Props::logicalSize (xdg-output), right with fractional scaling too. Without it (unset: the
+     * compositor lacks xdg-output, or hasn't sent it yet), the current mode's size divided by
+     * Props::scale (transform applied), empty if there's no current mode.
+     */
+    SkISize logicalSize() const noexcept;
 
     /** @brief The wl_output proxy. */
     wl_output *wlOutput() const noexcept { return m_proxy.get(); }
@@ -71,12 +85,14 @@ private:
     friend class MApp;
     friend struct MWlRegistry;
     friend struct MWlOutput;
+    friend struct MXdgOutput;
     MScreen(void *proxy, UInt32 name) noexcept : m_proxy(proxy, name) {}
-    ~MScreen() { wl_output_destroy(m_proxy); }
+    ~MScreen();
     Props m_current, m_pending;
     CZBitset<Changes> m_changes;
     bool m_pendingFirstDone { true };
     MProxy<wl_output> m_proxy;
+    zxdg_output_v1 *m_xdgOutput {};
 };
 
 #endif // MSCREEN_H

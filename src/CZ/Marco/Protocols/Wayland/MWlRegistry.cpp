@@ -19,6 +19,7 @@
 #include <CZ/Marco/Protocols/WlrForeignToplevel/MWlrForeignToplevelManager.h>
 #include <CZ/Marco/Protocols/WlrOutputManagement/MWlrOutputManager.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/Protocols/XdgOutput/MXdgOutput.h>
 #include <CZ/Marco/Protocols/SessionLock/ext-session-lock-v1-client.h>
 
 using namespace CZ;
@@ -57,6 +58,18 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
         wl_output_set_user_data(output, screen);
         wl_output_add_listener(output, &MWlOutput::Listener, screen);
         MApp::Get()->m_pendingScreens.push_back(screen);
+        MXdgOutput::Create(*screen);
+    }
+    else if (!wl.xdgOutputManager && strcmp(interface, zxdg_output_manager_v1_interface.name) == 0)
+    {
+        wl.xdgOutputManager.set(wl_registry_bind(registry, name, &zxdg_output_manager_v1_interface, std::min<UInt32>(version, 3)), name);
+
+        // The screens bound before it
+        for (MScreen *screen : app->m_pendingScreens)
+            MXdgOutput::Create(*screen);
+
+        for (MScreen *screen : app->m_screens)
+            MXdgOutput::Create(*screen);
     }
     else if (!wl.dataDeviceManager && strcmp(interface, wl_data_device_manager_interface.name) == 0)
     {

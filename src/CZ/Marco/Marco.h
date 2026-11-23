@@ -68,6 +68,8 @@ struct wp_viewporter;
 struct zwlr_layer_shell_v1;
 struct zwlr_foreign_toplevel_manager_v1;
 struct zwlr_output_manager_v1;
+struct zxdg_output_manager_v1;
+struct zxdg_output_v1;
 struct lvr_background_blur_manager;
 struct lvr_svg_path_manager;
 struct lvr_invisible_region_manager;
