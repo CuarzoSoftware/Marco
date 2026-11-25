@@ -87,6 +87,21 @@ MSurface::~MSurface()
         imp()->invisibleRegion = nullptr;
     }
 
+    // Its listener points to this surface: events still on their way (e.g. a configure) would
+    // reach freed memory if the proxy outlived it (windows destroyed while the app keeps running)
+    if (imp()->backgroundBlur)
+    {
+        lvr_background_blur_destroy(imp()->backgroundBlur);
+        imp()->sentBlurMaskSVG.clear();
+        imp()->backgroundBlur = nullptr;
+    }
+
+    if (imp()->wlViewport)
+    {
+        wp_viewport_destroy(imp()->wlViewport);
+        imp()->wlViewport = nullptr;
+    }
+
     if (wlSurface())
     {
         wl_surface_destroy(wlSurface());

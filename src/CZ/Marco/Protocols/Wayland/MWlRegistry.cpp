@@ -11,6 +11,7 @@
 #include <CZ/Marco/Protocols/LvrSvgPath/lvr-svg-path-client.h>
 #include <CZ/Marco/Protocols/WlrLayerShell/wlr-layer-shell-unstable-v1-client.h>
 #include <CZ/Marco/Protocols/CursorShape/cursor-shape-v1-client.h>
+#include <CZ/Marco/Protocols/XdgActivation/xdg-activation-v1-client.h>
 #include <CZ/Marco/Protocols/ImageCapture/ext-image-capture-source-v1-client.h>
 #include <CZ/Marco/Protocols/ImageCapture/ext-foreign-toplevel-list-v1-client.h>
 #include <CZ/Marco/Extensions/MForeignToplevel.h>
@@ -131,6 +132,10 @@ void MWlRegistry::global(void *data, wl_registry *registry, UInt32 name, const c
     else if (!wl.cursorShapeManager && strcmp(interface, wp_cursor_shape_manager_v1_interface.name) == 0)
     {
         wl.cursorShapeManager.set(wl_registry_bind(registry, name, &wp_cursor_shape_manager_v1_interface, version), name);
+    }
+    else if (!wl.activation && strcmp(interface, xdg_activation_v1_interface.name) == 0)
+    {
+        wl.activation.set(wl_registry_bind(registry, name, &xdg_activation_v1_interface, 1), name);
     }
     else if (app->m_options.extensions.has(MForeignToplevelManagerExt) && !wl.foreignToplevelManager && strcmp(interface, zwlr_foreign_toplevel_manager_v1_interface.name) == 0)
     {

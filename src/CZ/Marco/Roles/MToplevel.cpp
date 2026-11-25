@@ -6,6 +6,9 @@
 #include <CZ/Marco/Nodes/MShadowDecorations.h>
 #include <CZ/Marco/Roles/MPopup.h>
 #include <CZ/Marco/MApp.h>
+#include <CZ/Marco/Protocols/XdgActivation/xdg-activation-v1-client.h>
+#include <CZ/AK/AKApp.h>
+#include <CZ/Core/CZWeak.h>
 #include <CZ/Marco/MTheme.h>
 
 #include <CZ/Core/Events/CZLayoutEvent.h>
@@ -237,6 +240,64 @@ bool MToplevel::showWindowMenu(const CZInputEvent &event, const SkIPoint &pos) n
         return false;
 
     xdg_toplevel_show_window_menu(imp()->xdgToplevel, MApp::Get()->wl.seat, event.serial, pos.x(), pos.y());
+    return true;
+}
+
+namespace
+{
+    // An activation token on its way: used on this window once the compositor sends it
+    struct ActivationRequest
+    {
+        CZWeak<MToplevel> window;
+        xdg_activation_token_v1 *token { nullptr };
+    };
+
+    void ActivationTokenDone(void *data, xdg_activation_token_v1 *token, const char *string)
+    {
+        auto *request { static_cast<ActivationRequest*>(data) };
+        auto app { MApp::Get() };
+
+        if (request->window && request->window->mapped() && app && app->wl.activation)
+            xdg_activation_v1_activate(app->wl.activation, string, request->window->wlSurface());
+
+        xdg_activation_token_v1_destroy(token);
+        delete request;
+    }
+
+    const xdg_activation_token_v1_listener ActivationTokenListener { ActivationTokenDone };
+}
+
+bool MToplevel::activate(const std::string &token) noexcept
+{
+    auto app { MApp::Get() };
+
+    if (!app->wl.activation || !mapped() || !wlSurface())
+        return false;
+
+    if (!token.empty())
+    {
+        xdg_activation_v1_activate(app->wl.activation, token.c_str(), wlSurface());
+        return true;
+    }
+
+    auto *request { new ActivationRequest };
+    request->window.reset(this);
+    request->token = xdg_activation_v1_get_activation_token(app->wl.activation);
+    xdg_activation_token_v1_add_listener(request->token, &ActivationTokenListener, request);
+
+    // The user's latest action (a click or a key) is the trigger: the compositor checks it went to us
+    const auto &button { AKApp::Get()->pointer().history().button };
+    const auto &key { AKApp::Get()->keyboard().history().key };
+    const UInt32 serial { std::max(button.serial, key.serial) };
+
+    if (serial != 0)
+        xdg_activation_token_v1_set_serial(request->token, serial, app->wl.seat);
+
+    if (!app->appId().empty())
+        xdg_activation_token_v1_set_app_id(request->token, app->appId().c_str());
+
+    xdg_activation_token_v1_set_surface(request->token, wlSurface());
+    xdg_activation_token_v1_commit(request->token);
     return true;
 }
 

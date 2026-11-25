@@ -105,6 +105,7 @@ public:
         MProxy<ext_foreign_toplevel_image_capture_source_manager_v1> toplevelCaptureSourceManager; ///< ext-image-capture-source for toplevels (MForeignToplevelManagerExt).
         MProxy<wp_cursor_shape_manager_v1> cursorShapeManager; ///< cursor-shape-v1 (required).
         MProxy<wp_cursor_shape_device_v1> cursorShapePointer; ///< The cursor shape device of pointer.
+        MProxy<xdg_activation_v1> activation; ///< xdg-activation (MToplevel::activate()).
     };
 
     /**

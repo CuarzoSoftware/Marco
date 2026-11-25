@@ -274,6 +274,22 @@ public:
     bool showWindowMenu(const CZInputEvent &event, const SkIPoint &pos) noexcept;
 
     /**
+     * @brief Asks the compositor to activate the window (focus it and bring it to the front).
+     *
+     * E.g. an app asked to open something already shown in one of its windows. Uses xdg-activation:
+     * the compositor decides, and usually only accepts it if the app is the one being used (its
+     * latest pointer button or key event, sent as the trigger, went to one of its surfaces).
+     *
+     * Asynchronous: the window is activated (or not) after the compositor answers.
+     *
+     * @param token An activation token from another app (e.g. the startup id it passed along with a
+     *              request to show something), used instead of asking for one. Empty: asks for one.
+     *
+     * @return `false` if the compositor doesn't support xdg-activation or the window isn't mapped.
+     */
+    bool activate(const std::string &token = {}) noexcept;
+
+    /**
      * @brief Retrieves the current decoration mode of the window.
      *
      * This function returns the decoration mode, which specifies whether the
