@@ -39,39 +39,68 @@ void MClipboard::clearSource() noexcept
         m_source = nullptr;
     }
 
-    m_text.clear();
+    m_formats.clear();
 }
 
 void MClipboard::setText(const std::string &text, const CZInputEvent &triggeringEvent) noexcept
 {
+    std::vector<Format> formats;
+
+    for (const char *mimeType : TextMimeTypes)
+        formats.emplace_back(mimeType, text);
+
+    setData(formats, triggeringEvent);
+}
+
+void MClipboard::setData(const std::vector<Format> &formats, const CZInputEvent &triggeringEvent) noexcept
+{
     auto app { MApp::Get() };
 
-    if (!app || !app->wl.dataDeviceManager || !app->wl.dataDevice)
+    if (!app || !app->wl.dataDeviceManager || !app->wl.dataDevice || formats.empty())
         return;
 
     clearSource();
-    m_text = text;
+    m_formats = formats;
     m_source = wl_data_device_manager_create_data_source(app->wl.dataDeviceManager);
     wl_data_source_add_listener(m_source, &SourceListener, this);
 
-    for (const char *mimeType : TextMimeTypes)
-        wl_data_source_offer(m_source, mimeType);
+    for (const auto &[mimeType, data] : m_formats)
+        wl_data_source_offer(m_source, mimeType.c_str());
 
     wl_data_device_set_selection(app->wl.dataDevice, m_source, triggeringEvent.serial);
     wl_display_flush(app->wl.display);
 }
 
-void MClipboard::source_send(void *data, wl_data_source */*source*/, const char */*mimeType*/, Int32 fd)
+std::vector<std::string> MClipboard::mimeTypes() const noexcept
+{
+    std::vector<std::string> types;
+
+    if (m_source)
+    {
+        for (const auto &[mimeType, data] : m_formats)
+            types.emplace_back(mimeType);
+    }
+    else if (MDNDOffer *offer { MWlDataDevice::SelectionOffer() })
+        types = offer->mimeTypes();
+
+    return types;
+}
+
+void MClipboard::source_send(void *data, wl_data_source */*source*/, const char *mimeType, Int32 fd)
 {
     auto &self { *static_cast<MClipboard*>(data) };
+    const auto format { std::find_if(self.m_formats.begin(), self.m_formats.end(),
+        [mimeType](const Format &f){ return mimeType && f.first == mimeType; }) };
+    const std::string empty;
+    const std::string &bytes { format != self.m_formats.end() ? format->second : empty };
 
     // Blocking (short) writes: the reader is another process
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
     size_t written { 0 };
 
-    while (written < self.m_text.size())
+    while (written < bytes.size())
     {
-        const ssize_t n { write(fd, self.m_text.data() + written, self.m_text.size() - written) };
+        const ssize_t n { write(fd, bytes.data() + written, bytes.size() - written) };
 
         if (n < 0 && errno == EINTR)
             continue;
@@ -98,14 +127,30 @@ void MClipboard::source_cancelled(void *data, wl_data_source *source)
 
 void MClipboard::requestText(std::function<void(std::optional<std::string>)> done) noexcept
 {
+    requestData(std::vector<std::string>(std::begin(TextMimeTypes), std::end(TextMimeTypes)),
+        [done = std::move(done)](std::optional<Format> data){
+            done(data ? std::optional(std::move(data->second)) : std::nullopt);
+        });
+}
+
+void MClipboard::requestData(const std::vector<std::string> &mimeTypes, std::function<void(std::optional<Format>)> done) noexcept
+{
     // Ours (also avoids reading from our own pipe), or nothing to read: answered from the loop
-    const auto answerLater = [&done](std::optional<std::string> text) {
-        CZTimer::OneShot(0, [done = std::move(done), text = std::move(text)](CZTimer*) { done(text); });
+    const auto answerLater = [&done](std::optional<Format> data) {
+        CZTimer::OneShot(0, [done = std::move(done), data = std::move(data)](CZTimer*) { done(data); });
     };
 
     if (m_source)
     {
-        answerLater(m_text);
+        for (const auto &type : mimeTypes)
+            for (const auto &format : m_formats)
+                if (format.first == type)
+                {
+                    answerLater(format);
+                    return;
+                }
+
+        answerLater(std::nullopt);
         return;
     }
 
@@ -117,12 +162,12 @@ void MClipboard::requestText(std::function<void(std::optional<std::string>)> don
         return;
     }
 
-    const char *mimeType { nullptr };
+    const std::string *mimeType { nullptr };
 
-    for (const char *candidate : TextMimeTypes)
-        if (offer->hasMimeType(candidate)) { mimeType = candidate; break; }
+    for (const auto &candidate : mimeTypes)
+        if (offer->hasMimeType(candidate)) { mimeType = &candidate; break; }
 
-    const Int32 fd { mimeType ? offer->receive(mimeType) : -1 };
+    const Int32 fd { mimeType ? offer->receive(*mimeType) : -1 };
 
     if (fd < 0)
     {
@@ -133,6 +178,7 @@ void MClipboard::requestText(std::function<void(std::optional<std::string>)> don
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
     auto read { std::make_unique<Read>() };
     read->done = std::move(done);
+    read->mimeType = *mimeType;
     Read *raw { read.get() };
 
     read->source = CZEventSource::Make(fd, EPOLLIN, CZOwn::Own, [this, raw](int fd, UInt32, CZEventSource*) {
@@ -186,6 +232,6 @@ void MClipboard::finishRead(Read *read, bool ok) noexcept
         m_reads.erase(it);
 
         if (owned->done)
-            owned->done(ok ? std::optional(std::move(owned->data)) : std::nullopt);
+            owned->done(ok ? std::optional(Format { std::move(owned->mimeType), std::move(owned->data) }) : std::nullopt);
     });
 }

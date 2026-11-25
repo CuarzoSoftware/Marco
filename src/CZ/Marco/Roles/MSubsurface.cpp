@@ -132,6 +132,18 @@ bool MSubsurface::placeAbove(MSubsurface *subSurface) noexcept
 
 bool MSubsurface::placeBelow(MSubsurface *subSurface) noexcept
 {
+    // Directly below the parent (the bottom of the subsurfaces list holds the ones below it)
+    if (!subSurface && parent())
+    {
+        parent()->imp()->subSurfaces.erase(imp()->parentLink);
+        parent()->imp()->subSurfaces.push_front(this);
+        imp()->parentLink = parent()->imp()->subSurfaces.begin();
+        wl_subsurface_place_below(imp()->wlSubSurface, parent()->wlSurface());
+        update();
+        parent()->update(true);
+        return true;
+    }
+
     if (!subSurface || !parent() || subSurface->parent() != parent())
         return false;
 

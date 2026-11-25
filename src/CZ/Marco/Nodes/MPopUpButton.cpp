@@ -23,4 +23,7 @@ void MPopUpButton::openMenu(const CZPointerButtonEvent &event) noexcept
         menu.addAction(items()[i], [this, i]{ select(i); }).setChecked(i == selectedIndex());
 
     menu.popup(*this, &event);
+
+    // Open right away (the menu is shown a few frames later): the pressed fill stays
+    setMenuOpen(true);
 }

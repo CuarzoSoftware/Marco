@@ -80,8 +80,10 @@ public:
      * @brief Places this subsurface below another sibling subsurface.
      *
      * The specified sibling subsurface must belong to the same parent, see setParent().
+     * If `nullptr` is passed, this subsurface will be placed directly below the current parent()
+     * (the parent is drawn over it).
      *
-     * @param subSurface The sibling subsurface to place this subsurface below.
+     * @param subSurface The sibling subsurface to place this subsurface below, or nullptr.
      * @return `true` if the operation was successful, `false` otherwise.
      */
     bool placeBelow(MSubsurface *subSurface) noexcept;

@@ -19,13 +19,17 @@ public:
     ~MClipboard() noexcept;
     void setText(const std::string &text, const CZInputEvent &triggeringEvent) noexcept override;
     void requestText(std::function<void(std::optional<std::string> text)> done) noexcept override;
+    void setData(const std::vector<Format> &formats, const CZInputEvent &triggeringEvent) noexcept override;
+    void requestData(const std::vector<std::string> &mimeTypes, std::function<void(std::optional<Format> data)> done) noexcept override;
+    std::vector<std::string> mimeTypes() const noexcept override;
 
 private:
     struct Read
     {
         std::shared_ptr<CZEventSource> source;
         std::string data;
-        std::function<void(std::optional<std::string>)> done;
+        std::string mimeType;
+        std::function<void(std::optional<Format>)> done;
         bool finished { false };
     };
 
@@ -41,7 +45,7 @@ private:
     static const wl_data_source_listener SourceListener;
 
     wl_data_source *m_source {}; // Ours while we own the selection
-    std::string m_text;
+    std::vector<Format> m_formats; // What we offer while we own the selection
     std::list<std::unique_ptr<Read>> m_reads;
 };
 }
