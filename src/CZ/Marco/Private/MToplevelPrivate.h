@@ -71,6 +71,11 @@ public:
 
     // Root node event filter
     void handleRootPointerButtonEvent(const CZPointerButtonEvent &event) noexcept;
+
+    // The last press that started a window move (a second one soon after, at the same place, is a
+    // double click: see handleRootPointerButtonEvent())
+    UInt64 moveClickMs { 0 };
+    SkPoint moveClickPos {};
     void handleRootPointerMoveEvent(const CZPointerMoveEvent &event) noexcept;
     void unmap() noexcept;
 };

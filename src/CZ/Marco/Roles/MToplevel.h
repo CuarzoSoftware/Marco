@@ -475,7 +475,8 @@ protected:
      * @brief Watches the pointer events of rootNode() to start interactive resizes and moves.
      *
      * A left click near the edges of the central node starts an `xdg_toplevel.resize`, and over a
-     * node with the `UCWindowMove` capability near its top an `xdg_toplevel.move`. Pointer moves update the resize
+     * node with the `UCWindowMove` capability near its top an `xdg_toplevel.move`. A double click there
+     * toggles maximized instead (see MTheme::DoubleClickMs), unless fullscreen. Pointer moves update the resize
      * cursor. Subclasses overriding it must call `MToplevel::eventFilter()`.
      */
     bool eventFilter(const CZEvent &event, CZObject &object) noexcept override;

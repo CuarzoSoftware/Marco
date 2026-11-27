@@ -4,6 +4,8 @@
 #include <CZ/Marco/MTheme.h>
 
 #include <CZ/Core/CZCore.h>
+#include <CZ/Core/CZTime.h>
+#include <cmath>
 #include <CZ/Core/Events/CZWindowStateEvent.h>
 #include <CZ/Core/Events/CZCloseEvent.h>
 
@@ -209,6 +211,24 @@ void MToplevel::Imp::handleRootPointerButtonEvent(const CZPointerButtonEvent &ev
         obj.worldRect().y() <= pointerPos.y() &&
         obj.worldRect().y() + moveTopMargin >= pointerPos.y())
     {
+        // Double clicked: maximized (or restored), like double clicking a title bar. Not moved
+        const UInt64 now { CZTime::Ms() };
+        const bool doubleClick { moveClickMs != 0 && now - moveClickMs <= MTheme::DoubleClickMs &&
+            std::abs(pointerPos.x() - moveClickPos.x()) <= MTheme::DoubleClickDistance &&
+            std::abs(pointerPos.y() - moveClickPos.y()) <= MTheme::DoubleClickDistance };
+
+        if (doubleClick)
+        {
+            moveClickMs = 0; // A third click starts over
+
+            if (!obj.fullscreen())
+                obj.setMaximized(!obj.maximized());
+
+            return;
+        }
+
+        moveClickMs = now;
+        moveClickPos = pointerPos;
         xdg_toplevel_move(xdgToplevel, MApp::Get()->wl.seat, event.serial);
     }
 }
