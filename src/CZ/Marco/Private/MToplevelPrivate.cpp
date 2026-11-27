@@ -1,3 +1,4 @@
+#include <CZ/Core/CZMouseSettings.h>
 #include <CZ/AK/AKLog.h>
 #include <CZ/Marco/Private/MToplevelPrivate.h>
 #include <CZ/Marco/MApp.h>
@@ -213,7 +214,7 @@ void MToplevel::Imp::handleRootPointerButtonEvent(const CZPointerButtonEvent &ev
     {
         // Double clicked: maximized (or restored), like double clicking a title bar. Not moved
         const UInt64 now { CZTime::Ms() };
-        const bool doubleClick { moveClickMs != 0 && now - moveClickMs <= MTheme::DoubleClickMs &&
+        const bool doubleClick { moveClickMs != 0 && now - moveClickMs <= CZMouseSettings::DoubleClickMs() &&
             std::abs(pointerPos.x() - moveClickPos.x()) <= MTheme::DoubleClickDistance &&
             std::abs(pointerPos.y() - moveClickPos.y()) <= MTheme::DoubleClickDistance };
 

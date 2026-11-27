@@ -31,10 +31,7 @@ public:
     /** @brief Height of the area at the top of an MToplevel where nodes with `UCWindowMove` start a window move. */
     static inline Int32 CSDMoveOutset { 54 };
 
-    /** @brief Longest time between the two presses of a double click on an MToplevel's move area (it toggles maximized), in milliseconds. */
-    static inline UInt32 DoubleClickMs { 400 };
-
-    /** @brief Farthest the pointer can move between those two presses, in logical pixels. */
+    /** @brief Farthest the pointer can move between the two presses of a double click on an MToplevel's move area (it toggles maximized), in logical pixels. */
     static inline SkScalar DoubleClickDistance { 4.f };
 
     /** @brief Width of the area around an MToplevel's edges that starts a resize. */
